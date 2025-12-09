@@ -4,7 +4,11 @@ import "./App.css";
 import MainMap from "./components/map/MainMap";
 
 function App() {
-  return <MainMap />;
+  return (
+    <React.StrictMode>
+      <MainMap />;
+    </React.StrictMode>
+  );
 }
 
 export default App;
