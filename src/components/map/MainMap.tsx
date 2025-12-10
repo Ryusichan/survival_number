@@ -5,8 +5,9 @@ const HEIGHT = 640;
 
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
-const ROW_SPEED = 0.35;
+const ROW_SPEED = 0.3;
 const HIT_RANGE = 0.05;
+const ROW_GAP = 0.2; // 🔹 간격 비율 (기본값)
 
 type Player = { lane: number; value: number };
 type RowKind = "normal" | "goal";
@@ -138,11 +139,11 @@ const NumberLaneGame: React.FC = () => {
 
     const newRows: Row[] = [];
     for (let i = 0; i < rowCount; i++) {
-      newRows.push(makeNormalRow(-i * 0.25));
+      newRows.push(makeNormalRow(-i * ROW_GAP));
     }
 
     // 마지막에 goal 한 줄 (좌우 2개 옵션)
-    newRows.push(makeGoalRow(-rowCount * 0.25));
+    newRows.push(makeGoalRow(-rowCount * ROW_GAP));
 
     setRows(newRows);
     setPlayer({ lane: 2, value: 0 });
@@ -378,7 +379,7 @@ const NumberLaneGame: React.FC = () => {
                 <div
                   key={`${row.id}-goal-${idx}`}
                   style={{
-                    width: "48%",
+                    width: "49%",
                     height: "100%",
                     borderRadius: 24,
                     background: "#f97316",
@@ -408,7 +409,7 @@ const NumberLaneGame: React.FC = () => {
                 left: x,
                 top: rowYpx,
                 transform: "translate(-50%, -50%)",
-                width: laneWidth * 0.7,
+                width: laneWidth * 0.8,
                 height: 60,
                 borderRadius: 16,
                 background: "#3b82f6",
