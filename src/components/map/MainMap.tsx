@@ -16,6 +16,7 @@ type Row = {
   values: number[];
   kind: RowKind;
   handled?: boolean;
+  hitLane?: number | null; // 터치
 };
 
 let rowIdSeed = 0;
@@ -68,6 +69,7 @@ const NumberLaneGame: React.FC = () => {
   const latestValue = useRef(player.value);
   const latestGoal = useRef(goalValue);
   const latestStage = useRef(stage);
+  const initializedRef = useRef(false);
 
   // 터치 스와이프
   const touchStartXRef = useRef<number | null>(null);
@@ -130,6 +132,8 @@ const NumberLaneGame: React.FC = () => {
 
   // 🔹 첫 진입 시 스테이지 0 랜덤 goal로 시작
   useEffect(() => {
+    if (initializedRef.current) return; // 이미 한 번 초기화 했으면 무시
+    initializedRef.current = true;
     initStage(0, true);
   }, []);
 
@@ -208,7 +212,17 @@ const NumberLaneGame: React.FC = () => {
           if (justCrossed) {
             if (row.kind === "normal") {
               // 이번 프레임에 더해질 값 누적
+              const laneHit = latestLane.current;
+              const v = row.values[laneHit];
+
               addValue += row.values[latestLane.current];
+
+              next.push({
+                ...row,
+                y: newY,
+                handled: true,
+                hitLane: laneHit, // 이 칸만 opacity 0 만들려고 저장
+              });
             } else if (row.kind === "goal") {
               // goal 줄에 닿는 순간, 이번 프레임에 먹은 addValue까지 합쳐서 판정
               hitGoal = true;
@@ -350,6 +364,8 @@ const NumberLaneGame: React.FC = () => {
                 fontSize: 28,
                 fontWeight: "bold",
                 boxShadow: "0 6px 0 rgba(0,0,0,0.25)",
+                opacity: row.hitLane === laneIndex ? 0 : 1, // ✅ 닿은 칸만 0
+                transition: "opacity 0.3s ease", // ✅ 부드럽게 사라지게 (원하면 조절)
               }}
             >
               {v}
