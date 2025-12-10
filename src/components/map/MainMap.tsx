@@ -90,6 +90,7 @@ const NumberLaneGame: React.FC = () => {
   }, [stage]);
 
   // 🔹 스테이지 초기화 함수
+  // 🔹 스테이지 초기화 함수
   const initStage = (stageIndex: number, isNewStage: boolean) => {
     const index = stageIndex % stageSettings.length;
     const { values, rowCount } = stageSettings[index];
@@ -103,28 +104,45 @@ const NumberLaneGame: React.FC = () => {
       latestGoal.current = goal;
     }
 
-    // 시간 delta 초기화
     lastTimeRef.current = null;
 
-    const makeRow = (offsetY: number, kind: RowKind): Row => ({
+    // 🔹 normal 줄
+    const makeNormalRow = (offsetY: number): Row => ({
       id: rowIdSeed++,
       y: offsetY,
-      values:
-        kind === "goal"
-          ? Array(LANE_COUNT).fill(goal)
-          : Array.from({ length: LANE_COUNT }, () => {
-              const i = Math.floor(Math.random() * values.length);
-              return values[i];
-            }),
-      kind,
+      values: Array.from({ length: LANE_COUNT }, () => {
+        const i = Math.floor(Math.random() * values.length);
+        return values[i];
+      }),
+      kind: "normal",
       handled: false,
+      hitLane: null,
+    });
+
+    // 🔹 goal 줄: values[0] = 정답, values[1] = 오답
+    const totals = getPossibleTotals(values, rowCount);
+    const candidates = totals.filter((t) => t !== goal);
+    const wrongGoal =
+      candidates.length > 0
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : goal + (values[0] ?? 1);
+
+    const makeGoalRow = (offsetY: number): Row => ({
+      id: rowIdSeed++,
+      y: offsetY,
+      values: [goal, wrongGoal], // ✨ 두 개의 선택지
+      kind: "goal",
+      handled: false,
+      hitLane: null,
     });
 
     const newRows: Row[] = [];
     for (let i = 0; i < rowCount; i++) {
-      newRows.push(makeRow(-i * 0.25, "normal"));
+      newRows.push(makeNormalRow(-i * 0.25));
     }
-    newRows.push(makeRow(-rowCount * 0.25, "goal"));
+
+    // 마지막에 goal 한 줄 (좌우 2개 옵션)
+    newRows.push(makeGoalRow(-rowCount * 0.25));
 
     setRows(newRows);
     setPlayer({ lane: 2, value: 0 });
@@ -210,27 +228,42 @@ const NumberLaneGame: React.FC = () => {
             !row.handled && prevY < PLAYER_Y && newY >= PLAYER_Y;
 
           if (justCrossed) {
-            if (row.kind === "normal") {
-              // 이번 프레임에 더해질 값 누적
-              const laneHit = latestLane.current;
-              const v = row.values[laneHit];
+            const laneHit = latestLane.current;
 
-              addValue += row.values[latestLane.current];
+            if (row.kind === "normal") {
+              // ✅ 일반 줄: 내가 있는 lane 숫자만 더함
+              const picked = row.values[laneHit];
+              addValue += picked;
 
               next.push({
                 ...row,
                 y: newY,
                 handled: true,
-                hitLane: laneHit, // 이 칸만 opacity 0 만들려고 저장
+                hitLane: laneHit,
               });
             } else if (row.kind === "goal") {
-              // goal 줄에 닿는 순간, 이번 프레임에 먹은 addValue까지 합쳐서 판정
+              // ✅ goal 줄: lane에 따라 왼쪽/오른쪽 중 하나 선택
               hitGoal = true;
+
+              // 왼쪽 영역(lane 0,1) → index 0, 오른쪽 영역(lane 3,4) → index 1
+              const optionIndex = laneHit < LANE_COUNT / 2 ? 0 : 1;
+
+              const chosenGoalNumber = row.values[optionIndex];
               const totalAfterHit = latestValue.current + addValue;
-              success = totalAfterHit === latestGoal.current;
+
+              // 🔥 합도 맞고, 내가 선택한 goal 숫자도 정답 goal일 때만 성공
+              success =
+                totalAfterHit === latestGoal.current &&
+                chosenGoalNumber === latestGoal.current;
+
+              next.push({
+                ...row,
+                y: newY,
+                handled: true,
+                hitLane: laneHit,
+              });
             }
 
-            next.push({ ...row, y: newY, handled: true });
             continue;
           }
 
@@ -291,7 +324,7 @@ const NumberLaneGame: React.FC = () => {
       style={{
         position: "relative",
         width: WIDTH,
-        height: HEIGHT,
+        height: "100vh",
         margin: "0 auto",
         background: "#e5e7eb",
         overflow: "hidden",
@@ -302,8 +335,17 @@ const NumberLaneGame: React.FC = () => {
       onTouchCancel={handleTouchEnd}
     >
       {/* 상단 UI */}
-      <div style={{ position: "absolute", top: 8, left: 8, fontSize: 14 }}>
-        STAGE: {stage + 1}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: 28,
+          fontFamily: "Fredoka",
+        }}
+      >
+        STAGE {stage + 1}
       </div>
       <div style={{ position: "absolute", top: 26, left: 8, fontSize: 14 }}>
         목표: {goalValue}
@@ -325,20 +367,33 @@ const NumberLaneGame: React.FC = () => {
                 left: WIDTH / 2,
                 top: rowYpx,
                 transform: "translate(-50%, -50%)",
-                width: WIDTH * 0.8,
+                width: WIDTH * 0.9,
                 height: 80,
-                borderRadius: 24,
-                background: "#f97316",
-                display: "flex",
+                display: "flex", // 🔥 여기: 자식 둘 가로 배치
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 36,
-                fontWeight: "bold",
-                boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
               }}
             >
-              {row.values[0]}
+              {row.values.map((v, idx) => (
+                <div
+                  key={`${row.id}-goal-${idx}`}
+                  style={{
+                    width: "48%",
+                    height: "100%",
+                    borderRadius: 24,
+                    background: "#f97316",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontSize: 32,
+                    fontWeight: "bold",
+                    boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
+                  }}
+                >
+                  {v}
+                </div>
+              ))}
             </div>
           );
         }
