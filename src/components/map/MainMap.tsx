@@ -362,7 +362,7 @@ const NumberLaneGame: React.FC = () => {
         STAGE {stage + 1}
       </div>
       <div style={{ position: "absolute", top: 26, left: 8, fontSize: 14 }}>
-        목표: {goalValues}
+        목표: {goalValues.join(" / ")}
       </div>
       <div style={{ position: "absolute", top: 26, right: 8, fontSize: 14 }}>
         현재: {player.value}
@@ -489,7 +489,7 @@ const NumberLaneGame: React.FC = () => {
         >
           <div style={{ fontSize: 26, marginBottom: 12 }}>실패… 💀</div>
           <div style={{ fontSize: 16, marginBottom: 24 }}>
-            목표: {goalValues} / 현재: {player.value}
+            목표: {goalValues.join(" / ")} / 현재: {player.value}
           </div>
           <button
             onClick={handleRetry}
