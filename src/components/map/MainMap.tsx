@@ -24,9 +24,20 @@ let rowIdSeed = 0;
 
 // 🔹 스테이지 설정: 숫자 후보 + 몇 줄을 지나갈지(rowCount)
 const stageSettings: { values: number[]; rowCount: number }[] = [
-  { values: [2, 5], rowCount: 2 },
-  { values: [2, 5, 10], rowCount: 3 },
-  { values: [3, 7], rowCount: 4 },
+  { values: [1, 2], rowCount: 2 },
+  { values: [2, 3], rowCount: 2 },
+  { values: [3, 4], rowCount: 2 },
+  { values: [4, 5], rowCount: 3 },
+  { values: [5, 6], rowCount: 3 },
+  { values: [6, 7], rowCount: 3 },
+  { values: [1, 2, 3], rowCount: 4 },
+  { values: [2, 10, 4], rowCount: 4 },
+  { values: [3, 4, 5], rowCount: 4 },
+  { values: [10, 2, 6], rowCount: 4 },
+  { values: [4, 3, 7], rowCount: 5 },
+  { values: [1, 8, 9], rowCount: 5 },
+  { values: [4, 6, 8], rowCount: 5 },
+  { values: [2, 5, 10], rowCount: 5 },
 ];
 
 // 🔹 values와 rowCount로 가능한 총합 리스트 구하기
