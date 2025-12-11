@@ -168,7 +168,7 @@ const NumberLaneGame: React.FC = () => {
     newRows.push(makeGoalRow(-rowCount * ROW_GAP));
 
     setRows(newRows);
-    setPlayer({ lane: 2, value: 0 });
+    setPlayer((prev) => ({ ...prev, value: 0 }));
   };
 
   // 🔹 첫 진입 시 스테이지 0 랜덤 goal로 시작
