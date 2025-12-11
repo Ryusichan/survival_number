@@ -57,7 +57,7 @@ const NumberLaneGame: React.FC = () => {
   const [player, setPlayer] = useState<Player>({ lane: 2, value: 0 });
   const [rows, setRows] = useState<Row[]>([]);
   const [stage, setStage] = useState(0);
-  const [goalValue, setGoalValue] = useState(0);
+  const [goalValues, setGoalValues] = useState<number[]>([]);
 
   // 실패 상황판 열렸는지 여부
   const [failBoardOpen, setFailBoardOpen] = useState(false);
@@ -68,7 +68,7 @@ const NumberLaneGame: React.FC = () => {
   // 최신 값 저장용 ref (게임 루프에서 사용)
   const latestLane = useRef(player.lane);
   const latestValue = useRef(player.value);
-  const latestGoal = useRef(goalValue);
+  const latestGoal = useRef(goalValues);
   const latestStage = useRef(stage);
   const initializedRef = useRef(false);
 
@@ -83,31 +83,40 @@ const NumberLaneGame: React.FC = () => {
   }, [player]);
 
   useEffect(() => {
-    latestGoal.current = goalValue;
-  }, [goalValue]);
+    latestGoal.current = goalValues;
+  }, [goalValues]);
 
   useEffect(() => {
     latestStage.current = stage;
   }, [stage]);
 
   // 🔹 스테이지 초기화 함수
-  // 🔹 스테이지 초기화 함수
   const initStage = (stageIndex: number, isNewStage: boolean) => {
     const index = stageIndex % stageSettings.length;
     const { values, rowCount } = stageSettings[index];
 
-    let goal = latestGoal.current;
-
-    // 새 스테이지 시작이거나, goal이 아직 0이면 새로운 랜덤 goal 생성
-    if (isNewStage || goal === 0) {
-      goal = getRandomGoal(values, rowCount);
-      setGoalValue(goal);
-      latestGoal.current = goal;
-    }
-
     lastTimeRef.current = null;
 
-    // 🔹 normal 줄
+    // -------------------------
+    // 🔥 1) 가능한 total 목록 생성
+    // -------------------------
+    const totals = getPossibleTotals(values, rowCount);
+
+    // 총합 리스트가 너무 적어도 최소 2개 선택되도록 처리
+    const shuffled = [...totals].sort(() => Math.random() - 0.5);
+
+    const goalA = shuffled[0] ?? 0;
+    const goalB = shuffled[1] ?? goalA; // totals가 1개일 때 대비
+
+    // -------------------------
+    // 🔥 2) 상태에 저장
+    // -------------------------
+    setGoalValues([goalA, goalB]);
+    latestGoal.current = [goalA, goalB];
+
+    // -------------------------
+    // 🔥 3) normal 줄 생성 함수
+    // -------------------------
     const makeNormalRow = (offsetY: number): Row => ({
       id: rowIdSeed++,
       y: offsetY,
@@ -120,31 +129,32 @@ const NumberLaneGame: React.FC = () => {
       hitLane: null,
     });
 
-    // 🔹 goal 줄: values[0] = 정답, values[1] = 오답
-    const totals = getPossibleTotals(values, rowCount);
-    const candidates = totals.filter((t) => t !== goal);
-    const wrongGoal =
-      candidates.length > 0
-        ? candidates[Math.floor(Math.random() * candidates.length)]
-        : goal + (values[0] ?? 1);
-
+    // -------------------------
+    // 🔥 4) goal 줄 생성 (2개의 목표)
+    // -------------------------
     const makeGoalRow = (offsetY: number): Row => ({
       id: rowIdSeed++,
       y: offsetY,
-      values: [goal, wrongGoal], // ✨ 두 개의 선택지
+      values: [goalA, goalB], // ✨ 두 개의 goal 옵션
       kind: "goal",
       handled: false,
       hitLane: null,
     });
 
+    // -------------------------
+    // 🔥 5) 스테이지 줄들 생성
+    // -------------------------
     const newRows: Row[] = [];
+
+    // normal 줄 rowCount개
     for (let i = 0; i < rowCount; i++) {
       newRows.push(makeNormalRow(-i * ROW_GAP));
     }
 
-    // 마지막에 goal 한 줄 (좌우 2개 옵션)
+    // 마지막 goal 줄
     newRows.push(makeGoalRow(-rowCount * ROW_GAP));
 
+    // 상태 초기화
     setRows(newRows);
     setPlayer({ lane: 2, value: 0 });
   };
@@ -252,10 +262,13 @@ const NumberLaneGame: React.FC = () => {
               const chosenGoalNumber = row.values[optionIndex];
               const totalAfterHit = latestValue.current + addValue;
 
-              // 🔥 합도 맞고, 내가 선택한 goal 숫자도 정답 goal일 때만 성공
-              success =
-                totalAfterHit === latestGoal.current &&
-                chosenGoalNumber === latestGoal.current;
+              const [goalA, goalB] = latestGoal.current; // goalValues 배열
+              const isMatchTotal =
+                totalAfterHit === goalA || totalAfterHit === goalB;
+              const isMatchChosenGoal =
+                chosenGoalNumber === goalA || chosenGoalNumber === goalB;
+
+              success = isMatchTotal && isMatchChosenGoal;
 
               next.push({
                 ...row,
@@ -349,7 +362,7 @@ const NumberLaneGame: React.FC = () => {
         STAGE {stage + 1}
       </div>
       <div style={{ position: "absolute", top: 26, left: 8, fontSize: 14 }}>
-        목표: {goalValue}
+        목표: {goalValues}
       </div>
       <div style={{ position: "absolute", top: 26, right: 8, fontSize: 14 }}>
         현재: {player.value}
@@ -476,7 +489,7 @@ const NumberLaneGame: React.FC = () => {
         >
           <div style={{ fontSize: 26, marginBottom: 12 }}>실패… 💀</div>
           <div style={{ fontSize: 16, marginBottom: 24 }}>
-            목표: {goalValue} / 현재: {player.value}
+            목표: {goalValues} / 현재: {player.value}
           </div>
           <button
             onClick={handleRetry}
