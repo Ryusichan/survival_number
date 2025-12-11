@@ -7,7 +7,7 @@ const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.3;
 const HIT_RANGE = 0.05;
-const ROW_GAP = 0.2; // 🔹 간격 비율 (기본값)
+const ROW_GAP = 0.2; // 🔹 줄 간격 비율
 
 type Player = { lane: number; value: number };
 type RowKind = "normal" | "goal";
@@ -17,7 +17,7 @@ type Row = {
   values: number[];
   kind: RowKind;
   handled?: boolean;
-  hitLane?: number | null; // 터치
+  hitLane?: number | null; // 터치된 lane
 };
 
 let rowIdSeed = 0;
@@ -57,7 +57,7 @@ const NumberLaneGame: React.FC = () => {
   const [player, setPlayer] = useState<Player>({ lane: 2, value: 0 });
   const [rows, setRows] = useState<Row[]>([]);
   const [stage, setStage] = useState(0);
-  const [goalValues, setGoalValues] = useState<number[]>([]);
+  const [goalValue, setGoalValue] = useState(0);
 
   // 실패 상황판 열렸는지 여부
   const [failBoardOpen, setFailBoardOpen] = useState(false);
@@ -68,13 +68,12 @@ const NumberLaneGame: React.FC = () => {
   // 최신 값 저장용 ref (게임 루프에서 사용)
   const latestLane = useRef(player.lane);
   const latestValue = useRef(player.value);
-  const latestGoal = useRef(goalValues);
+  const latestGoal = useRef(goalValue);
   const latestStage = useRef(stage);
   const initializedRef = useRef(false);
 
-  // 터치 스와이프
-  const touchStartXRef = useRef<number | null>(null);
-  const touchMovedRef = useRef(false);
+  // 🔹 터치 영역 컨테이너 ref (손 위치 → lane 계산용)
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   // 🔹 state 바뀔 때마다 ref 갱신
   useEffect(() => {
@@ -83,8 +82,8 @@ const NumberLaneGame: React.FC = () => {
   }, [player]);
 
   useEffect(() => {
-    latestGoal.current = goalValues;
-  }, [goalValues]);
+    latestGoal.current = goalValue;
+  }, [goalValue]);
 
   useEffect(() => {
     latestStage.current = stage;
@@ -95,28 +94,18 @@ const NumberLaneGame: React.FC = () => {
     const index = stageIndex % stageSettings.length;
     const { values, rowCount } = stageSettings[index];
 
+    let goal = latestGoal.current;
+
+    // 새 스테이지 시작이거나, goal이 아직 0이면 새로운 랜덤 goal 생성
+    if (isNewStage || goal === 0) {
+      goal = getRandomGoal(values, rowCount);
+      setGoalValue(goal);
+      latestGoal.current = goal;
+    }
+
     lastTimeRef.current = null;
 
-    // -------------------------
-    // 🔥 1) 가능한 total 목록 생성
-    // -------------------------
-    const totals = getPossibleTotals(values, rowCount);
-
-    // 총합 리스트가 너무 적어도 최소 2개 선택되도록 처리
-    const shuffled = [...totals].sort(() => Math.random() - 0.5);
-
-    const goalA = shuffled[0] ?? 0;
-    const goalB = shuffled[1] ?? goalA; // totals가 1개일 때 대비
-
-    // -------------------------
-    // 🔥 2) 상태에 저장
-    // -------------------------
-    setGoalValues([goalA, goalB]);
-    latestGoal.current = [goalA, goalB];
-
-    // -------------------------
-    // 🔥 3) normal 줄 생성 함수
-    // -------------------------
+    // 🔹 normal 줄
     const makeNormalRow = (offsetY: number): Row => ({
       id: rowIdSeed++,
       y: offsetY,
@@ -129,32 +118,31 @@ const NumberLaneGame: React.FC = () => {
       hitLane: null,
     });
 
-    // -------------------------
-    // 🔥 4) goal 줄 생성 (2개의 목표)
-    // -------------------------
+    // 🔹 goal 줄: values[0] = 정답, values[1] = 오답
+    const totals = getPossibleTotals(values, rowCount);
+    const candidates = totals.filter((t) => t !== goal);
+    const wrongGoal =
+      candidates.length > 0
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : goal + (values[0] ?? 1);
+
     const makeGoalRow = (offsetY: number): Row => ({
       id: rowIdSeed++,
       y: offsetY,
-      values: [goalA, goalB], // ✨ 두 개의 goal 옵션
+      values: [goal, wrongGoal], // ✨ 두 개의 선택지
       kind: "goal",
       handled: false,
       hitLane: null,
     });
 
-    // -------------------------
-    // 🔥 5) 스테이지 줄들 생성
-    // -------------------------
     const newRows: Row[] = [];
-
-    // normal 줄 rowCount개
     for (let i = 0; i < rowCount; i++) {
       newRows.push(makeNormalRow(-i * ROW_GAP));
     }
 
-    // 마지막 goal 줄
+    // 마지막에 goal 한 줄 (좌우 2개 옵션)
     newRows.push(makeGoalRow(-rowCount * ROW_GAP));
 
-    // 상태 초기화
     setRows(newRows);
     setPlayer({ lane: 2, value: 0 });
   };
@@ -166,7 +154,7 @@ const NumberLaneGame: React.FC = () => {
     initStage(0, true);
   }, []);
 
-  // 🔹 키보드 좌우 이동
+  // 🔹 키보드 좌우 이동 (그대로 유지)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       setPlayer((prev) => {
@@ -183,33 +171,35 @@ const NumberLaneGame: React.FC = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // 🔹 터치(모바일) 이동
+  // 🔹 터치(모바일) 이동 — 손가락 위치에 맞춰 바로 lane 이동
+  const movePlayerByTouchX = (clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left; // 컨테이너 내부 기준 X
+    const laneWidthPx = rect.width / LANE_COUNT;
+    let lane = Math.floor(x / laneWidthPx);
+    lane = Math.max(0, Math.min(LANE_COUNT - 1, lane));
+
+    setPlayer((prev) => ({
+      ...prev,
+      lane,
+    }));
+  };
+
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchMovedRef.current = false;
+    const touch = e.touches[0];
+    movePlayerByTouchX(touch.clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (touchStartXRef.current == null) return;
-    const dx = e.touches[0].clientX - touchStartXRef.current;
-    const THRESHOLD = 40;
-
-    if (!touchMovedRef.current && Math.abs(dx) > THRESHOLD) {
-      setPlayer((prev) => {
-        let nextLane = prev.lane + (dx > 0 ? 1 : -1);
-        nextLane = Math.max(0, Math.min(LANE_COUNT - 1, nextLane));
-        return { ...prev, lane: nextLane };
-      });
-      touchMovedRef.current = true;
-    }
+    const touch = e.touches[0];
+    movePlayerByTouchX(touch.clientX);
   };
 
   const handleTouchEnd = () => {
-    touchMovedRef.current = false;
-    touchStartXRef.current = null;
+    // 손을 떼면 그냥 현재 lane 유지 → 아무 것도 안 함
   };
 
-  // 🔹 게임 루프 (실패 상황판이 열려 있으면 멈춤)
   // 🔹 게임 루프 (실패 상황판이 열려 있으면 멈춤)
   useEffect(() => {
     if (failBoardOpen) return; // 멈춘 상태면 루프 돌리지 않음
@@ -234,7 +224,7 @@ const NumberLaneGame: React.FC = () => {
           const prevY = row.y;
           const newY = row.y + ROW_SPEED * dt;
 
-          // ✅ "플레이어 라인을 위→아래로 통과하는 순간"만 한 번만 처리
+          // ✅ "플레이어 라인을 위→아래로 통과하는 순간"만 한 번 처리
           const justCrossed =
             !row.handled && prevY < PLAYER_Y && newY >= PLAYER_Y;
 
@@ -262,13 +252,10 @@ const NumberLaneGame: React.FC = () => {
               const chosenGoalNumber = row.values[optionIndex];
               const totalAfterHit = latestValue.current + addValue;
 
-              const [goalA, goalB] = latestGoal.current; // goalValues 배열
-              const isMatchTotal =
-                totalAfterHit === goalA || totalAfterHit === goalB;
-              const isMatchChosenGoal =
-                chosenGoalNumber === goalA || chosenGoalNumber === goalB;
-
-              success = isMatchTotal && isMatchChosenGoal;
+              // 🔥 합이 goalValue랑 같고, 내가 선택한 goal 숫자도 goalValue와 같을 때만 성공
+              success =
+                totalAfterHit === latestGoal.current &&
+                chosenGoalNumber === latestGoal.current;
 
               next.push({
                 ...row,
@@ -335,6 +322,7 @@ const NumberLaneGame: React.FC = () => {
 
   return (
     <div
+      ref={containerRef} // 🔥 터치 좌표 계산용 ref
       style={{
         position: "relative",
         width: WIDTH,
@@ -362,7 +350,7 @@ const NumberLaneGame: React.FC = () => {
         STAGE {stage + 1}
       </div>
       <div style={{ position: "absolute", top: 26, left: 8, fontSize: 14 }}>
-        목표: {goalValues.join(" / ")}
+        목표: {goalValue}
       </div>
       <div style={{ position: "absolute", top: 26, right: 8, fontSize: 14 }}>
         현재: {player.value}
@@ -383,7 +371,7 @@ const NumberLaneGame: React.FC = () => {
                 transform: "translate(-50%, -50%)",
                 width: WIDTH * 0.9,
                 height: 80,
-                display: "flex", // 🔥 여기: 자식 둘 가로 배치
+                display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
@@ -433,8 +421,8 @@ const NumberLaneGame: React.FC = () => {
                 fontSize: 28,
                 fontWeight: "bold",
                 boxShadow: "0 6px 0 rgba(0,0,0,0.25)",
-                opacity: row.hitLane === laneIndex ? 0 : 1, // ✅ 닿은 칸만 0
-                transition: "opacity 0.3s ease", // ✅ 부드럽게 사라지게 (원하면 조절)
+                opacity: row.hitLane === laneIndex ? 0 : 1,
+                transition: "opacity 0.3s ease",
               }}
             >
               {v}
@@ -489,7 +477,7 @@ const NumberLaneGame: React.FC = () => {
         >
           <div style={{ fontSize: 26, marginBottom: 12 }}>실패… 💀</div>
           <div style={{ fontSize: 16, marginBottom: 24 }}>
-            목표: {goalValues.join(" / ")} / 현재: {player.value}
+            목표: {goalValue} / 현재: {player.value}
           </div>
           <button
             onClick={handleRetry}
