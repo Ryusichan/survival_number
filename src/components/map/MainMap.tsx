@@ -355,7 +355,7 @@ const NumberLaneGame: React.FC = () => {
         width: WIDTH,
         height: "100vh",
         margin: "0 auto",
-        background: "#e5e7eb",
+        background: "#bdbdbd",
         overflow: "hidden",
       }}
       onTouchStart={handleTouchStart}
@@ -370,7 +370,7 @@ const NumberLaneGame: React.FC = () => {
           top: 8,
           left: "50%",
           transform: "translateX(-50%)",
-          fontSize: 28,
+          fontSize: 40,
           fontFamily: "Fredoka",
         }}
       >
@@ -382,112 +382,135 @@ const NumberLaneGame: React.FC = () => {
       <div style={{ position: "absolute", top: 26, right: 8, fontSize: 14 }}>
         현재: {player.value}
       </div>
-
-      {/* 줄들 */}
-      {rows.map((row) => {
-        const rowYpx = row.y * HEIGHT;
-
-        if (row.kind === "goal") {
-          return (
-            <div
-              key={row.id}
-              style={{
-                position: "absolute",
-                left: WIDTH / 2,
-                top: rowYpx,
-                transform: "translate(-50%, -50%)",
-                width: WIDTH * 0.9,
-                height: 80,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              {row.values.map((v, idx) => (
-                <div
-                  key={`${row.id}-goal-${idx}`}
-                  style={{
-                    width: "49%",
-                    height: "100%",
-                    borderRadius: 24,
-                    background: "#f97316",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    fontSize: 32,
-                    fontWeight: "bold",
-                    boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
-                  }}
-                >
-                  {v}
-                </div>
-              ))}
-            </div>
-          );
+      <div
+        style={
+          {
+            // position: "absolute",
+            // inset: 0,
+            // transformOrigin: "center 100%", // 아래쪽을 기준으로
+            // transform: "rotateX(40deg)", // 각도 조절해서 맛보기
+            // transformStyle: "preserve-3d",
+            // 위로 갈수록 좁아지는 사다리꼴
+            //   (좌측 상단 x%, 우측 상단 x%, 우측 하단, 좌측 하단)
+            // clipPath: "polygon(18% 0, 82% 0, 100% 100%, 0% 100%)",
+          }
         }
+      >
+        {/* 줄들 */}
+        {rows.map((row) => {
+          const rowYpx = row.y * HEIGHT;
 
-        return row.values.map((v, laneIndex) => {
-          const x = laneIndex * laneWidth + laneWidth / 2;
+          if (row.kind === "goal") {
+            return (
+              <div
+                key={row.id}
+                style={{
+                  position: "absolute",
+                  left: WIDTH / 2,
+                  top: rowYpx,
+                  transform: "translate(-50%, -50%)",
+                  width: WIDTH * 0.9,
+                  height: 80,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                {row.values.map((v, idx) => (
+                  <div
+                    key={`${row.id}-goal-${idx}`}
+                    style={{
+                      width: "49%",
+                      height: "100%",
+                      borderRadius: 24,
+                      background: "#f97316",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: 32,
+                      fontWeight: "bold",
+                      boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    {v}
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          return row.values.map((v, laneIndex) => {
+            const x = laneIndex * laneWidth + laneWidth / 2;
+            return (
+              <div
+                key={`${row.id}-${laneIndex}`}
+                style={{
+                  position: "absolute",
+                  left: x,
+                  top: rowYpx,
+                  transform: "translate(-50%, -50%)",
+                  width: laneWidth * 0.8,
+                  height: 60,
+                  borderRadius: 16,
+                  // background: "#3b82f6",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#3b82f6",
+                  fontSize: 50,
+                  fontWeight: "bold",
+                  textShadow:
+                    "-1px 0px #fff, 0px 1px #fff, 1px 0px #fff, 0px -1px #fff",
+                  // boxShadow: "0 6px 0 rgba(0,0,0,0.25)",
+                  opacity: row.hitLane === laneIndex ? 0 : 1,
+                  transition: "opacity 0.3s ease",
+                }}
+              >
+                {v}
+              </div>
+            );
+          });
+        })}
+
+        {/* 플레이어 */}
+        {(() => {
+          const x = player.lane * laneWidth + laneWidth / 2;
+          const y = PLAYER_Y * HEIGHT;
           return (
             <div
-              key={`${row.id}-${laneIndex}`}
               style={{
                 position: "absolute",
                 left: x,
-                top: rowYpx,
+                top: y,
                 transform: "translate(-50%, -50%)",
-                width: laneWidth * 0.8,
-                height: 60,
-                borderRadius: 16,
-                background: "#3b82f6",
+                // width: laneWidth * 0.7,
+                // height: 140,
+                borderRadius: 20,
+                color: "#fff",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
-                fontSize: 28,
-                fontWeight: "bold",
-                boxShadow: "0 6px 0 rgba(0,0,0,0.25)",
-                opacity: row.hitLane === laneIndex ? 0 : 1,
-                transition: "opacity 0.3s ease",
               }}
             >
-              {v}
+              <div className="charactor" />
+              <div
+                style={{
+                  fontSize: 62,
+                  fontWeight: "bold",
+                  position: "absolute",
+                  top: 0,
+                  left: "50%",
+                  transform: "translate(-50%, -80%)",
+                }}
+              >
+                {player.value}
+              </div>
             </div>
           );
-        });
-      })}
-
-      {/* 플레이어 */}
-      {(() => {
-        const x = player.lane * laneWidth + laneWidth / 2;
-        const y = PLAYER_Y * HEIGHT;
-        return (
-          <div
-            style={{
-              position: "absolute",
-              left: x,
-              top: y,
-              transform: "translate(-50%, -50%)",
-              width: laneWidth * 0.7,
-              height: 80,
-              borderRadius: 20,
-              background: "#111827",
-              color: "#fff",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ fontSize: 12 }}>병사</div>
-            <div style={{ fontSize: 22, fontWeight: "bold" }}>
-              {player.value}
-            </div>
-          </div>
-        );
-      })()}
-
+        })()}
+      </div>
       {/* 실패 상황판 오버레이 */}
       {failBoardOpen && (
         <div
@@ -502,7 +525,18 @@ const NumberLaneGame: React.FC = () => {
             color: "#fff",
           }}
         >
-          <div style={{ fontSize: 26, marginBottom: 12 }}>실패… 💀</div>
+          <div
+            style={{
+              fontSize: 80,
+              marginBottom: 12,
+              backgroundColor: "#c5c5c5",
+              padding: 12,
+              borderRadius: "50%",
+            }}
+          >
+            💀
+          </div>
+          <div style={{ fontSize: 26, marginBottom: 12 }}>실패</div>
           <div style={{ fontSize: 16, marginBottom: 24 }}>
             목표: {goalValues.join(" / ")} / 현재: {player.value}
           </div>

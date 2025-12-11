@@ -16,3 +16,25 @@ code {
 #root {
   overflow: hidden;
 }
+
+.charactor {
+  width: 100px; /* 프레임 하나의 실제 너비 */
+  height: 100px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/boy.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 800px 100px; /* (100px * 8프레임) */
+
+  animation: soldier-walk 0.8s steps(8) infinite;
+}
+
+/* 걷는 애니메이션 */
+@keyframes soldier-walk {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -800px 0;
+  }
+}
