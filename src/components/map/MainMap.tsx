@@ -271,19 +271,14 @@ const NumberLaneGame: React.FC = () => {
               // ✅ goal 줄: lane에 따라 왼쪽/오른쪽 중 하나 선택
               hitGoal = true;
 
-              // 왼쪽 영역(lane 0,1) → index 0, 오른쪽 영역(lane 3,4) → index 1
+              // lane으로 왼쪽/오른쪽 선택
               const optionIndex = laneHit < LANE_COUNT / 2 ? 0 : 1;
 
               const chosenGoalNumber = row.values[optionIndex];
               const totalAfterHit = latestValue.current + addValue;
 
-              const [goalA, goalB] = latestGoal.current; // goalValues 배열
-              const isMatchTotal =
-                totalAfterHit === goalA || totalAfterHit === goalB;
-              const isMatchChosenGoal =
-                chosenGoalNumber === goalA || chosenGoalNumber === goalB;
-
-              success = isMatchTotal && isMatchChosenGoal;
+              // ✅ 핵심: "선택한 goal 숫자"와 총합이 같을 때만 성공
+              success = totalAfterHit === chosenGoalNumber;
 
               next.push({
                 ...row,
