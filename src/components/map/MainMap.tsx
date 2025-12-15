@@ -21,6 +21,22 @@ type Row = {
   hitLane?: number | null; // 터치된 lane
 };
 
+// ✅ DigitIcon(0~9) 여러 개로 "18" 같은 숫자를 표현
+const DigitNumber: React.FC<{
+  value: number;
+  size: number; // 한 자리 아이콘 크기
+  gap?: number; // 자리 간격(px)
+}> = ({ value, size, gap = 2 }) => {
+  const str = Math.max(0, value).toString(); // 음수 방지(원하면 제거)
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap }}>
+      {str.split("").map((ch, i) => (
+        <DigitIcon key={`${ch}-${i}`} value={Number(ch)} size={size} />
+      ))}
+    </div>
+  );
+};
+
 let rowIdSeed = 0;
 
 // 🔹 스테이지 설정: 숫자 후보 + 몇 줄을 지나갈지(rowCount)
@@ -426,7 +442,7 @@ const NumberLaneGame: React.FC = () => {
                       boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
                     }}
                   >
-                    <DigitIcon value={v} size={70} />
+                    <DigitNumber value={v} size={70} gap={4} />
                   </div>
                 ))}
               </div>
@@ -453,7 +469,7 @@ const NumberLaneGame: React.FC = () => {
                   transition: "opacity 0.3s ease",
                 }}
               >
-                <DigitIcon value={v} size={56} />
+                <DigitNumber value={v} size={56} gap={4} />
               </div>
             );
           });
