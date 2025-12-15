@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import DigitIcon from "./DigitIcon";
 
 const WIDTH = 360;
 const HEIGHT = 640;
@@ -355,7 +356,7 @@ const NumberLaneGame: React.FC = () => {
         width: WIDTH,
         height: "100vh",
         margin: "0 auto",
-        background: "#bdbdbd",
+        background: "#e7e7e7",
         overflow: "hidden",
       }}
       onTouchStart={handleTouchStart}
@@ -423,17 +424,14 @@ const NumberLaneGame: React.FC = () => {
                       width: "49%",
                       height: "100%",
                       borderRadius: 24,
-                      background: "#f97316",
+                      background: "#fff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#fff",
-                      fontSize: 32,
-                      fontWeight: "bold",
                       boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
                     }}
                   >
-                    {v}
+                    <DigitIcon value={v} size={70} />
                   </div>
                 ))}
               </div>
@@ -453,21 +451,14 @@ const NumberLaneGame: React.FC = () => {
                   width: laneWidth * 0.8,
                   height: 60,
                   borderRadius: 16,
-                  // background: "#3b82f6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#3b82f6",
-                  fontSize: 50,
-                  fontWeight: "bold",
-                  textShadow:
-                    "-1px 0px #fff, 0px 1px #fff, 1px 0px #fff, 0px -1px #fff",
-                  // boxShadow: "0 6px 0 rgba(0,0,0,0.25)",
                   opacity: row.hitLane === laneIndex ? 0 : 1,
                   transition: "opacity 0.3s ease",
                 }}
               >
-                {v}
+                <DigitIcon value={v} size={56} />
               </div>
             );
           });
@@ -503,6 +494,7 @@ const NumberLaneGame: React.FC = () => {
                   top: 0,
                   left: "50%",
                   transform: "translate(-50%, -80%)",
+                  color: "#2196f3",
                 }}
               >
                 {player.value}
