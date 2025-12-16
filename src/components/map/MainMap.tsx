@@ -372,12 +372,15 @@ const NumberLaneGame: React.FC = () => {
     initStage(latestStage.current, false); // 같은 스테이지, 같은 goal로 재도전
   };
 
+  const balloonSize = Math.min(68 + player.value * 2, 140);
+
   return (
     <div
       ref={containerRef} // 🔥 터치 좌표 계산용 ref
       style={{
         position: "relative",
-        width: WIDTH,
+        width: "100vw",
+        maxWidth: "480px",
         height: "100vh",
         margin: "0 auto",
         background: "#e7e7e7",
@@ -509,20 +512,35 @@ const NumberLaneGame: React.FC = () => {
                 justifyContent: "center",
               }}
             >
-              <div className="charactor" />
               <div
+                key={player.value} // 🔥 값이 바뀔 때마다 재렌더 → 애니메이션 트리거
                 style={{
-                  fontSize: 62,
-                  fontWeight: "bold",
                   position: "absolute",
-                  top: 0,
+                  top: 10,
                   left: "50%",
-                  transform: "translate(-50%, -80%)",
-                  color: "#2196f3",
+                  transform: "translate(-50%, -80%) scale(1)",
+                  minWidth: balloonSize,
+                  minHeight: balloonSize,
+                  padding: "4px",
+                  borderRadius: "50%",
+                  background:
+                    "radial-gradient(circle at 30% 30%, #7dd3fc, #0284c7)",
+                  color: "#fff",
+                  fontSize: 32,
+                  fontWeight: 900,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 8px 20px rgba(0,0,0,0.25)",
+                  animation: "pop 260ms ease-out",
+                  pointerEvents: "none",
+                  userSelect: "none",
                 }}
+                className="player-balloon"
               >
                 {player.value}
               </div>
+              <div className="charactor" style={{ zIndex: 1 }} />
             </div>
           );
         })()}
