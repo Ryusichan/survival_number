@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import DigitIcon from "./DigitIcon";
 
-const WIDTH = 360;
-const HEIGHT = 840;
+// const WIDTH = 360;
+// const HEIGHT = 780;
 
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
@@ -99,6 +99,32 @@ const NumberLaneGame: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [stage, setStage] = useState(0);
   const [goalValues, setGoalValues] = useState<number[]>([]);
+  // ✅ 고정 WIDTH/HEIGHT 제거하고, 화면에 꽉 채우는 값으로 사용
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const update = () => {
+      const vv = window.visualViewport;
+      // iOS 주소창/툴바 변동까지 최대한 꽉 채움
+      const w = Math.floor(vv?.width ?? window.innerWidth);
+      const h = Math.floor(vv?.height ?? window.innerHeight);
+      setViewport({ width: w, height: h });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update); // iOS에서 높이 변동 케이스
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  const WIDTH = viewport.width || 360;
+  const HEIGHT = viewport.height || 780;
 
   // 실패 상황판 열렸는지 여부
   const [failBoardOpen, setFailBoardOpen] = useState(false);
@@ -121,12 +147,14 @@ const NumberLaneGame: React.FC = () => {
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
   // ✅ y(0~1.x) 기반 원근감 계산
-  const getPerspective = (worldY: number, farY: number) => {
+  const getPerspective = (worldY: number, farY: number, kind: RowKind) => {
     const nearY = PLAYER_Y;
     const t = clamp01((worldY - farY) / (nearY - farY));
     const tt = Math.pow(t, GAMMA_Y);
 
-    const scale = lerp(0.35, 1.0, tt);
+    const minScale = kind === "goal" ? 0.55 : 0.35;
+
+    const scale = lerp(minScale, 1.0, tt);
     const spread = lerp(0.55, 1.0, tt);
     return { scale, spread };
   };
@@ -179,7 +207,7 @@ const NumberLaneGame: React.FC = () => {
     const { values, rowCount } = stageSettings[index];
 
     // ✅ 가장 멀리 있는 줄의 y (goal 줄이 제일 위에 있으니 그 기준으로 잡아도 됨)
-    farYRef.current = -rowCount * ROW_GAP;
+    farYRef.current = -(rowCount * ROW_GAP + ROW_GAP * 2);
 
     lastTimeRef.current = null;
 
@@ -425,9 +453,8 @@ const NumberLaneGame: React.FC = () => {
       ref={containerRef} // 🔥 터치 좌표 계산용 ref
       style={{
         position: "relative",
-        width: "100vw",
-        maxWidth: "480px",
-        height: "100vh",
+        width: WIDTH,
+        height: HEIGHT,
         margin: "0 auto",
         background: "#e7e7e7",
         overflow: "hidden",
@@ -476,7 +503,11 @@ const NumberLaneGame: React.FC = () => {
           const rowYpx = projectRowYpx(row.y, farYRef.current);
 
           if (row.kind === "goal") {
-            const { scale, spread } = getPerspective(row.y, farYRef.current);
+            const { scale, spread } = getPerspective(
+              row.y,
+              farYRef.current,
+              row.kind
+            );
 
             return (
               <div
@@ -515,7 +546,11 @@ const NumberLaneGame: React.FC = () => {
           }
 
           return row.values.map((v, laneIndex) => {
-            const { scale, spread } = getPerspective(row.y, farYRef.current);
+            const { scale, spread } = getPerspective(
+              row.y,
+              farYRef.current,
+              row.kind
+            );
 
             const centerX = WIDTH / 2;
             const baseX = laneIndex * laneWidth + laneWidth / 2;
