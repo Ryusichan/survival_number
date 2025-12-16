@@ -25,11 +25,10 @@ type Row = {
 const DigitNumber: React.FC<{
   value: number;
   size: number; // 한 자리 아이콘 크기
-  gap?: number; // 자리 간격(px)
-}> = ({ value, size, gap = 2 }) => {
+}> = ({ value, size }) => {
   const str = Math.max(0, value).toString(); // 음수 방지(원하면 제거)
   return (
-    <div style={{ display: "flex", alignItems: "center", gap }}>
+    <div style={{ display: "flex", alignItems: "center" }}>
       {str.split("").map((ch, i) => (
         <DigitIcon key={`${ch}-${i}`} value={Number(ch)} size={size} />
       ))}
@@ -46,15 +45,29 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [3, 4], rowCount: 2 },
   { values: [4, 5], rowCount: 3 },
   { values: [5, 6], rowCount: 3 },
-  { values: [6, 7], rowCount: 3 },
+  { values: [6, 7], rowCount: 3 }, //6
   { values: [1, 2, 3], rowCount: 4 },
-  { values: [2, 10, 4], rowCount: 4 },
+  { values: [1, 2, 4], rowCount: 4 },
   { values: [3, 4, 5], rowCount: 4 },
-  { values: [10, 2, 6], rowCount: 4 },
+  { values: [10, 2, 6], rowCount: 4 }, //10
   { values: [4, 3, 7], rowCount: 5 },
   { values: [1, 8, 9], rowCount: 5 },
   { values: [4, 6, 8], rowCount: 5 },
   { values: [2, 5, 10], rowCount: 5 },
+  { values: [3, 7, 8], rowCount: 5 },
+  { values: [4, 6, 7], rowCount: 5 },
+  { values: [5, 8, 9], rowCount: 5 },
+  { values: [6, 7, 8], rowCount: 5 }, //18
+  { values: [1, 2, 3], rowCount: 6 },
+  { values: [3, 4, 5], rowCount: 6 },
+  { values: [4, 5, 6], rowCount: 6 },
+  { values: [5, 6, 7], rowCount: 6 },
+  { values: [6, 7, 8], rowCount: 6 },
+  { values: [7, 8, 9], rowCount: 6 }, //24
+  { values: [1, 2, 3], rowCount: 7 },
+  { values: [2, 3, 4], rowCount: 7 },
+  { values: [3, 4, 5], rowCount: 7 },
+  { values: [4, 5, 6], rowCount: 7 }, //28
 ];
 
 // 🔹 values와 rowCount로 가능한 총합 리스트 구하기
@@ -442,7 +455,7 @@ const NumberLaneGame: React.FC = () => {
                       boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
                     }}
                   >
-                    <DigitNumber value={v} size={70} gap={4} />
+                    <DigitNumber value={v} size={70} />
                   </div>
                 ))}
               </div>
@@ -469,7 +482,7 @@ const NumberLaneGame: React.FC = () => {
                   transition: "opacity 0.3s ease",
                 }}
               >
-                <DigitNumber value={v} size={56} gap={4} />
+                <DigitNumber value={v} size={56} />
               </div>
             );
           });

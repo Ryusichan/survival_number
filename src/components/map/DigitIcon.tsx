@@ -20,6 +20,7 @@ const DigitIcon: React.FC<DigitIconProps> = ({ value, size = 64 }) => {
         display: "block",
         pointerEvents: "none",
         userSelect: "none",
+        margin: "0 -12px",
       }}
     />
   );
