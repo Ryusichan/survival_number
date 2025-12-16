@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import DigitIcon from "./DigitIcon";
 
 const WIDTH = 360;
-const HEIGHT = 640;
+const HEIGHT = 840;
 
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
@@ -113,6 +113,49 @@ const NumberLaneGame: React.FC = () => {
   const latestStage = useRef(stage);
   const initializedRef = useRef(false);
 
+  // ✅ 현재 스테이지에서 "가장 멀리 있는 y" 저장용 (원근 계산 기준)
+  const farYRef = useRef<number>(-1);
+
+  // ✅ clamp / lerp
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  // ✅ y(0~1.x) 기반 원근감 계산
+  const getPerspective = (worldY: number, farY: number) => {
+    const nearY = PLAYER_Y;
+    const t = clamp01((worldY - farY) / (nearY - farY));
+    const tt = Math.pow(t, GAMMA_Y);
+
+    const scale = lerp(0.35, 1.0, tt);
+    const spread = lerp(0.55, 1.0, tt);
+    return { scale, spread };
+  };
+
+  const FAR_SCREEN_Y = -0.22 * HEIGHT; // 화면 위쪽 시작점(취향)
+  const GAMMA_Y = 2.2; // 클수록 "가까울수록 더 빠르게/더 벌어지게"
+
+  // row.y(월드) → rowYpx(화면) 투영
+  const projectRowYpx = (worldY: number, farY: number) => {
+    const nearY = PLAYER_Y; // 플레이어 라인 근처가 "가까움"
+
+    // farY ~ nearY 를 0~1로
+    const t = clamp01((worldY - farY) / (nearY - farY));
+    const tt = Math.pow(t, GAMMA_Y); // ✅ 가까울수록 더 많이 이동/벌어짐
+
+    // far(먼 곳) → near(플레이어 라인)
+    const nearPx = nearY * HEIGHT;
+    const px = lerp(FAR_SCREEN_Y, nearPx, tt);
+
+    // nearY 아래로 더 내려간 경우는 자연스럽게 이어주기
+    if (worldY > nearY) {
+      // tt의 기울기(near에서의 속도)를 이어주면 끊김이 덜함
+      const slopeAtNear = GAMMA_Y; // t=1일 때 d(t^gamma)/dt = gamma
+      return nearPx + (worldY - nearY) * HEIGHT * slopeAtNear;
+    }
+
+    return px;
+  };
+
   // 🔹 터치 영역 컨테이너 ref (손 위치 → lane 계산용)
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -134,6 +177,9 @@ const NumberLaneGame: React.FC = () => {
   const initStage = (stageIndex: number, isNewStage: boolean) => {
     const index = stageIndex % stageSettings.length;
     const { values, rowCount } = stageSettings[index];
+
+    // ✅ 가장 멀리 있는 줄의 y (goal 줄이 제일 위에 있으니 그 기준으로 잡아도 됨)
+    farYRef.current = -rowCount * ROW_GAP;
 
     lastTimeRef.current = null;
 
@@ -391,6 +437,7 @@ const NumberLaneGame: React.FC = () => {
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
+      <div className="bg" />
       {/* 상단 UI */}
       <div
         style={{
@@ -426,9 +473,11 @@ const NumberLaneGame: React.FC = () => {
       >
         {/* 줄들 */}
         {rows.map((row) => {
-          const rowYpx = row.y * HEIGHT;
+          const rowYpx = projectRowYpx(row.y, farYRef.current);
 
           if (row.kind === "goal") {
+            const { scale, spread } = getPerspective(row.y, farYRef.current);
+
             return (
               <div
                 key={row.id}
@@ -436,8 +485,8 @@ const NumberLaneGame: React.FC = () => {
                   position: "absolute",
                   left: WIDTH / 2,
                   top: rowYpx,
-                  transform: "translate(-50%, -50%)",
-                  width: WIDTH * 0.9,
+                  transform: `translate(-50%, -50%) scale(${scale})`,
+                  width: WIDTH * 0.9 * spread, // ✅ 멀리서는 폭이 더 좁아짐
                   height: 80,
                   display: "flex",
                   justifyContent: "space-between",
@@ -466,7 +515,14 @@ const NumberLaneGame: React.FC = () => {
           }
 
           return row.values.map((v, laneIndex) => {
-            const x = laneIndex * laneWidth + laneWidth / 2;
+            const { scale, spread } = getPerspective(row.y, farYRef.current);
+
+            const centerX = WIDTH / 2;
+            const baseX = laneIndex * laneWidth + laneWidth / 2;
+
+            // ✅ 멀리서는 중앙으로 모이고, 가까워질수록 원래 lane으로 벌어짐
+            const x = centerX + (baseX - centerX) * spread;
+
             return (
               <div
                 key={`${row.id}-${laneIndex}`}
@@ -474,7 +530,7 @@ const NumberLaneGame: React.FC = () => {
                   position: "absolute",
                   left: x,
                   top: rowYpx,
-                  transform: "translate(-50%, -50%)",
+                  transform: `translate(-50%, -50%) scale(${scale})`,
                   width: laneWidth * 0.8,
                   height: 60,
                   borderRadius: 16,
@@ -571,8 +627,13 @@ const NumberLaneGame: React.FC = () => {
             💀
           </div>
           <div style={{ fontSize: 26, marginBottom: 12 }}>실패</div>
-          <div style={{ fontSize: 16, marginBottom: 24 }}>
-            목표: {goalValues.join(" / ")} / 현재: {player.value}
+          <div>
+            <div style={{ fontSize: 16, marginBottom: 24 }}>
+              목표: {goalValues.join(" / ")}
+            </div>
+            <div>
+              현재 <DigitNumber value={player.value} size={56} />
+            </div>
           </div>
           <button
             onClick={handleRetry}
