@@ -46,12 +46,12 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [6, 7], rowCount: 3 }, //6
   { values: [1, 2, 3], rowCount: 4 },
   { values: [1, 2, 4], rowCount: 4 },
-  { values: [3, 4, 5], rowCount: 4 },
-  { values: [10, 2, 6], rowCount: 4 }, //10
-  { values: [4, 3, 7], rowCount: 5 },
-  { values: [1, 8, 9], rowCount: 5 },
-  { values: [4, 6, 8], rowCount: 5 },
-  { values: [2, 5, 10], rowCount: 5 },
+  { values: [2, 3, 4], rowCount: 4 },
+  { values: [3, 4, 5], rowCount: 4 }, //10
+  { values: [1, 2, 3], rowCount: 5 },
+  { values: [2, 3, 4], rowCount: 5 },
+  { values: [3, 4, 5], rowCount: 5 },
+  { values: [4, 5, 6], rowCount: 5 },
   { values: [3, 7, 8], rowCount: 5 },
   { values: [4, 6, 7], rowCount: 5 },
   { values: [5, 8, 9], rowCount: 5 },
