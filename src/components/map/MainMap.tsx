@@ -478,6 +478,8 @@ const NumberLaneGame: React.FC = () => {
           transform: "translateX(-50%)",
           fontSize: 40,
           fontFamily: "Fredoka",
+          fontWeight: 600,
+          color: "#fff",
         }}
       >
         STAGE {stage + 1}
@@ -521,11 +523,12 @@ const NumberLaneGame: React.FC = () => {
                   left: WIDTH / 2,
                   top: rowYpx,
                   transform: `translate(-50%, -50%) scale(${scale})`,
-                  width: WIDTH * 0.9 * spread, // ✅ 멀리서는 폭이 더 좁아짐
-                  height: 80,
+                  width: WIDTH * 0.9, // ✅ 멀리서는 폭이 더 좁아짐
+                  height: 90,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  gap: `${(1 - spread) * 60}px`, // ✅ 멀수록( spread↓ ) gap이 커지지 않게/원하면 반대로 조절
                 }}
               >
                 {row.values.map((v, idx) => (
@@ -534,15 +537,25 @@ const NumberLaneGame: React.FC = () => {
                     style={{
                       width: "49%",
                       height: "100%",
-                      borderRadius: 24,
-                      background: "#fff",
+                      // background: "#ff480084",
+                      background:
+                        "linear-gradient(0deg,rgba(255, 72, 0, 0.34) 0%, rgba(255, 72, 0, 0.2) 74%, rgba(255, 72, 0, 0) 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 8px 0 rgba(0,0,0,0.3)",
+                      boxShadow: "0 8px 0 rgba(0,0,0,0.12)",
+                      color: "#fff",
+                      fontSize: "64px",
+                      fontWeight: 600,
+                      fontFamily: "Archivo Black",
+                      position: "relative",
+                      WebkitTextStrokeWidth: "1.5px",
+                      WebkitTextStrokeColor: "#1f1f1fb0",
                     }}
                   >
-                    <DigitNumber value={v} size={70} />
+                    <div className="pillar_L" />
+                    <div className="pillar_R" />
+                    {v}
                   </div>
                 ))}
               </div>
@@ -635,6 +648,7 @@ const NumberLaneGame: React.FC = () => {
                   animation: "pop 260ms ease-out",
                   pointerEvents: "none",
                   userSelect: "none",
+                  opacity: 0.8,
                 }}
                 className="player-balloon"
               >

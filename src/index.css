@@ -43,6 +43,28 @@ code {
   transform-origin: center;
 }
 
+.pillar_L,
+.pillar_R {
+  position: absolute;
+  width: 10px;
+  height: 100%;
+  background: #ff4800;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 72, 0, 1) 0%,
+    rgba(255, 72, 0, 0.38) 50%,
+    rgba(255, 72, 0, 1) 100%
+  );
+}
+
+.pillar_L {
+  left: 0;
+}
+
+.pillar_R {
+  right: 0;
+}
+
 /* 걷는 애니메이션 */
 @keyframes soldier-walk {
   from {
