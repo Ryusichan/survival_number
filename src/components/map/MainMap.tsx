@@ -691,6 +691,7 @@ const NumberLaneGame: React.FC = () => {
               zIndex: 4,
               width: "100%",
               maxWidth: "320px",
+              boxSizing: "border-box",
               padding: 36,
               borderRadius: 36,
               textAlign: "center",
