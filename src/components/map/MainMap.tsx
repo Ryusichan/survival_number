@@ -1,9 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import DigitIcon from "./DigitIcon";
 
-// const WIDTH = 360;
-// const HEIGHT = 780;
-
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.2;
@@ -642,7 +639,6 @@ const NumberLaneGame: React.FC = () => {
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(0,0,0,0.65)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -652,38 +648,69 @@ const NumberLaneGame: React.FC = () => {
         >
           <div
             style={{
-              fontSize: 80,
-              marginBottom: 12,
-              backgroundColor: "#c5c5c5",
-              padding: 12,
-              borderRadius: "50%",
+              position: "absolute",
+              inset: 0,
+              background: "rgba(0,0,0,0.65)",
+              zIndex: 3,
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "rgb(100,100,100)",
+              background: "#fff",
+              zIndex: 4,
+              width: "100%",
+              maxWidth: "320px",
+              padding: 36,
+              borderRadius: 36,
+              textAlign: "center",
             }}
           >
-            💀
-          </div>
-          <div style={{ fontSize: 26, marginBottom: 12 }}>실패</div>
-          <div>
-            <div style={{ fontSize: 16, marginBottom: 24 }}>
-              목표: {goalValues.join(" / ")}
+            <div
+              style={{
+                fontSize: 80,
+                marginBottom: 12,
+                backgroundColor: "#c5c5c5",
+                padding: 12,
+                borderRadius: "50%",
+              }}
+            >
+              💀
+            </div>
+            <div style={{ fontSize: 36, marginBottom: 12, fontWeight: 700 }}>
+              실패
             </div>
             <div>
-              현재 <DigitNumber value={player.value} size={56} />
+              <div style={{ fontSize: 16, marginBottom: 12 }}>기록</div>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontFamily: "Fredoka",
+                  marginBottom: 24,
+                }}
+              >
+                STAGE{stage + 1}
+              </div>
             </div>
+            <button
+              onClick={handleRetry}
+              style={{
+                padding: "10px 18px",
+                fontSize: 16,
+                borderRadius: 10,
+                border: "none",
+                background: "#3b82f6",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              다시 도전
+            </button>
           </div>
-          <button
-            onClick={handleRetry}
-            style={{
-              padding: "10px 18px",
-              fontSize: 16,
-              borderRadius: 10,
-              border: "none",
-              background: "#3b82f6",
-              color: "#fff",
-              cursor: "pointer",
-            }}
-          >
-            다시 도전
-          </button>
         </div>
       )}
     </div>
