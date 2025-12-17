@@ -549,8 +549,8 @@ const NumberLaneGame: React.FC = () => {
                       fontWeight: 600,
                       fontFamily: "Archivo Black",
                       position: "relative",
-                      WebkitTextStrokeWidth: "1.5px",
-                      WebkitTextStrokeColor: "#1f1f1fb0",
+                      textShadow:
+                        "-1px 0px #1f1f1f, 0px 1px #1f1f1f, 1px 0px #1f1f1f, 0px -1px #1f1f1f",
                     }}
                   >
                     <div className="pillar_L" />
