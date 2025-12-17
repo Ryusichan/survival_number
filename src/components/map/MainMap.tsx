@@ -16,6 +16,7 @@ type Row = {
   kind: RowKind;
   handled?: boolean;
   hitLane?: number | null; // 터치된 lane
+  fadeOut?: boolean;
 };
 
 // ✅ DigitIcon(0~9) 여러 개로 "18" 같은 숫자를 표현
@@ -253,6 +254,7 @@ const NumberLaneGame: React.FC = () => {
       kind: "goal",
       handled: false,
       hitLane: null,
+      fadeOut: false,
     });
 
     // -------------------------
@@ -349,6 +351,10 @@ const NumberLaneGame: React.FC = () => {
           const prevY = row.y;
           const newY = row.y + ROW_SPEED * dt;
 
+          if (row.kind === "normal" && row.fadeOut && newY > PLAYER_Y + 0.12) {
+            continue; // next에 안 넣어서 삭제
+          }
+
           // ✅ "플레이어 라인을 위→아래로 통과하는 순간"만 한 번 처리
           const justCrossed =
             !row.handled && prevY < PLAYER_Y && newY >= PLAYER_Y;
@@ -366,6 +372,7 @@ const NumberLaneGame: React.FC = () => {
                 y: newY,
                 handled: true,
                 hitLane: laneHit,
+                fadeOut: true,
               });
             } else if (row.kind === "goal") {
               // ✅ goal 줄: lane에 따라 왼쪽/오른쪽 중 하나 선택
@@ -554,6 +561,11 @@ const NumberLaneGame: React.FC = () => {
 
             // ✅ 멀리서는 중앙으로 모이고, 가까워질수록 원래 lane으로 벌어짐
             const x = centerX + (baseX - centerX) * spread;
+            const cellOpacity = row.fadeOut
+              ? 0
+              : row.hitLane === laneIndex
+              ? 0
+              : 1;
 
             return (
               <div
@@ -569,7 +581,7 @@ const NumberLaneGame: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  opacity: row.hitLane === laneIndex ? 0 : 1,
+                  opacity: cellOpacity,
                   transition: "opacity 0.3s ease",
                 }}
               >
