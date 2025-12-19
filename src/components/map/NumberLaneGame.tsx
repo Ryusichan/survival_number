@@ -1,11 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import DigitIcon from "./DigitIcon";
+import BackButton from "components/item/BackButton";
 
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.2;
 const HIT_RANGE = 0.05;
 const ROW_GAP = 0.2; // 🔹 줄 간격 비율
+
+interface Props {
+  setSelct: (value: string) => void;
+}
 
 type Player = { lane: number; value: number };
 type RowKind = "normal" | "goal";
@@ -92,7 +97,7 @@ function getRandomGoal(values: number[], rowCount: number): number {
   return totals[idx];
 }
 
-const NumberLaneGame: React.FC = () => {
+const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const [player, setPlayer] = useState<Player>({ lane: 2, value: 0 });
   const [rows, setRows] = useState<Row[]>([]);
   const [stage, setStage] = useState(0);
@@ -468,6 +473,7 @@ const NumberLaneGame: React.FC = () => {
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
+      <BackButton onExit={onExit} />
       <div className="bg" />
       {/* 상단 UI */}
       <div

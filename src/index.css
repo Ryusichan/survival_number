@@ -43,6 +43,27 @@ code {
   transform-origin: center;
 }
 
+.select_container {
+  background-image: url("/public//bg/select_mainbg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.zoombie_box {
+  background-image: url("/public//bg/zoombie_bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.count_box {
+  background-image: url("/public//bg/count_bg.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
 .pillar_L,
 .pillar_R {
   position: absolute;

@@ -1,12 +1,12 @@
 import React from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import MainMap from "./components/map/MainMap";
+import SelectMap from "components/SelectMap";
 
 function App() {
   return (
     <React.StrictMode>
-      <MainMap />;
+      <SelectMap />;
     </React.StrictMode>
   );
 }
