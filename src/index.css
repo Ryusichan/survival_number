@@ -30,6 +30,19 @@ code {
   /* transition: 3.32s ease-in-out; */
 }
 
+.charactor_zoombie {
+  width: 80px; /* 프레임 하나의 실제 너비 */
+  height: 100px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor_zoombie.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 640px 100px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+  /* transition: 3.32s ease-in-out; */
+}
+
 .bg {
   position: absolute;
   inset: 0;
@@ -93,6 +106,16 @@ code {
   }
   to {
     background-position: -800px 0;
+  }
+}
+
+/* 걷는 애니메이션 */
+@keyframes eightpx-walk {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -640px 0;
   }
 }
 

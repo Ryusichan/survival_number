@@ -115,7 +115,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   pistol: {
     id: "pistol",
     name: "Pistol",
-    fireIntervalSec: 0.35,
+    fireIntervalSec: 0.5,
     bulletSpeed: 0.75,
     pierce: false,
     pellets: 1,
@@ -124,7 +124,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   rapid: {
     id: "rapid",
     name: "Rapid",
-    fireIntervalSec: 0.16,
+    fireIntervalSec: 0.7,
     bulletSpeed: 0.8,
     pierce: false,
     pellets: 1,
@@ -134,7 +134,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   pierce: {
     id: "pierce",
     name: "Pierce",
-    fireIntervalSec: 0.35,
+    fireIntervalSec: 0.5,
     bulletSpeed: 0.75,
     pierce: true,
     pellets: 1,
@@ -144,7 +144,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   shotgun: {
     id: "shotgun",
     name: "Shotgun",
-    fireIntervalSec: 0.45,
+    fireIntervalSec: 0.6,
     bulletSpeed: 0.72,
     pierce: false,
     pellets: 3,
@@ -725,7 +725,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           width: laneWidth * 0.72,
           height: 70,
           borderRadius: 18,
-          background: "rgba(20,20,20,0.55)",
           backdropFilter: "blur(2px)",
           display: "flex",
           alignItems: "center",
@@ -748,11 +747,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               width: `${hpPct * 100}%`,
               height: "100%",
               borderRadius: 999,
-              background: "linear-gradient(90deg, #22c55e, #f97316)",
+              background: "#f94316",
             }}
           />
         </div>
-        <div style={{ fontSize: 26 }}>🧟‍♂️</div>
+        <div className="charactor_zoombie" />
       </div>
     );
   };
