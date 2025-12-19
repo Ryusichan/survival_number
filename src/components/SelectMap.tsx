@@ -12,6 +12,15 @@ const Container = styled.div`
   justify-content: center;
 `;
 
+const Bg = styled.div`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  opacity: 0.9;
+`;
+
 const Box = styled.div`
   display: flex;
   width: 100%;
@@ -20,9 +29,10 @@ const Box = styled.div`
   justify-content: center;
   flex-direction: column;
   background-color: #ffffff96;
-  padding: 48px;
-  border-radius: 36px;
-  margin: 12rem 2rem 2rem 2rem;
+  padding: 24px;
+  border-radius: 24px;
+  margin: 12rem 1rem 2rem 1rem;
+  z-index: 5;
   & > div {
     margin-bottom: 18px;
   }
@@ -37,13 +47,13 @@ const ButtonBox = styled.div`
     display: flex;
     /* align-items: center;
     justify-content: start; */
-    width: calc(50% - 12px);
+    width: calc(50% - 6px);
     padding: 12px;
     border-radius: 12px;
     box-sizing: border-box;
     min-height: 180px;
     opacity: 0.5;
-    border: 8px solid #fff;
+    border: 4px solid #fff;
   }
   & > div:hover {
     opacity: 1;
@@ -64,7 +74,8 @@ const SelectMap = () => {
     return <ZoombieGame key={select} onExit={backSelectMode} />;
   }
   return (
-    <Container className="select_container">
+    <Container>
+      <Bg className="select_container" />
       <Box>
         <div
           style={{
@@ -80,6 +91,7 @@ const SelectMap = () => {
             fontSize: 16,
             fontFamily: "Fredoka",
             fontWeight: 600,
+            color: "#525252",
           }}
         >
           원하는 미니게임을 선택하세요
