@@ -44,15 +44,79 @@ const BOX_STOP_Y = 0.26; // 이 위치에 도달하면 멈춰서 맞추기 쉽�
 const BOX_WIDTH_UNITS = 1.1;
 const BOX_HEIGHT_HIT_EPS_Y = 0.05; // 박스 피격 y 판정 폭(조금 넉넉히)
 
-// ===== Clone slots =====
-const CLONE_SLOTS: Array<{ dx: number; dy: number }> = [
-  { dx: -0.25, dy: -0.03 },
-  { dx: 0.25, dy: -0.03 },
-  { dx: -0.25, dy: 0.03 },
-  { dx: 0.25, dy: 0.03 },
-  { dx: 0.5, dy: 0 },
-  { dx: -0.5, dy: 0 },
-];
+// 메인 포함 최대 20명 => 클론은 19명
+const MAX_UNITS = 20;
+const MAX_CLONES = MAX_UNITS - 1;
+
+// ✅ 기존 간격(가로 0.25, 세로 0.03, 바깥쪽 0.5)을 그대로 반복/확장해서 19개 슬롯 생성
+function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
+  const slots: Array<{ dx: number; dy: number }> = [];
+
+  // 1) 너가 쓰던 "첫 6개"를 그대로 유지
+  const base = [
+    { dx: -0.25, dy: -0.03 },
+    { dx: 0.25, dy: -0.03 },
+    { dx: -0.25, dy: 0.03 },
+    { dx: 0.25, dy: 0.03 },
+    { dx: 0.5, dy: 0 },
+    { dx: -0.5, dy: 0 },
+  ];
+  for (const s of base) {
+    slots.push(s);
+    if (slots.length >= maxClones) return slots;
+  }
+
+  // 2) 이후부터는 "같은 간격"으로 바깥 링을 계속 만든다
+  //    - x는 0.25 단위로 커지고
+  //    - y는 0.03 단위로 커짐
+  //    - 조합을 쌓아가며 군집이 커짐
+  const dxStep = 0.25;
+  const dyStep = 0.03;
+
+  // 레벨이 커질수록 바깥으로 확장 (level=1이면 기존 0.25~0.5 근처, level=2면 그 바깥...)
+  for (let level = 2; slots.length < maxClones; level++) {
+    const xs = [dxStep * level, dxStep * (level + 1)]; // 0.5,0.75 / 0.75,1.0 ...
+    const ys = [0, dyStep, dyStep * 2, dyStep * 3]; // 0,0.03,0.06,0.09 (필요시 더 늘려도 됨)
+
+    // 같은 느낌 유지: 좌우 대칭 + 위/아래 미세한 dy
+    // 우선순위: 가운데에 가까운 조합부터 채워서 자연스럽게 커지게 함
+    const candidates: Array<{ dx: number; dy: number }> = [];
+
+    for (const x of xs) {
+      for (const y of ys) {
+        // y=0일 때는 (x,0)만
+        if (y === 0) {
+          candidates.push({ dx: x, dy: 0 });
+          candidates.push({ dx: -x, dy: 0 });
+        } else {
+          candidates.push({ dx: x, dy: y });
+          candidates.push({ dx: x, dy: -y });
+          candidates.push({ dx: -x, dy: y });
+          candidates.push({ dx: -x, dy: -y });
+        }
+      }
+    }
+
+    // ✅ 중복 제거(안전)
+    const key = (s: { dx: number; dy: number }) =>
+      `${s.dx.toFixed(3)},${s.dy.toFixed(3)}`;
+    const seen = new Set(slots.map(key));
+
+    for (const c of candidates) {
+      const k = key(c);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      slots.push(c);
+      if (slots.length >= maxClones) break;
+    }
+  }
+
+  return slots.slice(0, maxClones);
+}
+
+// ✅ 최종 슬롯 (클론 19명까지)
+const CLONE_SLOTS: Array<{ dx: number; dy: number }> =
+  buildCloneSlots(MAX_CLONES);
 
 type StageConfig = {
   spawnIntervalSec: number;
@@ -557,6 +621,20 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     return [leader, ...extra];
   };
 
+  // ✅ setWorld 내부에서도 안전하게 쓰는 유닛 리스트(leader + clones)
+  const getAllPlayerUnitsRef = () => {
+    const leader = { id: 0, x: playerRef.current.x, y: PLAYER_Y };
+    const extra = clonesRef.current.map((c) => {
+      const slot = CLONE_SLOTS[c.slotIndex] ?? { dx: 0, dy: 0 };
+      return {
+        id: c.id,
+        x: clamp(playerRef.current.x + slot.dx, 0, LANE_COUNT),
+        y: PLAYER_Y + slot.dy,
+      };
+    });
+    return [leader, ...extra];
+  };
+
   const [world, setWorld] = useState<World>(() => ({
     stage: 1,
     totalScore: 0,
@@ -878,26 +956,50 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         const pickedItemIds = new Set<number>();
         let nextCombat = prev.combat;
 
+        const units = getAllPlayerUnitsRef();
+
+        // 아이템 하나를 어떤 유닛이든 먹으면 사라지게
         for (const it of items) {
-          const dx = Math.abs(it.x - playerRef.current.x);
-          const inPickupZone = dx < playerRef.current.widthUnits * 0.7;
-          if (!inPickupZone) continue;
+          // y 먼저 체크해서 연산 줄이기
+          if (Math.abs(it.y - PLAYER_Y) >= 0.06) continue;
 
-          if (Math.abs(it.y - PLAYER_Y) < 0.06) {
-            // ✅ addClone은 "중복 적용 방지"
-            if (it.kind === "addClone") {
-              if (consumedCloneItemIdsRef.current.has(it.id)) continue;
-              consumedCloneItemIdsRef.current.add(it.id);
-              addClones(it.count); // 이제 절대 2번 적용 안 됨
-              pickedItemIds.add(it.id);
-              continue;
+          let picked = false;
+
+          for (const u of units) {
+            const dx = Math.abs(it.x - u.x);
+            const dy = Math.abs(it.y - u.y);
+
+            // ✅ 유닛 중심 기준 픽업 판정
+            const inX = dx < playerRef.current.widthUnits * 0.7;
+            const inY = dy < 0.07;
+
+            if (inX && inY) {
+              picked = true;
+              break;
             }
-
-            // 나머지 아이템은 기존대로
-            pickedItemIds.add(it.id);
-            nextCombat = applyItem(nextCombat, it);
           }
+
+          if (!picked) continue;
+
+          // ✅ addClone 먹으면: 적용 + 아이템 제거
+          if (it.kind === "addClone") {
+            if (!consumedCloneItemIdsRef.current.has(it.id)) {
+              consumedCloneItemIdsRef.current.add(it.id);
+              addClones(it.count);
+            }
+            pickedItemIds.add(it.id);
+            continue;
+          }
+
+          // ✅ 나머지 아이템도 먹으면 제거
+          pickedItemIds.add(it.id);
+          nextCombat = applyItem(nextCombat, it);
         }
+
+        // ✅ 먹은 아이템은 화면에서 제거
+        items = items.filter(
+          (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
+        );
 
         items = items.filter(
           (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
