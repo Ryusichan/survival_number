@@ -2,19 +2,12 @@ import BackButton from "components/item/BackButton";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * ZoombieGame (lane shooter → continuous X version)
+ * ZoombieGame (continuous X version, NO FOLLOW)
  * 변경점
- * 1) lane 기반 이동/판정 제거 → x(연속 좌표) 기반 이동/판정
- *    - xUnits: 0..LANE_COUNT (연속)
- *    - player/enemy/bullet/item 모두 lane 대신 x 사용
- *    - 플레이어 widthUnits(1.0~1.5 등)로 충돌 판정
- * 2) 플레이어 HP(에너지 바) 추가
- *    - 적이 플레이어 라인에 도달 + X 겹치면 HP 감소
- *    - HP 0이면 gameover
- *
- * 참고:
- * - 연속 이동이라 touch/mouse 위치대로 즉시 이동(드래그 유지)
- * - 키보드도 "한 칸"이 아니라 units step 만큼 이동
+ * 1) lane 기반 → 연속 x(0..LANE_COUNT) 기반 이동/판정
+ * 2) 플레이어 HP 추가(적과 충돌 시 HP 감소, 0이면 gameover)
+ * 3) ✅ 적이 플레이어를 따라오는(follow) 기능 제거
+ *    - 적은 스폰된 x로 그대로 내려옴(직진)
  */
 
 const LANE_COUNT = 5;
@@ -40,7 +33,7 @@ type StageConfig = {
   spawnIntervalSec: number;
   maxAlive: number;
   batch: { min: number; max: number };
-  followStrength: number; // 좀비가 x를 따라오는 강도
+  // followStrength 제거(쓰지 않음)
   enemyTierWeights: { t1: number; t2: number; t3: number };
   hpBase: number;
   speedMul: number;
@@ -51,7 +44,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 1.15,
     maxAlive: 6,
     batch: { min: 1, max: 1 },
-    followStrength: 2.0,
     enemyTierWeights: { t1: 0.85, t2: 0.15, t3: 0.0 },
     hpBase: 0,
     speedMul: 0.95,
@@ -60,7 +52,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 1.05,
     maxAlive: 7,
     batch: { min: 1, max: 2 },
-    followStrength: 2.2,
     enemyTierWeights: { t1: 0.75, t2: 0.25, t3: 0.0 },
     hpBase: 0,
     speedMul: 1.0,
@@ -69,7 +60,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.98,
     maxAlive: 8,
     batch: { min: 1, max: 2 },
-    followStrength: 2.35,
     enemyTierWeights: { t1: 0.65, t2: 0.32, t3: 0.03 },
     hpBase: 0,
     speedMul: 1.03,
@@ -78,7 +68,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.92,
     maxAlive: 9,
     batch: { min: 1, max: 2 },
-    followStrength: 2.5,
     enemyTierWeights: { t1: 0.55, t2: 0.37, t3: 0.08 },
     hpBase: 1,
     speedMul: 1.06,
@@ -87,7 +76,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.86,
     maxAlive: 10,
     batch: { min: 1, max: 3 },
-    followStrength: 2.65,
     enemyTierWeights: { t1: 0.48, t2: 0.4, t3: 0.12 },
     hpBase: 1,
     speedMul: 1.1,
@@ -96,7 +84,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.82,
     maxAlive: 11,
     batch: { min: 2, max: 3 },
-    followStrength: 2.8,
     enemyTierWeights: { t1: 0.4, t2: 0.44, t3: 0.16 },
     hpBase: 2,
     speedMul: 1.14,
@@ -105,7 +92,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.78,
     maxAlive: 12,
     batch: { min: 2, max: 3 },
-    followStrength: 2.95,
     enemyTierWeights: { t1: 0.34, t2: 0.46, t3: 0.2 },
     hpBase: 2,
     speedMul: 1.18,
@@ -114,7 +100,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.74,
     maxAlive: 13,
     batch: { min: 2, max: 4 },
-    followStrength: 3.1,
     enemyTierWeights: { t1: 0.28, t2: 0.48, t3: 0.24 },
     hpBase: 3,
     speedMul: 1.22,
@@ -123,7 +108,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.7,
     maxAlive: 14,
     batch: { min: 3, max: 4 },
-    followStrength: 3.25,
     enemyTierWeights: { t1: 0.22, t2: 0.5, t3: 0.28 },
     hpBase: 3,
     speedMul: 1.26,
@@ -132,7 +116,6 @@ const STAGES: StageConfig[] = [
     spawnIntervalSec: 0.66,
     maxAlive: 15,
     batch: { min: 3, max: 5 },
-    followStrength: 3.4,
     enemyTierWeights: { t1: 0.18, t2: 0.5, t3: 0.32 },
     hpBase: 4,
     speedMul: 1.3,
@@ -150,7 +133,7 @@ type Player = {
 
 type Enemy = {
   id: number;
-  x: number; // 연속
+  x: number; // 연속 (스폰 고정)
   y: number;
   tier: EnemyTier;
   hp: number;
@@ -179,7 +162,7 @@ type Weapon = {
   bulletSpeed: number;
   pierce: boolean;
   pellets: number;
-  xOffsets?: number[]; // 기존 laneOffsets 대신 units offset
+  xOffsets?: number[]; // units offset
   damage: number;
   durationSec?: number;
 };
@@ -227,12 +210,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   },
 };
 
-type Buff = {
-  id: string;
-  kind: ItemKind;
-  value: number;
-  timeLeft: number;
-};
+type Buff = { id: string; kind: ItemKind; value: number; timeLeft: number };
 
 type CombatState = {
   baseWeaponId: WeaponId;
@@ -464,8 +442,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   // ===== Player (연속 x + HP) =====
   const [player, setPlayer] = useState<Player>({
-    x: LANE_COUNT / 2, // 중앙
-    widthUnits: 1.3, // 1.0~1.5 등으로 조절
+    x: LANE_COUNT / 2,
+    widthUnits: 1.3,
     hp: 6,
     maxHp: 6,
   });
@@ -498,7 +476,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const farYRef = useRef(FAR_Y_DEFAULT);
 
-  // 플레이어 피격 쿨다운(연속 충돌로 HP가 너무 빨리 깎이는 것 방지)
+  // 플레이어 피격 쿨다운
   const hurtCooldownRef = useRef(0);
 
   const { projectYpx, getPerspective } = useMemo(
@@ -511,7 +489,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const xPx = clientX - rect.left;
-    const xUnits = (xPx / rect.width) * LANE_COUNT; // 0..LANE_COUNT
+    const xUnits = (xPx / rect.width) * LANE_COUNT;
     setPlayer((p) => ({ ...p, x: clamp(xUnits, 0, LANE_COUNT) }));
   };
 
@@ -520,15 +498,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const onTouchMove = (e: React.TouchEvent) =>
     movePlayerByTouchX(e.touches[0].clientX);
 
-  // (선택) 마우스 드래그도 지원하고 싶으면 아래 주석 해제
-  // const onMouseDown = (e: React.MouseEvent) => movePlayerByTouchX(e.clientX);
-  // const onMouseMove = (e: React.MouseEvent) => {
-  //   if (e.buttons !== 1) return;
-  //   movePlayerByTouchX(e.clientX);
-  // };
-
   useEffect(() => {
-    const STEP = 0.55; // units 이동량
+    const STEP = 0.55;
     const onKeyDown = (e: KeyboardEvent) => {
       if (worldRef.current.mode !== "playing") return;
       if (e.key === "ArrowLeft")
@@ -550,7 +521,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const cfg = currentStageCfg();
     const tier = pickEnemyTier(cfg.enemyTierWeights);
 
-    // tier별 hp/speed
     const tierHp = tier === 1 ? 2 : tier === 2 ? 4 : 7;
     const tierSpeedMul = tier === 1 ? 1.0 : tier === 2 ? 1.03 : 1.06;
 
@@ -559,7 +529,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     return {
       id: enemyIdSeed++,
-      x: Math.random() * LANE_COUNT,
+      x: Math.random() * LANE_COUNT, // ✅ 스폰 위치 고정
       y: farYRef.current,
       tier,
       hp,
@@ -656,19 +626,14 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       spawnEnemies(dt);
       fireIfReady(dt);
 
-      const cfg = currentStageCfg();
-      const px = playerRef.current.x;
-
       setWorld((prev) => {
         if (prev.mode !== "playing") return prev;
 
-        // enemies: y move + x follow
-        let enemies = prev.enemies.map((e) => {
-          const nextY = e.y + e.speed * dt;
-          const followT = 1 - Math.exp(-cfg.followStrength * dt);
-          const nextX = lerp(e.x, px, followT);
-          return { ...e, y: nextY, x: clamp(nextX, 0, LANE_COUNT) };
-        });
+        // ✅ enemies: y만 전진, x는 고정(추적 제거)
+        let enemies = prev.enemies.map((e) => ({
+          ...e,
+          y: e.y + e.speed * dt,
+        }));
 
         // bullets: move up
         let bullets = prev.bullets.map((b) => ({
@@ -740,7 +705,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         );
 
         // player damage by enemy contact (HP system)
-        // 조건: 적이 플레이어 라인에 도달 + x overlap
         let damageThisFrame = 0;
         const hitEnemyIds = new Set<number>();
 
@@ -760,14 +724,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         }
 
         if (damageThisFrame > 0) {
-          // 맞은 적은 제거(원하면 제거하지 않고 남기도록 변경 가능)
           enemies = enemies.filter((e) => !hitEnemyIds.has(e.id));
 
-          // 플레이어 HP 깎기
           const nextHp = Math.max(0, playerRef.current.hp - damageThisFrame);
           setPlayer((p) => ({ ...p, hp: nextHp }));
 
-          // 쿨다운 부여
           hurtCooldownRef.current = 0.35;
 
           if (nextHp <= 0) {
@@ -830,7 +791,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     farYRef.current = FAR_Y_DEFAULT;
     hurtCooldownRef.current = 0;
 
-    // 플레이어 HP/위치 리셋(원하면 HP는 유지로 바꿔도 됨)
     setPlayer((p) => ({
       ...p,
       x: LANE_COUNT / 2,
@@ -849,14 +809,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     }));
   };
 
-  const handleRetry = () => {
-    hardResetToStage(world.stage);
-  };
-
-  const handleNextStage = () => {
-    const next = Math.min(MAX_STAGE, world.stage + 1);
-    hardResetToStage(next);
-  };
+  const handleRetry = () => hardResetToStage(world.stage);
+  const handleNextStage = () =>
+    hardResetToStage(Math.min(MAX_STAGE, world.stage + 1));
 
   /** RENDER HELPERS */
   const xUnitsToPx = (xUnits: number) => (xUnits / LANE_COUNT) * WIDTH;
@@ -1004,7 +959,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const playerYpx = PLAYER_Y * HEIGHT;
 
   const target = stageTarget(world.stage);
-
   const playerHpPct = player.maxHp > 0 ? clamp01(player.hp / player.maxHp) : 0;
 
   return (
@@ -1022,8 +976,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
-      // onMouseDown={onMouseDown}
-      // onMouseMove={onMouseMove}
     >
       <style>{`
         .bg {
