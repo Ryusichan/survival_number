@@ -53,7 +53,7 @@ code {
   background-size: 512px 80px; /* (100px * 8프레임) */
 
   animation: eightpx-walk 0.8s steps(8) infinite;
-  scale: 1.4;
+  scale: 3;
   /* transition: 3.32s ease-in-out; */
 }
 

@@ -2,12 +2,25 @@ import BackButton from "components/item/BackButton";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * ZoombieGame (continuous X version, NO FOLLOW)
- * 변경점
- * 1) lane 기반 → 연속 x(0..LANE_COUNT) 기반 이동/판정
- * 2) 플레이어 HP 추가(적과 충돌 시 HP 감소, 0이면 gameover)
- * 3) ✅ 적이 플레이어를 따라오는(follow) 기능 제거
- *    - 적은 스폰된 x로 그대로 내려옴(직진)
+ * ZoombieGame (continuous X + squad clones + NO FOLLOW + stacking enemies)
+ *
+ * ✅ 적용된 변경점
+ * 1) 이동/판정: lane 기반 → 연속 x(0..LANE_COUNT) 기반
+ * 2) 플레이어 HP: 적에게 공격(접촉) 당하면 HP 감소, 0이면 gameover
+ * 3) 적 추적(follow) 제거: 적은 스폰 x로 직진 하강
+ * 4) EnemyTier별 크기(widthUnits) 반영: tier2=2칸, tier3=2.6칸 (충돌/피격 범위 포함)
+ * 5) 아이템에 +1/+2 추가: 먹으면 플레이어(복제) 유닛이 옆에 생성 (고정된 dx/dy 슬롯)
+ * 6) 총알 발사: 유닛 수만큼 동일하게 발사(각 유닛의 x/y에서 발사)
+ * 7) "적은 지나가는게 아니라 앞에 쌓임":
+ *    - 적이 플레이어 라인에 도달하면 그 자리에서 "앵커(anchor)" 상태로 멈추고
+ *    - 앵커된 적은 일정 주기로 플레이어 HP를 깎음(공격)
+ *    - 죽기 전까지 앞에 머뭄(쌓임)
+ * 8) 플레이어 HP바: 플레이어(유닛) 머리 위에 표시
+ *
+ * ✅ 참고
+ * - 클론 유닛은 플레이어와 HP를 공유(복제된 느낌 + 한 체력바를 동일하게 표시).
+ *   개별 HP로 확장도 가능.
+ * - 샷건: 가운데에서 일정 spreadUnits 범위로 균등 퍼짐(makeEvenOffsets 사용)
  */
 
 const LANE_COUNT = 5;
@@ -19,9 +32,8 @@ const DESPAWN_Y = 1.25;
 
 const BASE_ZOMBIE_SPEED = 0.18;
 const HIT_EPS_Y = 0.03; // y collision threshold
-const HIT_EPS_X_UNITS = 0.18; // x collision threshold in "units" space (0..LANE_COUNT)
 
-const DROP_CHANCE = 0.25;
+const DROP_CHANCE = 0.28;
 const MAX_WIDTH = 480;
 
 // ===== Stage rules =====
@@ -29,11 +41,27 @@ const FIRST_STAGE_TARGET = 20; // stage 1 clear
 const NEXT_STAGE_STEP = 10; // +10 each stage
 const MAX_STAGE = 10;
 
+// ===== "Stacking" rules =====
+const ANCHOR_Y = PLAYER_Y - 0.012; // 적이 도달하면 이 위치에 고정(앞에 쌓임)
+const ANCHORED_ATTACK_INTERVAL = 0.65; // 앵커된 적의 공격 주기
+const PLAYER_GLOBAL_HURT_COOLDOWN = 0.18; // 한 프레임에 너무 많이 깎이는 것 방지
+const CONTACT_ANCHOR_DAMAGE = 0; // 도달 순간 즉시 데미지(원하면 1로)
+
+// ===== Clone slots (옆으로 살짝 퍼지는 느낌) =====
+const CLONE_SLOTS: Array<{ dx: number; dy: number }> = [
+  { dx: -0.25, dy: -0.03 },
+  { dx: 0.25, dy: -0.03 },
+  { dx: -0.25, dy: 0.03 },
+  { dx: 0.25, dy: 0.03 },
+  { dx: 0.5, dy: 0 },
+  { dx: -0.5, dy: 0 },
+  { dx: 0.55, dy: -0.14 },
+];
+
 type StageConfig = {
   spawnIntervalSec: number;
   maxAlive: number;
   batch: { min: number; max: number };
-  // followStrength 제거(쓰지 않음)
   enemyTierWeights: { t1: number; t2: number; t3: number };
   hpBase: number;
   speedMul: number;
@@ -124,6 +152,12 @@ const STAGES: StageConfig[] = [
 
 type EnemyTier = 1 | 2 | 3;
 
+const ENEMY_WIDTH_UNITS: Record<EnemyTier, number> = {
+  1: 1.0, // 1칸
+  2: 2.0, // 2칸
+  3: 2.6, // 2.6칸
+};
+
 type Player = {
   x: number; // 0..LANE_COUNT (연속)
   widthUnits: number; // 1.0, 1.5 ...
@@ -141,6 +175,10 @@ type Enemy = {
   speed: number;
   widthUnits: number;
   damage: number;
+
+  // ✅ stacking/attack
+  anchored: boolean; // 플레이어 앞에 도달해 고정됐는지
+  attackAcc: number; // 공격 누적 타이머
 };
 
 type Bullet = {
@@ -152,7 +190,7 @@ type Bullet = {
   pierce: boolean;
 };
 
-type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce";
+type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce" | "addClone";
 type WeaponId = "pistol" | "rapid" | "pierce" | "shotgun";
 
 type Weapon = {
@@ -162,9 +200,11 @@ type Weapon = {
   bulletSpeed: number;
   pierce: boolean;
   pellets: number;
-  xOffsets?: number[]; // units offset
   damage: number;
   durationSec?: number;
+
+  // ✅ 샷건 spread를 "가운데 기준 일정 범위로" 퍼지게
+  spreadUnits?: number; // ex) 1.0이면 -0.5..+0.5 사이에 균등
 };
 
 const WEAPONS: Record<WeaponId, Weapon> = {
@@ -203,10 +243,10 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     fireIntervalSec: 0.6,
     bulletSpeed: 0.74,
     pierce: false,
-    pellets: 3,
-    xOffsets: [-1, 0, 1],
+    pellets: 5,
     damage: 1,
     durationSec: 6,
+    spreadUnits: 1.3, // ✅ 가운데에서 일정 범위까지 퍼짐
   },
 };
 
@@ -236,7 +276,8 @@ type Item =
       add: number;
       durationSec: number;
     }
-  | { id: number; x: number; y: number; kind: "pierce"; durationSec: number };
+  | { id: number; x: number; y: number; kind: "pierce"; durationSec: number }
+  | { id: number; x: number; y: number; kind: "addClone"; count: 1 | 2 };
 
 type Mode = "playing" | "cleared" | "gameover";
 
@@ -251,9 +292,12 @@ type World = {
   combat: CombatState;
 };
 
+type CloneUnit = { id: number; slotIndex: number };
+
 let enemyIdSeed = 1;
 let bulletIdSeed = 1;
 let itemIdSeed = 1;
+let cloneIdSeed = 1;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -261,35 +305,23 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const randInt = (a: number, b: number) =>
   Math.floor(a + Math.random() * (b - a + 1));
 
-/** ===== Perspective: visual only ===== */
-function makeProjectors(heightPx: number) {
-  const GAMMA_Y = 1.4;
-  const FAR_SCREEN_Y = -0.18 * heightPx;
+function stageTarget(stage: number) {
+  return FIRST_STAGE_TARGET + (stage - 1) * NEXT_STAGE_STEP;
+}
 
-  const projectYpx = (worldY: number, farY: number) => {
-    const nearY = PLAYER_Y;
-    const t = clamp01((worldY - farY) / (nearY - farY));
-    const tt = Math.pow(t, GAMMA_Y);
-    const nearPx = nearY * heightPx;
-    const px = lerp(FAR_SCREEN_Y, nearPx, tt);
+function pickEnemyTier(w: { t1: number; t2: number; t3: number }): EnemyTier {
+  const r = Math.random();
+  if (r < w.t1) return 1;
+  if (r < w.t1 + w.t2) return 2;
+  return 3;
+}
 
-    if (worldY > nearY) {
-      const slope = 1.1;
-      return nearPx + (worldY - nearY) * heightPx * slope;
-    }
-    return px;
-  };
-
-  const getPerspective = (worldY: number, farY: number) => {
-    const nearY = PLAYER_Y;
-    const t = clamp01((worldY - farY) / (nearY - farY));
-    const tt = Math.pow(t, 1.55);
-    const scale = lerp(0.42, 1.0, tt);
-    const spread = lerp(0.55, 1.0, tt);
-    return { scale, spread };
-  };
-
-  return { projectYpx, getPerspective };
+// ==== weapon helpers ====
+function makeEvenOffsets(pellets: number, spreadUnits: number) {
+  if (pellets <= 1) return [0];
+  const half = spreadUnits / 2;
+  const step = spreadUnits / (pellets - 1);
+  return Array.from({ length: pellets }, (_, i) => -half + i * step);
 }
 
 function getActiveWeapon(combat: CombatState): Weapon {
@@ -375,17 +407,59 @@ function applyItem(combat: CombatState, item: Item): CombatState {
   return combat;
 }
 
+// ===== Perspective: visual only =====
+function makeProjectors(heightPx: number) {
+  const GAMMA_Y = 1.4;
+  const FAR_SCREEN_Y = -0.18 * heightPx;
+
+  const projectYpx = (worldY: number, farY: number) => {
+    const nearY = PLAYER_Y;
+    const t = clamp01((worldY - farY) / (nearY - farY));
+    const tt = Math.pow(t, GAMMA_Y);
+    const nearPx = nearY * heightPx;
+    const px = lerp(FAR_SCREEN_Y, nearPx, tt);
+
+    if (worldY > nearY) {
+      const slope = 1.1;
+      return nearPx + (worldY - nearY) * heightPx * slope;
+    }
+    return px;
+  };
+
+  const getPerspective = (worldY: number, farY: number) => {
+    const nearY = PLAYER_Y;
+    const t = clamp01((worldY - farY) / (nearY - farY));
+    const tt = Math.pow(t, 1.55);
+    const scale = lerp(0.42, 1.0, tt);
+    const spread = lerp(0.55, 1.0, tt);
+    return { scale, spread };
+  };
+
+  return { projectYpx, getPerspective };
+}
+
+// ===== items =====
 function maybeDropItem(x: number, y: number): Item | null {
   if (Math.random() > DROP_CHANCE) return null;
 
   const r = Math.random();
-  if (r < 0.34) {
+
+  // ✅ +1/+2
+  if (r < 0.22) {
+    const count: 1 | 2 = Math.random() < 0.65 ? 1 : 2;
+    return { id: itemIdSeed++, x, y, kind: "addClone", count };
+  }
+
+  // weapon
+  if (r < 0.52) {
     const w: WeaponId = (["rapid", "pierce", "shotgun"] as WeaponId[])[
       randInt(0, 2)
     ];
     return { id: itemIdSeed++, x, y, kind: "weapon", weaponId: w };
   }
-  if (r < 0.67) {
+
+  // firerate
+  if (r < 0.78) {
     return {
       id: itemIdSeed++,
       x,
@@ -395,18 +469,16 @@ function maybeDropItem(x: number, y: number): Item | null {
       durationSec: 6,
     };
   }
-  return { id: itemIdSeed++, x, y, kind: "damageAdd", add: 1, durationSec: 6 };
-}
 
-function stageTarget(stage: number) {
-  return FIRST_STAGE_TARGET + (stage - 1) * NEXT_STAGE_STEP;
-}
-
-function pickEnemyTier(w: { t1: number; t2: number; t3: number }): EnemyTier {
-  const r = Math.random();
-  if (r < w.t1) return 1;
-  if (r < w.t1 + w.t2) return 2;
-  return 3;
+  // damage
+  return {
+    id: itemIdSeed++,
+    x,
+    y,
+    kind: "damageAdd",
+    add: 1,
+    durationSec: 6,
+  };
 }
 
 interface Props {
@@ -436,22 +508,57 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const WIDTH = Math.min(viewport.width, MAX_WIDTH);
   const HEIGHT = viewport.height;
-
   const laneWidth = WIDTH / LANE_COUNT;
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // ===== Player (연속 x + HP) =====
+  // ===== Player =====
   const [player, setPlayer] = useState<Player>({
     x: LANE_COUNT / 2,
     widthUnits: 1.3,
-    hp: 6,
-    maxHp: 6,
+    hp: 10,
+    maxHp: 10,
   });
 
   const playerRef = useRef(player);
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
+
+  // ===== Clones =====
+  const [clones, setClones] = useState<CloneUnit[]>([]);
+  const clonesRef = useRef(clones);
+  useEffect(() => {
+    clonesRef.current = clones;
+  }, [clones]);
+
+  const addClones = (count: 1 | 2) => {
+    setClones((prev) => {
+      const used = new Set(prev.map((p) => p.slotIndex));
+      let addCount = count;
+      const next = [...prev];
+
+      for (let slotIndex = 0; slotIndex < CLONE_SLOTS.length; slotIndex++) {
+        if (addCount <= 0) break;
+        if (used.has(slotIndex)) continue;
+        next.push({ id: cloneIdSeed++, slotIndex });
+        addCount--;
+      }
+      return next;
+    });
+  };
+
+  const getAllPlayerUnits = () => {
+    const leader = { id: 0, x: playerRef.current.x, y: PLAYER_Y };
+    const extra = clonesRef.current.map((c) => {
+      const slot = CLONE_SLOTS[c.slotIndex] ?? { dx: 0, dy: 0 };
+      return {
+        id: c.id,
+        x: clamp(playerRef.current.x + slot.dx, 0, LANE_COUNT),
+        y: PLAYER_Y + slot.dy,
+      };
+    });
+    return [leader, ...extra];
+  };
 
   const [world, setWorld] = useState<World>(() => ({
     stage: 1,
@@ -474,10 +581,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const spawnAccRef = useRef(0);
   const fireAccRef = useRef(0);
 
-  const farYRef = useRef(FAR_Y_DEFAULT);
-
-  // 플레이어 피격 쿨다운
+  // player global hurt cooldown
   const hurtCooldownRef = useRef(0);
+
+  const farYRef = useRef(FAR_Y_DEFAULT);
 
   const { projectYpx, getPerspective } = useMemo(
     () => makeProjectors(HEIGHT),
@@ -524,19 +631,27 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const tierHp = tier === 1 ? 2 : tier === 2 ? 4 : 7;
     const tierSpeedMul = tier === 1 ? 1.0 : tier === 2 ? 1.03 : 1.06;
 
-    const hp = Math.min(30, tierHp + cfg.hpBase);
+    const hp = Math.min(80, tierHp + cfg.hpBase);
     const speed = BASE_ZOMBIE_SPEED * cfg.speedMul * tierSpeedMul;
+
+    const widthUnits = ENEMY_WIDTH_UNITS[tier];
+    const halfW = widthUnits / 2;
+
+    // 화면 밖으로 삐져나가지 않게 스폰 범위 제한
+    const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
     return {
       id: enemyIdSeed++,
-      x: Math.random() * LANE_COUNT, // ✅ 스폰 위치 고정
+      x,
       y: farYRef.current,
       tier,
       hp,
       maxHp: hp,
       speed,
-      widthUnits: tier === 3 ? 1.2 : tier === 2 ? 1.05 : 0.95,
+      widthUnits,
       damage: tier === 3 ? 2 : 1,
+      anchored: false,
+      attackAcc: 0,
     };
   };
 
@@ -590,17 +705,30 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     if (fireAccRef.current < weapon.fireIntervalSec) return;
     fireAccRef.current -= weapon.fireIntervalSec;
 
-    const baseX = playerRef.current.x;
-    const offsets = weapon.xOffsets ?? [0];
+    const units = getAllPlayerUnits();
+    const bulletsToAdd: Bullet[] = [];
 
-    const bulletsToAdd: Bullet[] = offsets.map((off) => ({
-      id: bulletIdSeed++,
-      x: clamp(baseX + off, 0, LANE_COUNT),
-      y: PLAYER_Y,
-      speed: weapon.bulletSpeed,
-      damage: weapon.damage,
-      pierce: weapon.pierce,
-    }));
+    const offsets =
+      weapon.spreadUnits != null
+        ? makeEvenOffsets(weapon.pellets, weapon.spreadUnits)
+        : [0];
+
+    for (const u of units) {
+      // ✅ 여기서 lane 스냅 금지: 유닛의 실제 위치 그대로
+      const baseX = u.x;
+      const baseY = u.y;
+
+      for (const off of offsets) {
+        bulletsToAdd.push({
+          id: bulletIdSeed++,
+          x: clamp(baseX + off, 0, LANE_COUNT),
+          y: baseY, // ✅ 유닛 y도 그대로 적용
+          speed: weapon.bulletSpeed,
+          damage: weapon.damage,
+          pierce: weapon.pierce,
+        });
+      }
+    }
 
     setWorld((prev) => ({
       ...prev,
@@ -619,7 +747,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       const dt = Math.min(0.033, (time - lastTimeRef.current) / 1000);
       lastTimeRef.current = time;
 
-      // hurt cooldown tick
+      // cooldown tick
       hurtCooldownRef.current = Math.max(0, hurtCooldownRef.current - dt);
 
       tickCombatTimers(dt);
@@ -629,11 +757,25 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       setWorld((prev) => {
         if (prev.mode !== "playing") return prev;
 
-        // ✅ enemies: y만 전진, x는 고정(추적 제거)
-        let enemies = prev.enemies.map((e) => ({
-          ...e,
-          y: e.y + e.speed * dt,
-        }));
+        // enemies:
+        // - anchored가 아니면 y 전진
+        // - anchored면 ANCHOR_Y에서 고정 + 공격 타이머 증가
+        let enemies = prev.enemies.map((e) => {
+          if (!e.anchored) {
+            const ny = e.y + e.speed * dt;
+            if (ny >= ANCHOR_Y) {
+              return {
+                ...e,
+                y: ANCHOR_Y,
+                anchored: true,
+                attackAcc: 0,
+              };
+            }
+            return { ...e, y: ny };
+          } else {
+            return { ...e, y: ANCHOR_Y, attackAcc: e.attackAcc + dt };
+          }
+        });
 
         // bullets: move up
         let bullets = prev.bullets.map((b) => ({
@@ -660,7 +802,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             const dx = Math.abs(e.x - b.x);
             const dy = Math.abs(e.y - b.y);
 
-            const hitX = dx < e.widthUnits * 0.45 + HIT_EPS_X_UNITS;
+            const BULLET_RADIUS_UNITS = 0.12;
+            const enemyHalfW = e.widthUnits / 2;
+
+            const hitX = dx < enemyHalfW + BULLET_RADIUS_UNITS;
             const hitY = dy < HIT_EPS_Y;
 
             if (hitX && hitY) {
@@ -693,56 +838,62 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         for (const it of items) {
           const dx = Math.abs(it.x - playerRef.current.x);
-          const inPickupZone = dx < playerRef.current.widthUnits * 0.6;
+          const inPickupZone = dx < playerRef.current.widthUnits * 0.7;
           if (!inPickupZone) continue;
-          if (Math.abs(it.y - PLAYER_Y) < 0.05) {
+
+          if (Math.abs(it.y - PLAYER_Y) < 0.06) {
             pickedItemIds.add(it.id);
-            nextCombat = applyItem(nextCombat, it);
+
+            if (it.kind === "addClone") {
+              addClones(it.count);
+            } else {
+              nextCombat = applyItem(nextCombat, it);
+            }
           }
         }
         items = items.filter(
           (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
         );
 
-        // player damage by enemy contact (HP system)
-        let damageThisFrame = 0;
-        const hitEnemyIds = new Set<number>();
-
+        // ===== enemy attacks (anchored enemies) =====
+        // anchored 적들이 일정 주기로 공격 → 플레이어 HP 감소
+        let totalDamage = 0;
         if (hurtCooldownRef.current <= 0) {
           for (const e of enemies) {
-            if (e.y < PLAYER_Y - 0.01) continue;
+            if (!e.anchored) continue;
 
-            const dx = Math.abs(e.x - playerRef.current.x);
-            const overlapX =
-              dx < playerRef.current.widthUnits * 0.5 + e.widthUnits * 0.5;
+            // 공격 interval마다 데미지
+            if (e.attackAcc >= ANCHORED_ATTACK_INTERVAL) {
+              const times = Math.floor(e.attackAcc / ANCHORED_ATTACK_INTERVAL);
+              totalDamage += times * e.damage;
+              e.attackAcc = e.attackAcc - times * ANCHORED_ATTACK_INTERVAL;
+            }
+          }
 
-            if (overlapX) {
-              damageThisFrame += e.damage;
-              hitEnemyIds.add(e.id);
+          if (totalDamage > 0) {
+            const nextHp = Math.max(0, playerRef.current.hp - totalDamage);
+            setPlayer((p) => ({ ...p, hp: nextHp }));
+            hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+
+            if (nextHp <= 0) {
+              return {
+                ...prev,
+                mode: "gameover",
+                enemies,
+                bullets,
+                items,
+                combat: nextCombat,
+                totalScore: prev.totalScore + kills,
+                stageScore: prev.stageScore + kills,
+              };
             }
           }
         }
 
-        if (damageThisFrame > 0) {
-          enemies = enemies.filter((e) => !hitEnemyIds.has(e.id));
-
-          const nextHp = Math.max(0, playerRef.current.hp - damageThisFrame);
-          setPlayer((p) => ({ ...p, hp: nextHp }));
-
-          hurtCooldownRef.current = 0.35;
-
-          if (nextHp <= 0) {
-            return {
-              ...prev,
-              mode: "gameover",
-              enemies,
-              bullets,
-              items,
-              combat: nextCombat,
-              totalScore: prev.totalScore + kills,
-              stageScore: prev.stageScore + kills,
-            };
-          }
+        // 도달 순간 즉시 데미지(옵션)
+        if (CONTACT_ANCHOR_DAMAGE > 0) {
+          // (여기서는 단순화: anchored 전환 순간에 처리하고 싶으면
+          //  anchored로 바뀌는 시점을 별도 추적하면 됨)
         }
 
         const nextStageScore = prev.stageScore + kills;
@@ -797,6 +948,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       hp: p.maxHp,
     }));
 
+    setClones([]);
+
     setWorld((prev) => ({
       stage,
       totalScore: prev.totalScore,
@@ -841,6 +994,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           alignItems: "center",
           justifyContent: "center",
           filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
+          outline: e.anchored ? "2px solid rgba(255,255,255,0.14)" : "none",
         }}
       >
         {/* hp bar */}
@@ -866,18 +1020,22 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           />
         </div>
 
-        <div
-          style={{
-            position: "absolute",
-            inset: 6,
-            borderRadius: 16,
-            pointerEvents: "none",
-          }}
-        />
-
         {e.tier === 1 && <div className="charactor_zoombie" />}
         {e.tier === 2 && <div className="charactor_zoombie2" />}
         {e.tier === 3 && <div className="charactor_zoombie3" />}
+
+        {e.anchored && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: -10,
+              fontSize: 10,
+              opacity: 0.7,
+            }}
+          >
+            ATTACKING
+          </div>
+        )}
       </div>
     );
   };
@@ -918,8 +1076,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const baseX = xUnitsToPx(it.x);
     const x = centerX + (baseX - centerX) * spread;
 
-    const emoji =
-      it.kind === "weapon"
+    const label =
+      it.kind === "addClone"
+        ? it.count === 1
+          ? "+1"
+          : "+2"
+        : it.kind === "weapon"
         ? it.weaponId === "rapid"
           ? "⚡"
           : it.weaponId === "pierce"
@@ -942,22 +1104,25 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           width: 44,
           height: 44,
           borderRadius: 14,
-          background: "rgba(255,255,255,0.9)",
+          background:
+            it.kind === "addClone"
+              ? "rgba(56,189,248,0.92)"
+              : "rgba(255,255,255,0.9)",
           boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 22,
+          fontSize: it.kind === "addClone" ? 18 : 22,
+          fontWeight: it.kind === "addClone" ? 1000 : 700,
+          color: it.kind === "addClone" ? "#07222e" : "#111",
         }}
       >
-        {emoji}
+        {label}
       </div>
     );
   };
 
-  const playerXpx = xUnitsToPx(player.x);
-  const playerYpx = PLAYER_Y * HEIGHT;
-
+  const units = getAllPlayerUnits();
   const target = stageTarget(world.stage);
   const playerHpPct = player.maxHp > 0 ? clamp01(player.hp / player.maxHp) : 0;
 
@@ -995,7 +1160,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       `}</style>
 
       <BackButton onExit={onExit} />
-
       <div className="bg" />
       <div className="vignette" />
 
@@ -1039,7 +1203,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           fontSize: 12,
         }}
       >
-        WEAPON: {activeWeapon.name} {activeWeapon.pierce ? "· PIERCE" : ""}
+        WEAPON: {activeWeapon.name} {activeWeapon.pierce ? "· PIERCE" : ""}{" "}
+        {activeWeapon.id === "shotgun"
+          ? `· SPREAD ${activeWeapon.spreadUnits}`
+          : ""}
       </div>
 
       <div
@@ -1056,13 +1223,26 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         STAGE SCORE: {world.stageScore} / {target}
       </div>
 
-      {/* Player HP */}
       <div
         style={{
           position: "absolute",
-          top: 56,
+          top: 54,
           left: 12,
-          width: 150,
+          color: "rgba(255,255,255,0.9)",
+          fontWeight: 900,
+          fontSize: 12,
+        }}
+      >
+        SQUAD: {1 + clones.length}
+      </div>
+
+      {/* Global HP (optional) */}
+      <div
+        style={{
+          position: "absolute",
+          top: 54,
+          right: 12,
+          width: 140,
           height: 10,
           borderRadius: 999,
           background: "rgba(255,255,255,0.18)",
@@ -1079,61 +1259,80 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           }}
         />
       </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 70,
-          left: 12,
-          fontSize: 11,
-          color: "rgba(255,255,255,0.86)",
-          fontWeight: 900,
-          textShadow: "0 2px 6px rgba(0,0,0,0.55)",
-        }}
-      >
-        HP {player.hp}/{player.maxHp}
-      </div>
 
       {/* Entities */}
       {world.items.map(renderItem)}
       {world.bullets.map(renderBullet)}
       {world.enemies.map(renderZombie)}
 
-      {/* Player */}
-      <div
-        style={{
-          position: "absolute",
-          left: playerXpx,
-          top: playerYpx,
-          transform: "translate(-50%, -50%)",
-          width: laneWidth * player.widthUnits,
-          height: 86,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 18,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.72))",
-            boxShadow: "0 16px 22px rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 26,
-            outline:
-              hurtCooldownRef.current > 0
-                ? "2px solid rgba(248,113,113,0.9)"
-                : "none",
-          }}
-        >
-          🪖
-        </div>
-      </div>
+      {/* Players (leader + clones) */}
+      {units.map((u) => {
+        const xpx = xUnitsToPx(u.x);
+        const ypx = u.y * HEIGHT;
+
+        return (
+          <div
+            key={u.id}
+            style={{
+              position: "absolute",
+              left: xpx,
+              top: ypx,
+              transform: "translate(-50%, -50%)",
+              width: laneWidth * player.widthUnits,
+              height: 86,
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "center",
+              pointerEvents: "none",
+            }}
+          >
+            {/* ✅ HP를 플레이어 위에 */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 62,
+                width: 56,
+                height: 8,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.2)",
+                overflow: "hidden",
+                boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
+              }}
+            >
+              <div
+                style={{
+                  width: `${playerHpPct * 100}%`,
+                  height: "100%",
+                  borderRadius: 999,
+                  background:
+                    "linear-gradient(90deg, #34d399, #f97316, #fb7185)",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 18,
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.72))",
+                boxShadow: "0 16px 22px rgba(0,0,0,0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 26,
+                outline:
+                  hurtCooldownRef.current > 0
+                    ? "2px solid rgba(248,113,113,0.9)"
+                    : "none",
+              }}
+            >
+              🪖
+            </div>
+          </div>
+        );
+      })}
 
       {/* Dialogs */}
       {world.mode !== "playing" && (
