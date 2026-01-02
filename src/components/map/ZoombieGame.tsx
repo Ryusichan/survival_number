@@ -27,7 +27,7 @@ const NEXT_STAGE_STEP = 10;
 const MAX_STAGE = 10;
 
 // ===== Stacking enemies =====
-const ANCHOR_Y = PLAYER_Y - 0.012;
+const ANCHOR_Y = PLAYER_Y - 0.08;
 const ANCHORED_ATTACK_INTERVAL = 0.65;
 const PLAYER_GLOBAL_HURT_COOLDOWN = 0.18;
 
@@ -1007,6 +1007,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         // ===== anchored enemies attack =====
         let totalDamage = 0;
+
+        const setPlayerHp = (nextHp: number) => {
+          // ✅ ref를 먼저 최신으로 만들어서, 같은 프레임 계산이 꼬이지 않게
+          playerRef.current = { ...playerRef.current, hp: nextHp };
+          setPlayer((p) => ({ ...p, hp: nextHp }));
+        };
+
         if (hurtCooldownRef.current <= 0) {
           for (const e of enemies) {
             if (!e.anchored) continue;
@@ -1020,8 +1027,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
           if (totalDamage > 0) {
             const nextHp = Math.max(0, playerRef.current.hp - totalDamage);
-            setPlayer((p) => ({ ...p, hp: nextHp }));
-            hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+            setPlayerHp(nextHp);
 
             if (nextHp <= 0) {
               return {
