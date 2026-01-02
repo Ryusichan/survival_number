@@ -1482,24 +1482,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 18,
-                background:
-                  "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.72))",
-                boxShadow: "0 16px 22px rgba(0,0,0,0.35)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 26,
                 outline:
                   hurtCooldownRef.current > 0
                     ? "2px solid rgba(248,113,113,0.9)"
                     : "none",
               }}
-            >
-              🪖
-            </div>
+              className="game_player"
+            />
           </div>
         );
       })}
