@@ -1157,6 +1157,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             borderRadius: 999,
             background: "rgba(255,255,255,0.22)",
             overflow: "hidden",
+            zIndex: 10,
           }}
         >
           <div
@@ -1182,6 +1183,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const centerX = WIDTH / 2;
     const baseX = xUnitsToPx(b.x);
     const x = centerX + (baseX - centerX) * spread;
+    let beemHeight = 10;
+    if (b.pierce) {
+      beemHeight = 24;
+    }
 
     return (
       <div
@@ -1192,7 +1197,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           top: ypx,
           transform: `translate(-50%, -50%) scale(${scale})`,
           width: 10,
-          height: 18,
+          height: beemHeight,
           borderRadius: 8,
           background: b.pierce
             ? "linear-gradient(180deg, #60a5fa, #a78bfa)"
@@ -1225,36 +1230,74 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         ? "🔺"
         : "🧿";
 
-    const bg =
-      it.kind === "addClone"
-        ? "rgba(56,189,248,0.92)"
-        : "rgba(255,255,255,0.9)";
+    let gunsName = "guns01";
+    if (it.kind === "weapon") {
+      if (it.weaponId === "rapid") {
+        gunsName = "guns02";
+      } else if (it.weaponId === "pierce") {
+        gunsName = "guns03";
+      } else if (it.weaponId === "shotgun") {
+        gunsName = "guns04";
+      } else {
+        gunsName = "guns01";
+      }
+    }
+
+    const bg = it.kind === "addClone" ? "#fff" : "unset";
     const color = it.kind === "addClone" ? "#07222e" : "#111";
 
-    return (
-      <div
-        key={it.id}
-        style={{
-          position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          background: bg,
-          boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: it.kind === "addClone" ? 18 : 22,
-          fontWeight: it.kind === "addClone" ? 1000 : 700,
-          color,
-        }}
-      >
-        {label}
-      </div>
-    );
+    if (it.kind !== "weapon")
+      return (
+        <div
+          key={it.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            background: bg,
+            boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: it.kind === "addClone" ? 18 : 22,
+            fontWeight: it.kind === "addClone" ? 1000 : 700,
+            color,
+          }}
+        >
+          {label}
+        </div>
+      );
+
+    if (it.kind === "weapon") {
+      return (
+        <div
+          key={it.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            background: bg,
+            boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 22,
+            fontWeight: 700,
+            color,
+          }}
+        >
+          <span className={`gunsCollect ${gunsName}`} />
+        </div>
+      );
+    }
   };
 
   // ✅ ItemBox render
@@ -1336,7 +1379,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         height: HEIGHT,
         margin: "0 auto",
         overflow: "hidden",
-        borderRadius: 18,
         background: "#0b1020",
         touchAction: "none",
       }}
@@ -1430,6 +1472,35 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       >
         SQUAD: {1 + clones.length}
       </div>
+      {/* currentBullet */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 12,
+          left: 12,
+          width: 48,
+          height: 48,
+          borderRadius: 8,
+          border: "2px solid #fff",
+          backgroundColor: "#ffffff63",
+        }}
+      >
+        {activeWeapon.name === "Pistol" && (
+          <div className="gunsCollect guns01" />
+        )}
+
+        {activeWeapon.name === "Rapid" && (
+          <div className="gunsCollect guns02" />
+        )}
+
+        {activeWeapon.name === "Pierce" && (
+          <div className="gunsCollect guns03" />
+        )}
+
+        {activeWeapon.name === "Shotgun" && (
+          <div className="gunsCollect guns04" />
+        )}
+      </div>
       {/* entities */}
       {world.items.map(renderItem)}
       {world.bullets.map(renderBullet)}
@@ -1439,6 +1510,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       {units.map((u) => {
         const xpx = xUnitsToPx(u.x);
         const ypx = u.y * HEIGHT;
+        const BASE_PLAYER_Z = 100;
+        const zIndex =
+          u.id === 0
+            ? BASE_PLAYER_Z
+            : BASE_PLAYER_Z +
+              1 +
+              (clones.find((c) => c.id === u.id)?.slotIndex ?? 0);
 
         return (
           <div
@@ -1450,6 +1528,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               transform: "translate(-50%, -50%)",
               width: laneWidth * player.widthUnits,
               height: 86,
+              zIndex,
               display: "flex",
               alignItems: "flex-end",
               justifyContent: "center",
@@ -1474,8 +1553,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                   width: `${playerHpPct * 100}%`,
                   height: "100%",
                   borderRadius: 999,
-                  background:
-                    "linear-gradient(90deg, #34d399, #f97316, #fb7185)",
+                  background: "#57aeff",
                 }}
               />
             </div>
