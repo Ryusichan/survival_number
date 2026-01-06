@@ -237,6 +237,8 @@ type Enemy = {
   damage: number;
   anchored: boolean;
   attackAcc: number;
+  hitFx: number; // 피격 연출 남은 시간(초)
+  hitText: string; // 표시할 텍스트 (기본 "HIT")
 };
 
 type Bullet = {
@@ -745,6 +747,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       damage: tier === 3 ? 2 : 1,
       anchored: false,
       attackAcc: 0,
+      hitFx: 0,
+      hitText: "HIT",
     };
   };
 
@@ -863,13 +867,27 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         // enemies move (anchored stack)
         let enemies = prev.enemies.map((e) => {
+          const nextHitFx = Math.max(0, (e.hitFx ?? 0) - dt);
+
           if (!e.anchored) {
             const ny = e.y + e.speed * dt;
             if (ny >= ANCHOR_Y)
-              return { ...e, y: ANCHOR_Y, anchored: true, attackAcc: 0 };
-            return { ...e, y: ny };
+              return {
+                ...e,
+                y: ANCHOR_Y,
+                anchored: true,
+                attackAcc: 0,
+                hitFx: nextHitFx,
+              };
+            return { ...e, y: ny, hitFx: nextHitFx };
           }
-          return { ...e, y: ANCHOR_Y, attackAcc: e.attackAcc + dt };
+
+          return {
+            ...e,
+            y: ANCHOR_Y,
+            attackAcc: e.attackAcc + dt,
+            hitFx: nextHitFx,
+          };
         });
 
         let boxes = prev.boxes.map((b) => ({
@@ -952,6 +970,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
             if (hitX && hitY) {
               e.hp -= b.damage;
+
+              // ✅ 피격 연출 ON
+              e.hitFx = 0.25;
+              e.hitText = "HIT"; // 원하면 `-${b.damage}` 같은 것도 가능
+
               if (!b.pierce) deadBulletIds.add(b.id);
               if (e.hp <= 0) deadEnemyIds.add(e.id);
               if (!b.pierce) break;
@@ -1152,6 +1175,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const hpPct = Math.max(0, Math.min(1, e.hp / e.maxHp));
 
+    const hitOffsetPx = e.hitFx > 0 ? -10 : 0; // 1px 뒤로(위로) 살짝
+
     return (
       <div
         key={e.id}
@@ -1159,17 +1184,41 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           position: "absolute",
           left: x,
           top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
           width: laneWidth * 0.78 * e.widthUnits,
           height: 76,
           borderRadius: 18,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
-          outline: e.anchored ? "2px solid rgba(255,255,255,0.14)" : "none",
+          filter:
+            e.hitFx > 0
+              ? "drop-shadow(0 14px 16px rgba(95, 255, 95, 0.5))"
+              : "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
         }}
       >
+        {e.hitFx > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              right: "0%",
+              fontSize: 12,
+              rotate: "40deg",
+              fontWeight: 1000,
+              padding: "2px 6px",
+              borderRadius: 8,
+              background: "rgba(0,0,0,0.55)",
+              color: "#fff",
+              opacity: Math.min(1, e.hitFx / 0.18),
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+              zIndex: 20,
+            }}
+          >
+            {e.hitText}
+          </div>
+        )}
         <div
           style={{
             position: "absolute",
@@ -1570,7 +1619,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           <StatBlocks level={speedLevel} max={5} color="#60a5fa" />
 
           {/* POWER */}
-          <StatBlocks level={powerLevel} max={5} color="#f97316" />
+          <StatBlocks level={powerLevel} max={5} color="#29ffb8" />
         </div>
       </div>
       {/* entities */}
