@@ -150,6 +150,10 @@ code {
   right: 0;
 }
 
+.weapon-blink {
+  animation: weaponBlink 0.3s infinite;
+}
+
 /* 걷는 애니메이션 */
 @keyframes soldier-walk {
   from {
@@ -179,5 +183,17 @@ code {
   }
   100% {
     transform: translate(-50%, -80%) scale(1);
+  }
+}
+
+@keyframes weaponBlink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
   }
 }

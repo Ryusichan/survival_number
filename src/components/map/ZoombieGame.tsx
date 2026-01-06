@@ -280,7 +280,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     pierce: false,
     pellets: 1,
     damage: 1,
-    durationSec: 6,
+    durationSec: 8,
   },
   pierce: {
     id: "pierce",
@@ -290,7 +290,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     pierce: true,
     pellets: 1,
     damage: 1,
-    durationSec: 6,
+    durationSec: 8,
   },
   shotgun: {
     id: "shotgun",
@@ -300,10 +300,24 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     pierce: false,
     pellets: 5,
     damage: 1,
-    durationSec: 6,
+    durationSec: 8,
     spreadUnits: 1.0,
   },
 };
+
+const SPEED_LEVELS = [
+  0.6, // 1단계
+  0.7, // 2단계
+  0.8, // 3단계
+  0.9, // 4단계
+];
+
+const POWER_LEVELS = [
+  1, // 1단계
+  2, // 2단계
+  3, // 3단계
+  4, // 4단계
+];
 
 type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce" | "addClone";
 
@@ -393,6 +407,13 @@ function makeEvenOffsets(pellets: number, spreadUnits: number) {
   const step = spreadUnits / (pellets - 1);
   return Array.from({ length: pellets }, (_, i) => -half + i * step);
 }
+
+const valueToLevel = (value: number, levels: number[]) => {
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (value >= levels[i]) return i + 1;
+  }
+  return 1;
+};
 
 function getActiveWeapon(combat: CombatState): Weapon {
   const base = combat.tempWeapon
@@ -703,7 +724,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const tierHp = tier === 1 ? 2 : tier === 2 ? 4 : 7;
     const tierSpeedMul = tier === 1 ? 1.0 : tier === 2 ? 1.03 : 1.06;
 
-    const hp = Math.min(80, tierHp + cfg.hpBase);
+    const hp = Math.min(80, tierHp); //hp stage 별 고정
+    // const hp = Math.min(80, tierHp + cfg.hpBase);
+    // const speed = BASE_ZOMBIE_SPEED * 1.0 * tierSpeedMul;  // 속도고정
     const speed = BASE_ZOMBIE_SPEED * cfg.speedMul * tierSpeedMul;
 
     const widthUnits = ENEMY_WIDTH_UNITS[tier];
@@ -1370,6 +1393,35 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     );
   };
 
+  const isWeaponBlinking =
+    world.combat.tempWeapon && world.combat.tempWeapon.timeLeft <= 1;
+  const speedLevel = valueToLevel(activeWeapon.bulletSpeed, SPEED_LEVELS);
+
+  const powerLevel = valueToLevel(activeWeapon.damage, POWER_LEVELS);
+
+  const StatBlocks = ({
+    level,
+    max = 5,
+    color,
+  }: {
+    level: number;
+    max?: number;
+    color: string;
+  }) => (
+    <div style={{ display: "flex", gap: 1, flexDirection: "column-reverse" }}>
+      {Array.from({ length: max }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            width: 4,
+            height: 4,
+            background: i < level ? color : "rgba(255,255,255,0.25)",
+          }}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div
       ref={containerRef}
@@ -1477,7 +1529,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         style={{
           position: "absolute",
           bottom: 12,
-          left: 12,
+          left: 16,
           width: 48,
           height: 48,
           borderRadius: 8,
@@ -1485,21 +1537,41 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           backgroundColor: "#ffffff63",
         }}
       >
-        {activeWeapon.name === "Pistol" && (
-          <div className="gunsCollect guns01" />
-        )}
+        <div className={isWeaponBlinking ? "weapon-blink" : ""}>
+          {activeWeapon.name === "Pistol" && (
+            <div className="gunsCollect guns01" />
+          )}
 
-        {activeWeapon.name === "Rapid" && (
-          <div className="gunsCollect guns02" />
-        )}
+          {activeWeapon.name === "Rapid" && (
+            <div className="gunsCollect guns02" />
+          )}
 
-        {activeWeapon.name === "Pierce" && (
-          <div className="gunsCollect guns03" />
-        )}
+          {activeWeapon.name === "Pierce" && (
+            <div className="gunsCollect guns03" />
+          )}
 
-        {activeWeapon.name === "Shotgun" && (
-          <div className="gunsCollect guns04" />
-        )}
+          {activeWeapon.name === "Shotgun" && (
+            <div className="gunsCollect guns04" />
+          )}
+        </div>
+
+        {/* 스탯 블록 */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 2,
+            position: "absolute",
+            left: -14,
+            bottom: 4,
+          }}
+        >
+          {/* SPEED */}
+          <StatBlocks level={speedLevel} max={5} color="#60a5fa" />
+
+          {/* POWER */}
+          <StatBlocks level={powerLevel} max={5} color="#f97316" />
+        </div>
       </div>
       {/* entities */}
       {world.items.map(renderItem)}
