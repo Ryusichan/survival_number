@@ -125,6 +125,7 @@ type StageConfig = {
   enemyTierWeights: { t1: number; t2: number; t3: number };
   hpBase: number;
   speedMul: number;
+  kindWeights?: Partial<Record<EnemyKind, number>>;
 };
 
 const STAGES: StageConfig[] = [
@@ -135,6 +136,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.85, t2: 0.15, t3: 0.0 },
     hpBase: 0,
     speedMul: 0.95,
+    kindWeights: { normal: 0.9, teddy: 0.1 },
   },
   {
     spawnIntervalSec: 1.05,
@@ -143,6 +145,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.75, t2: 0.25, t3: 0.0 },
     hpBase: 0,
     speedMul: 1.0,
+    kindWeights: { normal: 0.7, teddy: 0.2, fat: 0.1 },
   },
   {
     spawnIntervalSec: 0.98,
@@ -151,6 +154,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.65, t2: 0.32, t3: 0.03 },
     hpBase: 0,
     speedMul: 1.03,
+    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
   },
   {
     spawnIntervalSec: 0.92,
@@ -159,6 +163,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.55, t2: 0.37, t3: 0.08 },
     hpBase: 1,
     speedMul: 1.06,
+    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
   },
   {
     spawnIntervalSec: 0.86,
@@ -167,6 +172,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.48, t2: 0.4, t3: 0.12 },
     hpBase: 1,
     speedMul: 1.1,
+    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
   },
   {
     spawnIntervalSec: 0.82,
@@ -175,6 +181,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.4, t2: 0.44, t3: 0.16 },
     hpBase: 2,
     speedMul: 1.14,
+    kindWeights: { normal: 0.6, teddy: 0.2, fat: 0.2 },
   },
   {
     spawnIntervalSec: 0.78,
@@ -183,6 +190,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.34, t2: 0.46, t3: 0.2 },
     hpBase: 2,
     speedMul: 1.18,
+    kindWeights: { normal: 0.6, teddy: 0.2, fat: 0.2 },
   },
   {
     spawnIntervalSec: 0.74,
@@ -191,6 +199,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.28, t2: 0.48, t3: 0.24 },
     hpBase: 3,
     speedMul: 1.22,
+    kindWeights: { normal: 0.5, teddy: 0.3, fat: 0.2 },
   },
   {
     spawnIntervalSec: 0.7,
@@ -199,6 +208,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.22, t2: 0.5, t3: 0.28 },
     hpBase: 3,
     speedMul: 1.26,
+    kindWeights: { normal: 0.5, teddy: 0.3, fat: 0.2 },
   },
   {
     spawnIntervalSec: 0.66,
@@ -207,6 +217,7 @@ const STAGES: StageConfig[] = [
     enemyTierWeights: { t1: 0.18, t2: 0.5, t3: 0.32 },
     hpBase: 4,
     speedMul: 1.3,
+    kindWeights: { normal: 0.4, teddy: 0.3, fat: 0.3 },
   },
 ];
 
@@ -225,6 +236,54 @@ type Player = {
   maxHp: number;
 };
 
+type EnemySpec = {
+  hp: number;
+  speedMul: number; // BASE_ZOMBIE_SPEED에 곱할 값
+  damage: number;
+  widthUnits: number; // 충돌/크기 영향
+  cssClass: string; // 렌더링 class 매핑용
+};
+
+const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
+  normal: {
+    hp: 2,
+    speedMul: 1.0,
+    damage: 1,
+    widthUnits: 1.0,
+    cssClass: "charactor_zoombie",
+  },
+  teddy: {
+    hp: 3,
+    speedMul: 1.05,
+    damage: 1,
+    widthUnits: 1.0,
+    cssClass: "charactor_zoombie2",
+  },
+  fat: {
+    hp: 10,
+    speedMul: 0.4,
+    damage: 2,
+    widthUnits: 2.0,
+    cssClass: "charactor_zoombie3",
+  },
+  king: {
+    hp: 14,
+    speedMul: 0.95,
+    damage: 3,
+    widthUnits: 2.6,
+    cssClass: "charactor_zoombie3",
+  },
+  queen: {
+    hp: 12,
+    speedMul: 1.1,
+    damage: 2,
+    widthUnits: 2.4,
+    cssClass: "charactor_zoombie3",
+  },
+};
+
+type EnemyKind = "normal" | "teddy" | "fat" | "king" | "queen";
+
 type Enemy = {
   id: number;
   x: number;
@@ -239,6 +298,7 @@ type Enemy = {
   attackAcc: number;
   hitFx: number; // 피격 연출 남은 시간(초)
   hitText: string; // 표시할 텍스트 (기본 "HIT")
+  kind: EnemyKind; // ✅ 추가
 };
 
 type Bullet = {
@@ -719,32 +779,45 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       Math.max(0, Math.min(STAGES.length - 1, worldRef.current.stage - 1))
     ];
 
+  function pickEnemyKind(
+    weights: Partial<Record<EnemyKind, number>>
+  ): EnemyKind {
+    const entries = Object.entries(weights) as [EnemyKind, number][];
+    const sum = entries.reduce((a, [, w]) => a + w, 0);
+    let r = Math.random() * (sum || 1);
+
+    for (const [k, w] of entries) {
+      r -= w;
+      if (r <= 0) return k;
+    }
+    return "normal";
+  }
+
   const makeEnemy = (): Enemy => {
     const cfg = currentStageCfg();
-    const tier = pickEnemyTier(cfg.enemyTierWeights);
 
-    const tierHp = tier === 1 ? 2 : tier === 2 ? 4 : 7;
-    const tierSpeedMul = tier === 1 ? 1.0 : tier === 2 ? 1.03 : 1.06;
+    const kind = pickEnemyKind(cfg.kindWeights ?? { normal: 1 });
 
-    const hp = Math.min(80, tierHp); //hp stage 별 고정
-    // const hp = Math.min(80, tierHp + cfg.hpBase);
-    // const speed = BASE_ZOMBIE_SPEED * 1.0 * tierSpeedMul;  // 속도고정
-    const speed = BASE_ZOMBIE_SPEED * cfg.speedMul * tierSpeedMul;
+    const spec = ENEMY_SPECS[kind];
 
-    const widthUnits = ENEMY_WIDTH_UNITS[tier];
+    // (선택) 스테이지 속도만 반영하고 싶으면 cfg.speedMul 같이 곱하면 됨
+    const speed = BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
+
+    const widthUnits = spec.widthUnits;
     const halfW = widthUnits / 2;
     const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
     return {
       id: enemyIdSeed++,
+      kind,
+      tier: 1, // 이제 tier 의미가 약해지면 지워도 됨(원하면 유지)
       x,
       y: farYRef.current,
-      tier,
-      hp,
-      maxHp: hp,
+      hp: spec.hp,
+      maxHp: spec.hp,
       speed,
       widthUnits,
-      damage: tier === 3 ? 2 : 1,
+      damage: spec.damage,
       anchored: false,
       attackAcc: 0,
       hitFx: 0,
@@ -1175,7 +1248,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const hpPct = Math.max(0, Math.min(1, e.hp / e.maxHp));
 
-    const hitOffsetPx = e.hitFx > 0 ? -10 : 0; // 1px 뒤로(위로) 살짝
+    const hitOffsetPx = e.hitFx > 0 ? -5 : 0; // 1px 뒤로(위로) 살짝
 
     return (
       <div
@@ -1242,9 +1315,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           />
         </div>
 
-        {e.tier === 1 && <div className="charactor_zoombie" />}
-        {e.tier === 2 && <div className="charactor_zoombie2" />}
-        {e.tier === 3 && <div className="charactor_zoombie3" />}
+        <div className={ENEMY_SPECS[e.kind].cssClass} />
       </div>
     );
   };
@@ -1276,6 +1347,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             : "linear-gradient(180deg, #facc15, #f97316)",
           boxShadow: "0 10px 16px rgba(0,0,0,0.35)",
         }}
+        className={`${b.pierce && "m_carrot"}`}
       />
     );
   };
