@@ -299,8 +299,8 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 const BOSS_MISSION = {
   stage: 10, // 10스테이지에서만
   kind: "king" as EnemyKind, // "king" | "queen" 등
-  hp: 1680, // ✅ 보스 체력
-  speedMul: 0.65, // ✅ 이동 속도( BASE_ZOMBIE_SPEED * speedMul * stageSpeedMul )
+  hp: 1880, // ✅ 보스 체력
+  speedMul: 0.55, // ✅ 이동 속도( BASE_ZOMBIE_SPEED * speedMul * stageSpeedMul )
   damage: 4, // ✅ 맞을 때 데미지
   widthUnits: 4.2, // ✅ 히트박스/크기
   attackInterval: 0.45, // ✅ 앵커 도착 후 공격 주기(기존 0.65보다 빠르게 가능)
