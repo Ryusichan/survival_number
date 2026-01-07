@@ -285,7 +285,7 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
     speedMul: 0.95,
     damage: 3,
     widthUnits: 2.6,
-    cssClass: "charactor_zoombie3",
+    cssClass: "charactor_zoombie4",
   },
   queen: {
     hp: 12,
@@ -299,10 +299,10 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 const BOSS_MISSION = {
   stage: 10, // 10스테이지에서만
   kind: "king" as EnemyKind, // "king" | "queen" 등
-  hp: 80, // ✅ 보스 체력
+  hp: 580, // ✅ 보스 체력
   speedMul: 0.65, // ✅ 이동 속도( BASE_ZOMBIE_SPEED * speedMul * stageSpeedMul )
   damage: 4, // ✅ 맞을 때 데미지
-  widthUnits: 2.8, // ✅ 히트박스/크기
+  widthUnits: 4.2, // ✅ 히트박스/크기
   attackInterval: 0.45, // ✅ 앵커 도착 후 공격 주기(기존 0.65보다 빠르게 가능)
   dropOnKill: true, // 필요하면 보상 드랍
 };
