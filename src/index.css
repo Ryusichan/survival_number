@@ -70,19 +70,67 @@ code {
   /* transition: 3.32s ease-in-out; */
 }
 
-.m_carrot {
-  width: 40px !important;
-  height: 40px !important;
+.b_pierce {
+  width: 48px !important;
+  height: 48px !important;
   background-image: url("/public/items/m_carrot.png") !important; /* 너가 받은 스프라이트 */
   background-repeat: no-repeat !important;
   background-size: contain !important;
   box-shadow: unset !important;
 }
 
-.game_player {
+.b_rapid {
+  width: 40px !important;
+  height: 40px !important;
+  background-image: url("/public/items/m_milk.png") !important; /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  box-shadow: unset !important;
+}
+
+.game_player.player_pistol {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
   background-image: url("/public/charactor/charactor_player.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 512px 80px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+  /* transition: 3.32s ease-in-out; */
+}
+
+.game_player.player_pierce {
+  width: 64px; /* 프레임 하나의 실제 너비 */
+  height: 80px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor/charactor_rabbit.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 512px 80px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+  /* transition: 3.32s ease-in-out; */
+}
+
+.game_player.player_rapid {
+  width: 64px; /* 프레임 하나의 실제 너비 */
+  height: 80px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor/charactor_cow.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 512px 80px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+  /* transition: 3.32s ease-in-out; */
+}
+
+.game_player.player_shotgun {
+  width: 64px; /* 프레임 하나의 실제 너비 */
+  height: 80px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor/charactor_eleph.png"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */

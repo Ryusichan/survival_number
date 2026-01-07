@@ -128,6 +128,20 @@ type StageConfig = {
   kindWeights?: Partial<Record<EnemyKind, number>>;
 };
 
+const PLAYER_WEAPON_CLASS: Record<WeaponId, string> = {
+  pistol: "player_pistol",
+  rapid: "player_rapid",
+  pierce: "player_pierce",
+  shotgun: "player_shotgun",
+};
+
+const BULLET_CLASS: Record<WeaponId, string> = {
+  pistol: "b_pistol",
+  rapid: "b_rapid",
+  pierce: "b_pierce",
+  shotgun: "b_shotgun",
+};
+
 const STAGES: StageConfig[] = [
   {
     spawnIntervalSec: 1.15,
@@ -308,6 +322,7 @@ type Bullet = {
   speed: number;
   damage: number;
   pierce: boolean;
+  weaponId: WeaponId;
 };
 
 type WeaponId = "pistol" | "rapid" | "pierce" | "shotgun";
@@ -908,6 +923,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           speed: weapon.bulletSpeed,
           damage: weapon.damage,
           pierce: weapon.pierce,
+          weaponId: weapon.id,
         });
       }
     }
@@ -1342,12 +1358,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           width: 10,
           height: beemHeight,
           borderRadius: 8,
-          background: b.pierce
-            ? "linear-gradient(180deg, #60a5fa, #a78bfa)"
-            : "linear-gradient(180deg, #facc15, #f97316)",
+          background:
+            b.weaponId === "shotgun"
+              ? "linear-gradient(180deg, #b0d4ff, #60a5fa)"
+              : "linear-gradient(180deg, #facc15, #f97316)",
           boxShadow: "0 10px 16px rgba(0,0,0,0.35)",
         }}
-        className={`${b.pierce && "m_carrot"}`}
+        className={BULLET_CLASS[b.weaponId]}
       />
     );
   };
@@ -1519,6 +1536,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const speedLevel = valueToLevel(activeWeapon.bulletSpeed, SPEED_LEVELS);
 
   const powerLevel = valueToLevel(activeWeapon.damage, POWER_LEVELS);
+
+  const playerWeaponClass = PLAYER_WEAPON_CLASS[activeWeapon.id];
 
   const StatBlocks = ({
     level,
@@ -1758,7 +1777,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                     ? "2px solid rgba(248,113,113,0.9)"
                     : "none",
               }}
-              className="game_player"
+              className={`game_player ${playerWeaponClass}`}
             />
           </div>
         );
