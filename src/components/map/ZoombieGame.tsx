@@ -1533,7 +1533,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const isWeaponBlinking =
     world.combat.tempWeapon && world.combat.tempWeapon.timeLeft <= 1;
-  const speedLevel = valueToLevel(activeWeapon.bulletSpeed, SPEED_LEVELS);
+
+  const fireRate = 1 / activeWeapon.fireIntervalSec; // shots per sec
+
+  const FIRE_RATE_LEVELS = [1.5, 2.2, 3.0, 3.8, 4.6]; // 원하는 기준으로 조절
+  const speedLevel = valueToLevel(fireRate, FIRE_RATE_LEVELS);
 
   const powerLevel = valueToLevel(activeWeapon.damage, POWER_LEVELS);
 
