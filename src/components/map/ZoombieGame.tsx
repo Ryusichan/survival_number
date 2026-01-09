@@ -24,7 +24,7 @@ const MAX_WIDTH = 480;
 // ===== Stage rules =====
 const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 10;
-const MAX_STAGE = 10;
+const MAX_STAGE = 30;
 
 // ===== Stacking enemies =====
 const ANCHOR_Y = PLAYER_Y - 0.08;
@@ -47,6 +47,77 @@ const BOX_HEIGHT_HIT_EPS_Y = 0.05; // 박스 피격 y 판정 폭(조금 넉넉�
 // 메인 포함 최대 20명 => 클론은 19명
 const MAX_UNITS = 20;
 const MAX_CLONES = MAX_UNITS - 1;
+
+// ==============================
+// ✅ STAGE 1~30 CONFIG (edit here)
+// ==============================
+type StageRule = {
+  spawnIntervalSec: number;
+  maxAlive: number;
+  batch: { min: number; max: number };
+  kindWeights: Partial<Record<EnemyKind, number>>;
+
+  // ✅ 스테이지 배율(종류별 base 스펙에 곱/더함)
+  hpMul: number;        // enemy hp *= hpMul
+  hpAdd: number;        // enemy hp += hpAdd
+  speedMul: number;     // enemy speed *= speedMul
+  damageAdd: number;    // enemy damage += damageAdd
+
+  // (선택) 박스도 스테이지마다 바꾸고 싶으면
+  boxSpawnIntervalSec?: number;
+  boxMaxAlive?: number;
+};
+
+const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
+  const stage = i + 1;
+
+  // ---- 1) 난이도 커브(원하는대로 수정) ----
+  // hp는 후반 급증, 속도는 완만, 데미지는 완만 증가 예시
+  const hpMul = 1 + (stage - 1) * 0.08;      // 1스테이지 1.00, 30스테이지 3.32
+  const hpAdd = Math.floor((stage - 1) * 0.6); // 0 -> 17
+  const speedMul = 1 + (stage - 1) * 0.012;  // 1.00 -> 1.348
+  const damageAdd = Math.floor((stage - 1) / 6); // 0 -> 4
+
+  // ---- 2) 스폰/개체수 커브 ----
+  // 스폰 간격은 점점 짧게, maxAlive는 점점 증가
+  const spawnIntervalSec = Math.max(0.42, 1.15 - (stage - 1) * 0.025);
+  const maxAlive = Math.min(22, 6 + Math.floor((stage - 1) * 0.55));
+  const batchMin = stage < 6 ? 1 : stage < 14 ? 2 : 3;
+  const batchMax = stage < 6 ? 2 : stage < 14 ? 3 : 5;
+
+  // ---- 3) 몬스터 종류 비율(원하는대로 수정) ----
+  // king/queen은 일반 스테이지에서 거의 안 나오게(보스는 따로)
+  const kindWeights: StageRule["kindWeights"] =
+    stage < 6
+      ? { normal: 0.85, teddy: 0.15 }
+      : stage < 12
+      ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
+      : stage < 20
+      ? { normal: 0.45, teddy: 0.3, fat: 0.25 }
+      : stage < 30
+      ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
+      : { normal: 0.25, teddy: 0.25, fat: 0.5 };
+
+  // ---- 4) 박스 난이도 커브(선택) ----
+  const boxSpawnIntervalSec = Math.max(3.8, 6.2 - (stage - 1) * 0.06);
+  const boxMaxAlive = stage < 10 ? 2 : stage < 20 ? 3 : 4;
+
+  return {
+    spawnIntervalSec,
+    maxAlive,
+    batch: { min: batchMin, max: batchMax },
+    kindWeights,
+
+    hpMul,
+    hpAdd,
+    speedMul,
+    damageAdd,
+
+    boxSpawnIntervalSec,
+    boxMaxAlive,
+  };
+});
+
 
 // ✅ 기존 간격(가로 0.25, 세로 0.03, 바깥쪽 0.5)을 그대로 반복/확장해서 19개 슬롯 생성
 function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
@@ -296,16 +367,54 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
   },
 };
 
-const BOSS_MISSION = {
-  stage: 10, // 10스테이지에서만
-  kind: "king" as EnemyKind, // "king" | "queen" 등
-  hp: 1880, // ✅ 보스 체력
-  speedMul: 0.55, // ✅ 이동 속도( BASE_ZOMBIE_SPEED * speedMul * stageSpeedMul )
-  damage: 4, // ✅ 맞을 때 데미지
-  widthUnits: 4.2, // ✅ 히트박스/크기
-  attackInterval: 0.45, // ✅ 앵커 도착 후 공격 주기(기존 0.65보다 빠르게 가능)
-  dropOnKill: true, // 필요하면 보상 드랍
+type BossMission = {
+  stage: 10 | 20 | 30;
+  kind: EnemyKind;        // "king" | "queen" 등
+  hp: number;
+  speedMul: number;       // BASE_ZOMBIE_SPEED * speedMul * stageCfg.speedMul
+  damage: number;
+  widthUnits: number;
+  attackInterval: number; // 앵커 도착 후 공격 주기
+  dropOnKill?: boolean;
 };
+
+const BOSS_MISSIONS: BossMission[] = [
+  {
+    stage: 10,
+    kind: "king",
+    hp: 1880,
+    speedMul: 0.55,
+    damage: 4,
+    widthUnits: 4.2,
+    attackInterval: 0.45,
+    dropOnKill: true,
+  },
+  {
+    stage: 20,
+    kind: "king",
+    hp: 3200,
+    speedMul: 0.58,
+    damage: 6,
+    widthUnits: 4.4,
+    attackInterval: 0.42,
+    dropOnKill: true,
+  },
+  {
+    stage: 30,
+    kind: "king",
+    hp: 5200,
+    speedMul: 0.6,
+    damage: 8,
+    widthUnits: 4.6,
+    attackInterval: 0.38,
+    dropOnKill: true,
+  },
+];
+
+const getBossMission = (stage: number): BossMission | undefined =>
+  BOSS_MISSIONS.find((m) => m.stage === stage);
+
+const isBossStage = (stage: number) => !!getBossMission(stage);
 
 type EnemyKind = "normal" | "teddy" | "fat" | "king" | "queen";
 
@@ -453,10 +562,10 @@ type ItemBox = {
 };
 
 type BossState = {
-  active: boolean; // 보스전인지
-  spawned: boolean; // 보스 생성했는지
-  bossId?: number; // 보스 enemy id
-  kind: EnemyKind; // king/queen 등
+  active: boolean;
+  spawned: boolean;
+  bossId?: number;
+  mission: BossMission;
 };
 
 type World = {
@@ -764,7 +873,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     boxes: [], // ✅
     combat: { baseWeaponId: "pistol", buffs: [] },
 
-    boss: { active: false, spawned: false, kind: "king" }, // ✅
+    boss: undefined,
   }));
   const worldRef = useRef(world);
   useEffect(() => {
@@ -812,9 +921,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   }, []);
 
   const currentStageCfg = () =>
-    STAGES[
-      Math.max(0, Math.min(STAGES.length - 1, worldRef.current.stage - 1))
-    ];
+  STAGE_RULES_1_TO_30[
+    Math.max(0, Math.min(29, worldRef.current.stage - 1))
+  ];
+
 
   function pickEnemyKind(
     weights: Partial<Record<EnemyKind, number>>
@@ -862,29 +972,30 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     };
   };
 
-  const makeBoss = (): Enemy => {
-    const cfg = currentStageCfg();
+  const makeBoss = (mission: BossMission): Enemy => {
+  const cfg = currentStageCfg();
 
-    const halfW = BOSS_MISSION.widthUnits / 2;
-    const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
+  const halfW = mission.widthUnits / 2;
+  const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
-    return {
-      id: enemyIdSeed++,
-      kind: BOSS_MISSION.kind,
-      tier: 3,
-      x,
-      y: farYRef.current,
-      hp: BOSS_MISSION.hp,
-      maxHp: BOSS_MISSION.hp,
-      speed: BASE_ZOMBIE_SPEED * BOSS_MISSION.speedMul * cfg.speedMul,
-      widthUnits: BOSS_MISSION.widthUnits,
-      damage: BOSS_MISSION.damage,
-      anchored: false,
-      attackAcc: 0,
-      hitFx: 0,
-      hitText: "BOSS",
-    };
+  return {
+    id: enemyIdSeed++,
+    kind: mission.kind,
+    tier: 3,
+    x,
+    y: farYRef.current,
+    hp: mission.hp,
+    maxHp: mission.hp,
+    speed: BASE_ZOMBIE_SPEED * mission.speedMul * cfg.speedMul,
+    widthUnits: mission.widthUnits,
+    damage: mission.damage,
+    anchored: false,
+    attackAcc: 0,
+    hitFx: 0,
+    hitText: "BOSS",
   };
+};
+
 
   const spawnEnemies = (dt: number) => {
     if (worldRef.current.boss?.active) return; // ✅ 추가
@@ -1050,19 +1161,19 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         // ✅ 보스전이면 보스 1회 생성 (딱 1마리)
         if (prev.boss?.active && !prev.boss.spawned) {
-          const boss = makeBoss();
-          enemies = [...enemies, boss];
-          boxes = []; // 보스전은 박스 제거(원하면 유지 가능)
+  const boss = makeBoss(prev.boss.mission);
+  enemies = [...enemies, boss];
+  boxes = []; // 보스전은 박스 제거(원하면 유지)
 
-          return {
-            ...prev,
-            enemies,
-            boxes,
-            bullets,
-            items,
-            boss: { ...prev.boss, spawned: true, bossId: boss.id },
-          };
-        }
+  return {
+    ...prev,
+    enemies,
+    boxes,
+    bullets,
+    items,
+    boss: { ...prev.boss, spawned: true, bossId: boss.id },
+  };
+}
 
         const spawnedFromBox: Item[] = [];
 
@@ -1157,8 +1268,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         // ✅ 보스가 죽었으면 최종 클리어
         const bossId = prev.boss?.bossId;
-        const bossDied =
-          prev.boss?.active && bossId != null && deadEnemyIds.has(bossId);
+        const bossStillAlive = bossId != null && enemies.some(e => e.id === bossId);
+const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
 
         if (bossDied) {
           return {
@@ -1236,9 +1347,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         if (hurtCooldownRef.current <= 0) {
           for (const e of enemies) {
             const interval =
-              prev.boss?.active && prev.boss.bossId === e.id
-                ? BOSS_MISSION.attackInterval
-                : ANCHORED_ATTACK_INTERVAL;
+  prev.boss?.active && prev.boss.bossId === e.id
+    ? prev.boss.mission.attackInterval
+    : ANCHORED_ATTACK_INTERVAL;
+
 
             if (!e.anchored) continue;
 
@@ -1275,38 +1387,39 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         const target = stageTarget(prev.stage);
         // ✅ 보스전 중에는 stageTarget으로 클리어 처리하면 안 됨
         if (!prev.boss?.active && nextStageScore >= target) {
-          // ✅ 10스테이지면 보스전으로 전환(클리어 아님)
-          if (prev.stage === BOSS_MISSION.stage && !prev.boss?.active) {
-            return {
-              ...prev,
-              mode: "playing",
-              totalScore: nextTotalScore,
+  const mission = getBossMission(prev.stage);
 
-              // ✅ 중요: 보스전 들어갈 때 stageScore를 0으로 리셋(권장)
-              stageScore: 0,
+  // ✅ 보스 스테이지면: 클리어가 아니라 보스전 진입
+  if (mission) {
+    return {
+      ...prev,
+      mode: "playing",
+      totalScore: nextTotalScore,
+      stageScore: 0,   // 보스전 점수 리셋(권장)
 
-              enemies: [],
-              boxes: [],
-              bullets,
-              items,
+      enemies: [],
+      boxes: [],
+      bullets,
+      items,
 
-              boss: { active: true, spawned: false, kind: BOSS_MISSION.kind },
-            };
-          }
+      boss: { active: true, spawned: false, mission },
+    };
+  }
 
-          // ✅ 그 외 스테이지는 기존처럼 클리어
-          return {
-            ...prev,
-            mode: "cleared",
-            enemies,
-            bullets,
-            items,
-            boxes,
-            combat: nextCombat,
-            totalScore: nextTotalScore,
-            stageScore: nextStageScore,
-          };
-        }
+  // ✅ 일반 스테이지는 기존처럼 클리어
+  return {
+    ...prev,
+    mode: "cleared",
+    enemies,
+    bullets,
+    items,
+    boxes,
+    combat: nextCombat,
+    totalScore: nextTotalScore,
+    stageScore: nextStageScore,
+  };
+}
+
 
         return {
           ...prev,
@@ -1352,7 +1465,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       boxes: [],
       combat: { baseWeaponId: "pistol", buffs: [] },
 
-      boss: { active: false, spawned: false, kind: BOSS_MISSION.kind }, // ✅ 추가
+      boss: undefined,
     }));
   };
 
@@ -1678,6 +1791,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     </div>
   );
 
+  let stageBg = "stagebg01"
+  if(world.stage > 10){
+    stageBg = "stagebg02"
+  }
+
   return (
     <div
       ref={containerRef}
@@ -1710,7 +1828,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         }
       `}</style>
       <BackButton onExit={onExit} />
-      <div className="bg" />
+      <div className={`${stageBg}`} />
       <div className="vignette" />
       {/* HUD */}
       <div

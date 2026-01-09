@@ -154,12 +154,25 @@ code {
   /* transition: 3.32s ease-in-out; */
 }
 
-.bg {
+.stagebg01 {
   position: absolute;
   inset: 0;
 
   /* 메인: 꽉 채움(조금 잘림 허용) */
-  background-image: url("/public//bg/bg.jpg");
+  background-image: url("/public//bg/stagebg01.jpg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+
+  transform-origin: center;
+}
+
+.stagebg02 {
+  position: absolute;
+  inset: 0;
+
+  /* 메인: 꽉 채움(조금 잘림 허용) */
+  background-image: url("/public//bg/stagebg02.jpg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
