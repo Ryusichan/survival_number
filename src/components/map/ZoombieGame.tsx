@@ -1717,43 +1717,29 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         style={{
           position: "absolute",
           top: 10,
-          left: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
           color: "#fff",
           fontWeight: 900,
-          fontSize: 14,
+          fontSize: 28,
           textShadow: "0 2px 6px rgba(0,0,0,0.55)",
         }}
       >
-        STAGE {world.stage} / {MAX_STAGE}
+        STAGE {world.stage}
       </div>
       <div
         style={{
           position: "absolute",
           top: 10,
           right: 12,
-          color: "#fff",
+          color: "#35c6ffff",
           fontWeight: 900,
-          fontSize: 14,
+          fontSize: 18,
           textShadow: "0 2px 6px rgba(0,0,0,0.55)",
           textAlign: "right",
         }}
       >
-        TOTAL {world.totalScore}
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 34,
-          left: 12,
-          color: "rgba(255,255,255,0.9)",
-          fontWeight: 800,
-          fontSize: 12,
-        }}
-      >
-        WEAPON: {activeWeapon.name} {activeWeapon.pierce ? "· PIERCE" : ""}{" "}
-        {activeWeapon.id === "shotgun"
-          ? `· SPREAD ${activeWeapon.spreadUnits}`
-          : ""}
+        총점수 {world.totalScore}
       </div>
       <div
         style={{
@@ -1766,19 +1752,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           textAlign: "right",
         }}
       >
-        STAGE SCORE: {world.stageScore} / {target}
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 54,
-          left: 12,
-          color: "rgba(255,255,255,0.9)",
-          fontWeight: 900,
-          fontSize: 12,
-        }}
-      >
-        SQUAD: {1 + clones.length}
+        목표: {world.stageScore} / {target}
       </div>
       {/* currentBullet */}
       <div
