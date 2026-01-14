@@ -84,6 +84,18 @@ code {
   /* transition: 3.32s ease-in-out; */
 }
 
+.enemy_snow_thrower {
+  width: 64px; /* 프레임 하나의 실제 너비 */
+  height: 80px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor/snow_charactor1.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 512px 80px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+}
+
 .b_pierce {
   width: 48px !important;
   height: 48px !important;

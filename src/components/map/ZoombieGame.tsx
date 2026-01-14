@@ -40,9 +40,16 @@ const ENEMY_DROP_CHANCE = 0.28;
 const BOX_SPAWN_INTERVAL = 6.2; // 평균 스폰 간격(스테이지별로 바꾸고 싶으면 STAGES에 넣어도 됨)
 const BOX_MAX_ALIVE = 2;
 const BOX_SPEED = 0.12;
-const BOX_STOP_Y = 0.26; // 이 위치에 도달하면 멈춰서 맞추기 쉽게
+const BOX_STOP_Y = 0.26; // 이 위치에 도달하면 멈춰서 맞추기 쉽게 (현재 move에서는 미사용)
 const BOX_WIDTH_UNITS = 1.1;
 const BOX_HEIGHT_HIT_EPS_Y = 0.05; // 박스 피격 y 판정 폭(조금 넉넉히)
+
+// ===== Chapter02 Snow Thrower (Stage 11~20) =====
+const THROWER_STOP_Y = 0.32; // 맵 중간에서 멈추는 지점
+const THROW_INTERVAL = 1.5; // 던지는 주기(초)
+const SNOW_SHOT_SPEED = 0.4; // 투사체 속도(units/sec)
+const SNOW_SHOT_DAMAGE = 1; // 맞으면 데미지
+const SNOW_SHOT_RADIUS = 0.06; // 충돌 반지름
 
 // 메인 포함 최대 20명 => 클론은 19명
 const MAX_UNITS = 20;
@@ -51,6 +58,15 @@ const MAX_CLONES = MAX_UNITS - 1;
 // ==============================
 // ✅ STAGE 1~30 CONFIG (edit here)
 // ==============================
+type EnemyKind =
+  | "normal"
+  | "teddy"
+  | "fat"
+  | "king"
+  | "queen"
+  | "snowball"
+  | "snowThrower";
+
 type StageRule = {
   spawnIntervalSec: number;
   maxAlive: number;
@@ -58,10 +74,10 @@ type StageRule = {
   kindWeights: Partial<Record<EnemyKind, number>>;
 
   // ✅ 스테이지 배율(종류별 base 스펙에 곱/더함)
-  hpMul: number; // enemy hp *= hpMul
-  hpAdd: number; // enemy hp += hpAdd
+  hpMul: number; // enemy hp *= hpMul (현재 makeEnemy에서는 기본적으로 사용 안 함)
+  hpAdd: number; // enemy hp += hpAdd (현재 makeEnemy에서는 기본적으로 사용 안 함)
   speedMul: number; // enemy speed *= speedMul
-  damageAdd: number; // enemy damage += damageAdd
+  damageAdd: number; // enemy damage += damageAdd (현재 makeEnemy에서는 기본적으로 사용 안 함)
 
   // (선택) 박스도 스테이지마다 바꾸고 싶으면
   boxSpawnIntervalSec?: number;
@@ -72,28 +88,27 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
   const stage = i + 1;
 
   // ---- 1) 난이도 커브(원하는대로 수정) ----
-  // hp는 후반 급증, 속도는 완만, 데미지는 완만 증가 예시
-  const hpMul = 1 + (stage - 1) * 0.08; // 1스테이지 1.00, 30스테이지 3.32
-  const hpAdd = Math.floor((stage - 1) * 0.6); // 0 -> 17
-  const speedMul = 1 + (stage - 1) * 0.012; // 1.00 -> 1.348
-  const damageAdd = Math.floor((stage - 1) / 6); // 0 -> 4
+  const hpMul = 1 + (stage - 1) * 0.08;
+  const hpAdd = Math.floor((stage - 1) * 0.6);
+  const speedMul = 1 + (stage - 1) * 0.012;
+  const damageAdd = Math.floor((stage - 1) / 6);
 
   // ---- 2) 스폰/개체수 커브 ----
-  // 스폰 간격은 점점 짧게, maxAlive는 점점 증가
   const spawnIntervalSec = Math.max(0.42, 1.15 - (stage - 1) * 0.025);
   const maxAlive = Math.min(22, 6 + Math.floor((stage - 1) * 0.55));
   const batchMin = stage < 6 ? 1 : stage < 14 ? 2 : 3;
   const batchMax = stage < 6 ? 2 : stage < 14 ? 3 : 5;
 
-  // ---- 3) 몬스터 종류 비율(원하는대로 수정) ----
-  // king/queen은 일반 스테이지에서 거의 안 나오게(보스는 따로)
+  // ---- 3) 몬스터 종류 비율 ----
+  // 11~20(chapter02)에서 snowball + snowThrower 등장
   const kindWeights: StageRule["kindWeights"] =
     stage < 6
       ? { normal: 0.85, teddy: 0.15 }
       : stage < 11
       ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
       : stage < 20
-      ? { snowball: 0.15, normal: 0.45, teddy: 0.32, fat: 0.08 }
+      ? // ? { snowball: 0.12, snowThrower: 0.6, normal: 0.1, teddy: 0.1, fat: 0.08 }
+        { snowThrower: 1 }
       : stage < 30
       ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
       : { normal: 0.25, teddy: 0.25, fat: 0.5 };
@@ -137,24 +152,17 @@ function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
   }
 
   // 2) 이후부터는 "같은 간격"으로 바깥 링을 계속 만든다
-  //    - x는 0.25 단위로 커지고
-  //    - y는 0.03 단위로 커짐
-  //    - 조합을 쌓아가며 군집이 커짐
   const dxStep = 0.25;
   const dyStep = 0.03;
 
-  // 레벨이 커질수록 바깥으로 확장 (level=1이면 기존 0.25~0.5 근처, level=2면 그 바깥...)
   for (let level = 2; slots.length < maxClones; level++) {
-    const xs = [dxStep * level, dxStep * (level + 1)]; // 0.5,0.75 / 0.75,1.0 ...
-    const ys = [0, dyStep, dyStep * 2, dyStep * 3]; // 0,0.03,0.06,0.09 (필요시 더 늘려도 됨)
+    const xs = [dxStep * level, dxStep * (level + 1)];
+    const ys = [0, dyStep, dyStep * 2, dyStep * 3];
 
-    // 같은 느낌 유지: 좌우 대칭 + 위/아래 미세한 dy
-    // 우선순위: 가운데에 가까운 조합부터 채워서 자연스럽게 커지게 함
     const candidates: Array<{ dx: number; dy: number }> = [];
 
     for (const x of xs) {
       for (const y of ys) {
-        // y=0일 때는 (x,0)만
         if (y === 0) {
           candidates.push({ dx: x, dy: 0 });
           candidates.push({ dx: -x, dy: 0 });
@@ -167,7 +175,6 @@ function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
       }
     }
 
-    // ✅ 중복 제거(안전)
     const key = (s: { dx: number; dy: number }) =>
       `${s.dx.toFixed(3)},${s.dy.toFixed(3)}`;
     const seen = new Set(slots.map(key));
@@ -212,6 +219,7 @@ const BULLET_CLASS: Record<WeaponId, string> = {
   shotgun: "b_shotgun",
 };
 
+// (구버전 stages: 현재 stageRule로 운영 중이라 사실상 미사용)
 const STAGES: StageConfig[] = [
   {
     spawnIntervalSec: 1.15,
@@ -366,22 +374,31 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
   },
 
   snowball: {
-    hp: 18, // 기본 숫자(스테이지 배율로 더 커질 수도)
-    speedMul: 1.0, // 빨리 굴러오게
-    damage: 2, // 부딪히면 깎일 HP
+    hp: 18,
+    speedMul: 1.0,
+    damage: 2,
     widthUnits: 1.25,
-    cssClass: "enemy_snowball", // (기존 캐릭터 div 대신 원형 렌더로 처리할거라 없어도 됨)
+    cssClass: "enemy_snowball",
+  },
+
+  // ✅ chapter02: 눈을 던지는 적(스테이지 11~20에서만 weights로 등장)
+  snowThrower: {
+    hp: 6,
+    speedMul: 0.7,
+    damage: 0, // 직접 앵커 공격은 안 씀(투사체로 데미지)
+    widthUnits: 1.2,
+    cssClass: "enemy_snow_thrower",
   },
 };
 
 type BossMission = {
   stage: 10 | 20 | 30;
-  kind: EnemyKind; // "king" | "queen" 등
+  kind: EnemyKind;
   hp: number;
-  speedMul: number; // BASE_ZOMBIE_SPEED * speedMul * stageCfg.speedMul
+  speedMul: number;
   damage: number;
   widthUnits: number;
-  attackInterval: number; // 앵커 도착 후 공격 주기
+  attackInterval: number;
   dropOnKill?: boolean;
 };
 
@@ -423,8 +440,6 @@ const getBossMission = (stage: number): BossMission | undefined =>
 
 const isBossStage = (stage: number) => !!getBossMission(stage);
 
-type EnemyKind = "normal" | "teddy" | "fat" | "king" | "queen" | "snowball";
-
 type Enemy = {
   id: number;
   x: number;
@@ -437,9 +452,12 @@ type Enemy = {
   damage: number;
   anchored: boolean;
   attackAcc: number;
-  hitFx: number; // 피격 연출 남은 시간(초)
-  hitText: string; // 표시할 텍스트 (기본 "HIT")
-  kind: EnemyKind; // ✅ 추가
+  hitFx: number;
+  hitText: string;
+  kind: EnemyKind;
+
+  // ✅ snowThrower 전용: 던지기 누적 타이머
+  throwAcc?: number;
 };
 
 type Bullet = {
@@ -509,19 +527,9 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   },
 };
 
-const SPEED_LEVELS = [
-  0.6, // 1단계
-  0.7, // 2단계
-  0.8, // 3단계
-  0.9, // 4단계
-];
+const SPEED_LEVELS = [0.6, 0.7, 0.8, 0.9];
 
-const POWER_LEVELS = [
-  1, // 1단계
-  2, // 2단계
-  3, // 3단계
-  4, // 4단계
-];
+const POWER_LEVELS = [1, 2, 3, 4];
 
 type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce" | "addClone";
 
@@ -562,9 +570,9 @@ type ItemBox = {
   id: number;
   x: number;
   y: number;
-  hp: number; // 남은 타격 횟수
+  hp: number;
   maxHp: number;
-  reward: 1 | 2 | 3; // +N
+  reward: 1 | 2 | 3;
   widthUnits: number;
 };
 
@@ -575,6 +583,19 @@ type BossState = {
   mission: BossMission;
 };
 
+// ✅ 적 투사체(눈 던지기)
+type EnemyShot = {
+  id: number;
+  x: number;
+  y: number;
+  px: number; // ✅ 이전 좌표
+  py: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  damage: number;
+};
+
 type World = {
   stage: number;
   totalScore: number;
@@ -583,10 +604,10 @@ type World = {
   enemies: Enemy[];
   bullets: Bullet[];
   items: Item[];
-  boxes: ItemBox[]; // ✅ 추가
+  boxes: ItemBox[];
+  enemyShots: EnemyShot[]; // ✅ 추가
   combat: CombatState;
-
-  boss?: BossState; // ✅ 추가
+  boss?: BossState;
 };
 
 type CloneUnit = { id: number; slotIndex: number };
@@ -596,6 +617,7 @@ let bulletIdSeed = 1;
 let itemIdSeed = 1;
 let boxIdSeed = 1;
 let cloneIdSeed = 1;
+let enemyShotIdSeed = 1; // ✅
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -637,9 +659,11 @@ function getActiveWeapon(combat: CombatState): Weapon {
   const fireMul = combat.buffs
     .filter((b) => b.kind === "fireRateMul")
     .reduce((acc, b) => acc * b.value, 1);
+
   const damageAdd = combat.buffs
     .filter((b) => b.kind === "damageAdd")
     .reduce((acc, b) => acc + b.value, 0);
+
   const hasPierce =
     base.pierce ||
     combat.buffs.some((b) => b.kind === "pierce" && b.timeLeft > 0);
@@ -736,7 +760,7 @@ function makeBox(): ItemBox {
     | 1
     | 2
     | 3;
-  const hp = reward; // 예: +3 박스면 3번 맞추면 변환
+  const hp = reward;
   const halfW = BOX_WIDTH_UNITS / 2;
   const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
@@ -871,16 +895,16 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 11,
+    stage: 1,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
     enemies: [],
     bullets: [],
     items: [],
-    boxes: [], // ✅
+    boxes: [],
+    enemyShots: [], // ✅
     combat: { baseWeaponId: "pistol", buffs: [] },
-
     boss: undefined,
   }));
   const worldRef = useRef(world);
@@ -891,9 +915,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const lastTimeRef = useRef<number | null>(null);
   const spawnAccRef = useRef(0);
   const fireAccRef = useRef(0);
-
-  const boxSpawnAccRef = useRef(0); // ✅ 박스 스폰 타이머
-
+  const boxSpawnAccRef = useRef(0);
   const hurtCooldownRef = useRef(0);
   const farYRef = useRef(FAR_Y_DEFAULT);
 
@@ -947,9 +969,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const makeEnemy = (): Enemy => {
     const cfg = currentStageCfg();
-
     const kind = pickEnemyKind(cfg.kindWeights ?? { normal: 1 });
-
     const spec = ENEMY_SPECS[kind];
 
     // ✅ 기존 적들은 “원래 스펙 그대로”
@@ -958,13 +978,17 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     if (kind === "snowball") {
       const s = worldRef.current.stage; // 11~20
-      hp = clamp(10 + (s - 11), 8, 20); // 예: 11->10, 20->19
+      hp = clamp(10 + (s - 11), 8, 20);
       damage = 1; // 충돌 데미지 낮게
     }
 
-    // (선택) 스테이지 속도만 반영하고 싶으면 cfg.speedMul 같이 곱하면 됨
-    const speed = BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
+    if (kind === "snowThrower") {
+      const s = worldRef.current.stage; // 11~20
+      hp = clamp(5 + Math.floor((s - 11) * 0.4), 5, 10);
+      damage = 0;
+    }
 
+    const speed = BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
     const widthUnits = spec.widthUnits;
     const halfW = widthUnits / 2;
     const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
@@ -972,7 +996,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     return {
       id: enemyIdSeed++,
       kind,
-      tier: 1, // 이제 tier 의미가 약해지면 지워도 됨(원하면 유지)
+      tier: 1,
       x,
       y: farYRef.current,
       hp,
@@ -984,12 +1008,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       attackAcc: 0,
       hitFx: 0,
       hitText: "HIT",
+      throwAcc: kind === "snowThrower" ? 0 : undefined,
     };
   };
 
   const makeBoss = (mission: BossMission): Enemy => {
     const cfg = currentStageCfg();
-
     const halfW = mission.widthUnits / 2;
     const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
@@ -1011,8 +1035,36 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     };
   };
 
+  function segmentCircleHit(
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+    cx: number,
+    cy: number,
+    r: number
+  ) {
+    const abx = bx - ax;
+    const aby = by - ay;
+    const acx = cx - ax;
+    const acy = cy - ay;
+
+    const abLen2 = abx * abx + aby * aby;
+    const t =
+      abLen2 <= 0
+        ? 0
+        : Math.max(0, Math.min(1, (acx * abx + acy * aby) / abLen2));
+
+    const hx = ax + abx * t;
+    const hy = ay + aby * t;
+
+    const dx = cx - hx;
+    const dy = cy - hy;
+    return dx * dx + dy * dy <= r * r;
+  }
+
   const spawnEnemies = (dt: number) => {
-    if (worldRef.current.boss?.active) return; // ✅ 추가
+    if (worldRef.current.boss?.active) return;
     const cfg = currentStageCfg();
     spawnAccRef.current += dt;
     if (spawnAccRef.current < cfg.spawnIntervalSec) return;
@@ -1034,7 +1086,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   // ✅ 박스 스폰
   const spawnBoxes = (dt: number) => {
-    if (worldRef.current.boss?.active) return; // ✅ 추가
+    if (worldRef.current.boss?.active) return;
     boxSpawnAccRef.current += dt;
     if (boxSpawnAccRef.current < BOX_SPAWN_INTERVAL) return;
 
@@ -1126,15 +1178,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
       setWorld((prev) => {
         if (prev.mode !== "playing") return prev;
+
+        // ✅ HP 0이면 즉시 gameover로 상태 고정
         if (playerRef.current.hp <= 0) {
-          return {
-            ...prev,
-            mode: "gameover",
-            enemies: prev.enemies,
-            bullets: prev.bullets,
-            items: prev.items,
-            boxes: prev.boxes,
-          };
+          return { ...prev, mode: "gameover" };
         }
 
         // =========================
@@ -1150,6 +1197,35 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               y: e.y + e.speed * dt,
               hitFx: nextHitFx,
               anchored: false,
+            };
+          }
+
+          // ✅ snowThrower: 중간지점에서 멈추고 throwAcc 누적
+          if (e.kind === "snowThrower") {
+            let ny = e.y;
+            let stopped = false;
+
+            if (ny < THROWER_STOP_Y) {
+              ny = ny + e.speed * dt;
+              if (ny >= THROWER_STOP_Y) {
+                ny = THROWER_STOP_Y;
+                stopped = true;
+              }
+            } else {
+              stopped = true;
+            }
+
+            const nextThrowAcc = stopped
+              ? (e.throwAcc ?? 0) + dt
+              : e.throwAcc ?? 0;
+
+            return {
+              ...e,
+              y: ny,
+              anchored: false,
+              attackAcc: 0,
+              throwAcc: nextThrowAcc,
+              hitFx: nextHitFx,
             };
           }
 
@@ -1184,8 +1260,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         let items = prev.items.map((it) => ({ ...it, y: it.y + 0.16 * dt }));
 
-        // (선택) snowball이 화면 아래로 지나가면 제거
-        // enemies = enemies.filter(e => !(e.kind === "snowball" && e.y > DESPAWN_Y));
+        // ✅ enemy shots move
+        let enemyShots = prev.enemyShots.map((s) => {
+          const nx = s.x + s.vx * dt;
+          const ny = s.y + s.vy * dt;
+          return { ...s, px: s.x, py: s.y, x: nx, y: ny };
+        });
 
         const deadEnemyIds = new Set<number>();
         const deadBulletIds = new Set<number>();
@@ -1197,7 +1277,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         if (prev.boss?.active && !prev.boss.spawned) {
           const boss = makeBoss(prev.boss.mission);
           enemies = [...enemies, boss];
-          boxes = []; // 보스전은 박스 제거
+          boxes = [];
+          enemyShots = []; // ✅ 보스전 진입 시 투사체 정리
 
           return {
             ...prev,
@@ -1205,15 +1286,60 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             boxes,
             bullets,
             items,
+            enemyShots,
             boss: { ...prev.boss, spawned: true, bossId: boss.id },
           };
         }
 
-        const spawnedFromBox: Item[] = [];
+        // =========================
+        // 2.5) THROWER -> SPAWN ENEMY SHOTS
+        // =========================
+        const spawnedEnemyShots: EnemyShot[] = [];
+
+        enemies = enemies.map((e) => {
+          if (e.kind !== "snowThrower") return e;
+          if (e.y < THROWER_STOP_Y - 0.001) return e;
+
+          const acc = e.throwAcc ?? 0;
+          if (acc < THROW_INTERVAL) return e;
+
+          const times = Math.floor(acc / THROW_INTERVAL);
+          const nextAcc = acc - times * THROW_INTERVAL;
+
+          const targetX = playerRef.current.x;
+          const targetY = PLAYER_Y;
+
+          for (let k = 0; k < times; k++) {
+            const dx = targetX - e.x;
+            const dy = targetY - e.y;
+            const len = Math.max(0.0001, Math.hypot(dx, dy));
+            const ux = dx / len;
+            const uy = dy / len;
+
+            spawnedEnemyShots.push({
+              id: enemyShotIdSeed++,
+              x: e.x,
+              y: e.y,
+              px: e.x, // ✅ 추가
+              py: e.y, // ✅ 추가
+              vx: ux * SNOW_SHOT_SPEED,
+              vy: uy * SNOW_SHOT_SPEED,
+              radius: SNOW_SHOT_RADIUS,
+              damage: SNOW_SHOT_DAMAGE,
+            });
+          }
+
+          return { ...e, throwAcc: nextAcc };
+        });
+
+        // ✅ spawn 결과를 실제 enemyShots에 반영
+        enemyShots = [...enemyShots, ...spawnedEnemyShots];
 
         // =========================
         // 3) BULLET -> BOX
         // =========================
+        const spawnedFromBox: Item[] = [];
+
         for (const b of bullets) {
           if (deadBulletIds.has(b.id)) continue;
 
@@ -1299,6 +1425,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         bullets = bullets.filter((b) => !deadBulletIds.has(b.id));
         boxes = boxes.filter((bx) => !deadBoxIds.has(bx.id));
         items = [...items, ...dropped, ...spawnedFromBox];
+        enemyShots = enemyShots.filter(
+          (s) =>
+            s.y < DESPAWN_Y + 0.2 &&
+            s.y > FAR_Y_DEFAULT - 0.6 &&
+            s.x > -1 &&
+            s.x < LANE_COUNT + 1
+        );
 
         // =========================
         // 6) BOSS DIED CHECK
@@ -1318,6 +1451,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             bullets: [],
             boxes: [],
             items,
+            enemyShots: [], // ✅ 클리어 시 정리
             combat: nextCombat,
             totalScore: prev.totalScore + kills,
             stageScore: prev.stageScore + kills,
@@ -1367,13 +1501,72 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         );
 
         // =========================
-        // 8) DAMAGE: SNOWBALL CRASH (ONCE)
+        // 8) DAMAGE HELPERS
         // =========================
         const setPlayerHp = (nextHp: number) => {
           playerRef.current = { ...playerRef.current, hp: nextHp };
           setPlayer((p) => ({ ...p, hp: nextHp }));
         };
 
+        // =========================
+        // 8-0) DAMAGE: ENEMY SHOT HIT (snow thrower)
+        // =========================
+        if (hurtCooldownRef.current <= 0 && enemyShots.length > 0) {
+          const units = getAllPlayerUnitsRef();
+
+          let hitShotId: number | null = null;
+          let damage = 0;
+
+          for (const s of enemyShots) {
+            const ax = s.px ?? s.x;
+            const ay = s.py ?? s.y;
+            const bx = s.x;
+            const by = s.y;
+
+            // ✅ 리더(본체)만 판정
+            const leader = { x: playerRef.current.x, y: PLAYER_Y };
+
+            const playerR = 0.03; // ✅ 반경도 줄임(0.25~0.3 추천)
+            const r = playerR + s.radius;
+
+            if (segmentCircleHit(ax, ay, bx, by, leader.x, leader.y, r)) {
+              hitShotId = s.id;
+              damage = s.damage;
+              break;
+            }
+            if (hitShotId != null) break;
+          }
+
+          if (hitShotId != null) {
+            // ✅ 맞은 샷 즉시 제거
+            enemyShots = enemyShots.filter((ss) => ss.id !== hitShotId);
+
+            const nextHp = Math.max(0, playerRef.current.hp - damage);
+            playerRef.current = { ...playerRef.current, hp: nextHp };
+            setPlayer((p) => ({ ...p, hp: nextHp }));
+
+            hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+
+            if (nextHp <= 0) {
+              return {
+                ...prev,
+                mode: "gameover",
+                enemies,
+                bullets,
+                items,
+                boxes,
+                enemyShots,
+                combat: nextCombat,
+                totalScore: prev.totalScore + kills,
+                stageScore: prev.stageScore + kills,
+              };
+            }
+          }
+        }
+
+        // =========================
+        // 8) DAMAGE: SNOWBALL CRASH (ONCE)
+        // =========================
         if (hurtCooldownRef.current <= 0) {
           let hitOnce = false;
 
@@ -1390,14 +1583,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               const hitY = dy < 0.06;
 
               if (hitX && hitY) {
-                const crashDamage = 1; // ✅ 여기만 바꾸면 됨 (1 추천)
+                const crashDamage = 1; // ✅ 눈덩이 충돌 데미지
                 const nextHp = Math.max(0, playerRef.current.hp - crashDamage);
                 setPlayerHp(nextHp);
 
-                // 충돌한 눈덩이 제거
                 enemies = enemies.filter((x) => x.id !== e.id);
 
-                // 쿨다운
                 hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
 
                 if (nextHp <= 0) {
@@ -1408,6 +1599,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                     bullets,
                     items,
                     boxes,
+                    enemyShots,
                     combat: nextCombat,
                     totalScore: prev.totalScore + kills,
                     stageScore: prev.stageScore + kills,
@@ -1457,6 +1649,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 bullets,
                 items,
                 boxes,
+                enemyShots,
                 combat: nextCombat,
                 totalScore: prev.totalScore + kills,
                 stageScore: prev.stageScore + kills,
@@ -1486,7 +1679,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               boxes: [],
               bullets,
               items,
+              enemyShots: [], // ✅ 보스전 진입 시 정리
               boss: { active: true, spawned: false, mission },
+              combat: nextCombat,
             };
           }
 
@@ -1497,6 +1692,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             bullets,
             items,
             boxes,
+            enemyShots: [], // ✅ 클리어 시 정리
             combat: nextCombat,
             totalScore: nextTotalScore,
             stageScore: nextStageScore,
@@ -1512,6 +1708,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           bullets,
           items,
           boxes,
+          enemyShots,
           combat: nextCombat,
           totalScore: nextTotalScore,
           stageScore: nextStageScore,
@@ -1548,8 +1745,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       bullets: [],
       items: [],
       boxes: [],
+      enemyShots: [], // ✅
       combat: { baseWeaponId: "pistol", buffs: [] },
-
       boss: undefined,
     }));
   };
@@ -1573,10 +1770,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const x = centerX + (baseX - centerX) * spread;
 
     const hpPct = Math.max(0, Math.min(1, e.hp / e.maxHp));
+    const hitOffsetPx = e.hitFx > 0 ? -5 : 0;
 
-    const hitOffsetPx = e.hitFx > 0 ? -5 : 0; // 1px 뒤로(위로) 살짝
-
-    // ✅ snowball: 흰 동그라미 + 숫자
+    // ✅ snowball: 구형 + 그림자 + 숫자
     if (e.kind === "snowball") {
       const size = laneWidth * 0.78 * e.widthUnits;
 
@@ -1593,7 +1789,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             pointerEvents: "none",
           }}
         >
-          {/* ✅ 바닥 그림자(접지 그림자) */}
           <div
             style={{
               position: "absolute",
@@ -1608,17 +1803,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               filter: "blur(1px)",
             }}
           />
-
-          {/* ✅ 구형 본체 */}
           <div
             style={{
               position: "absolute",
               inset: 0,
               borderRadius: 999,
-              // 구 느낌 핵심: radial-gradient (빛 방향: 좌상단)
               background:
                 "radial-gradient(circle at 30% 28%, rgba(255,255,255,1) 0%, rgba(245,245,245,0.98) 28%, rgba(210,210,210,0.95) 62%, rgba(170,170,170,0.92) 100%)",
-              // 가장자리 살짝 어둡게 + 안쪽 음영
               boxShadow:
                 "inset -10px -14px 18px rgba(0,0,0,0.16), inset 8px 10px 16px rgba(255,255,255,0.35), 0 18px 22px rgba(0,0,0,0.35)",
               border: "1px solid rgba(255,255,255,0.55)",
@@ -1630,13 +1821,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               fontSize: 45,
             }}
           >
-            {/* ✅ 숫자 가독성용 미세 그림자 */}
             <span style={{ textShadow: "0 1px 0 rgba(255,255,255,0.6)" }}>
               {e.hp}
             </span>
           </div>
 
-          {/* (선택) 맞았을 때 반짝 */}
           {e.hitFx > 0 && (
             <div
               style={{
@@ -1652,6 +1841,56 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       );
     }
 
+    // ✅ snowThrower: 중간에서 멈춰서 던지는 캐릭터(외형은 cssClass로)
+    if (e.kind === "snowThrower") {
+      return (
+        <div
+          key={e.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            width: laneWidth * 0.78 * e.widthUnits,
+            height: 76,
+            borderRadius: 18,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
+            pointerEvents: "none",
+          }}
+        >
+          {/* hp bar */}
+          <div
+            style={{
+              position: "absolute",
+              top: -10,
+              left: 10,
+              right: 10,
+              height: 8,
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.22)",
+              overflow: "hidden",
+              zIndex: 10,
+            }}
+          >
+            <div
+              style={{
+                width: `${hpPct * 100}%`,
+                height: "100%",
+                borderRadius: 999,
+                background: "linear-gradient(90deg, #93c5fd, #60a5fa)",
+              }}
+            />
+          </div>
+
+          <div className={ENEMY_SPECS[e.kind].cssClass} />
+        </div>
+      );
+    }
+
+    // ✅ default enemy
     return (
       <div
         key={e.id}
@@ -1694,6 +1933,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             {e.hitText}
           </div>
         )}
+
         <div
           style={{
             position: "absolute",
@@ -1722,16 +1962,44 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     );
   };
 
+  const renderEnemyShot = (s: EnemyShot) => {
+    const ypx = projectYpx(s.y, farYRef.current);
+    const { scale, spread } = getPerspective(s.y, farYRef.current);
+    const centerX = WIDTH / 2;
+    const baseX = xUnitsToPx(s.x);
+    const x = centerX + (baseX - centerX) * spread;
+
+    const size = 22;
+
+    return (
+      <div
+        key={s.id}
+        style={{
+          position: "absolute",
+          left: x,
+          top: ypx,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          width: size,
+          height: size,
+          borderRadius: 999,
+          background:
+            "radial-gradient(circle at 30% 30%, rgba(255,255,255,1) 0%, rgba(220,220,220,1) 60%, rgba(170,170,170,1) 100%)",
+          boxShadow: "0 10px 14px rgba(0,0,0,0.35)",
+          pointerEvents: "none",
+        }}
+      />
+    );
+  };
+
   const renderBullet = (b: Bullet) => {
     const ypx = projectYpx(b.y, farYRef.current);
     const { scale, spread } = getPerspective(b.y, farYRef.current);
     const centerX = WIDTH / 2;
     const baseX = xUnitsToPx(b.x);
     const x = centerX + (baseX - centerX) * spread;
+
     let beemHeight = 10;
-    if (b.pierce) {
-      beemHeight = 24;
-    }
+    if (b.pierce) beemHeight = 24;
 
     return (
       <div
@@ -1779,15 +2047,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     let gunsName = "guns01";
     if (it.kind === "weapon") {
-      if (it.weaponId === "rapid") {
-        gunsName = "guns02";
-      } else if (it.weaponId === "pierce") {
-        gunsName = "guns03";
-      } else if (it.weaponId === "shotgun") {
-        gunsName = "guns04";
-      } else {
-        gunsName = "guns01";
-      }
+      if (it.weaponId === "rapid") gunsName = "guns02";
+      else if (it.weaponId === "pierce") gunsName = "guns03";
+      else if (it.weaponId === "shotgun") gunsName = "guns04";
+      else gunsName = "guns01";
     }
 
     const bg = it.kind === "addClone" ? "#fff" : "unset";
@@ -1819,32 +2082,30 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         </div>
       );
 
-    if (it.kind === "weapon") {
-      return (
-        <div
-          key={it.id}
-          style={{
-            position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) scale(${scale})`,
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            background: bg,
-            boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 22,
-            fontWeight: 700,
-            color,
-          }}
-        >
-          <span className={`gunsCollect ${gunsName}`} />
-        </div>
-      );
-    }
+    return (
+      <div
+        key={it.id}
+        style={{
+          position: "absolute",
+          left: x,
+          top: ypx,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          background: bg,
+          boxShadow: "0 12px 18px rgba(0,0,0,0.28)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 22,
+          fontWeight: 700,
+          color,
+        }}
+      >
+        <span className={`gunsCollect ${gunsName}`} />
+      </div>
+    );
   };
 
   // ✅ ItemBox render
@@ -1879,7 +2140,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           textShadow: "0 2px 6px rgba(0,0,0,0.6)",
         }}
       >
-        {/* hp bar */}
         <div
           style={{
             position: "absolute",
@@ -1920,13 +2180,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const isWeaponBlinking =
     world.combat.tempWeapon && world.combat.tempWeapon.timeLeft <= 1;
 
-  const fireRate = 1 / activeWeapon.fireIntervalSec; // shots per sec
-
-  const FIRE_RATE_LEVELS = [1.5, 2.2, 3.0, 3.8, 4.6]; // 원하는 기준으로 조절
+  const fireRate = 1 / activeWeapon.fireIntervalSec;
+  const FIRE_RATE_LEVELS = [1.5, 2.2, 3.0, 3.8, 4.6];
   const speedLevel = valueToLevel(fireRate, FIRE_RATE_LEVELS);
-
   const powerLevel = valueToLevel(activeWeapon.damage, POWER_LEVELS);
-
   const playerWeaponClass = PLAYER_WEAPON_CLASS[activeWeapon.id];
 
   const StatBlocks = ({
@@ -1953,9 +2210,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   );
 
   let stageBg = "stagebg01";
-  if (world.stage > 10) {
-    stageBg = "stagebg02";
-  }
+  if (world.stage > 10) stageBg = "stagebg02";
 
   return (
     <div
@@ -2050,21 +2305,17 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           {activeWeapon.name === "Pistol" && (
             <div className="gunsCollect guns01" />
           )}
-
           {activeWeapon.name === "Rapid" && (
             <div className="gunsCollect guns02" />
           )}
-
           {activeWeapon.name === "Pierce" && (
             <div className="gunsCollect guns03" />
           )}
-
           {activeWeapon.name === "Shotgun" && (
             <div className="gunsCollect guns04" />
           )}
         </div>
 
-        {/* 스탯 블록 */}
         <div
           style={{
             display: "flex",
@@ -2075,17 +2326,15 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             bottom: 4,
           }}
         >
-          {/* SPEED */}
           <StatBlocks level={speedLevel} max={5} color="#60a5fa" />
-
-          {/* POWER */}
           <StatBlocks level={powerLevel} max={5} color="#29ffb8" />
         </div>
       </div>
       {/* entities */}
       {world.items.map(renderItem)}
       {world.bullets.map(renderBullet)}
-      {world.boxes.map(renderBox)} {/* ✅ */}
+      {world.enemyShots.map(renderEnemyShot)} {/* ✅ */}
+      {world.boxes.map(renderBox)}
       {world.enemies.map(renderEnemy)}
       {/* players (leader + clones) */}
       {units.map((u) => {
@@ -2116,7 +2365,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               pointerEvents: "none",
             }}
           >
-            {/* HP over head */}
             <div
               style={{
                 position: "absolute",
