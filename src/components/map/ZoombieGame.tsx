@@ -58,10 +58,10 @@ type StageRule = {
   kindWeights: Partial<Record<EnemyKind, number>>;
 
   // ✅ 스테이지 배율(종류별 base 스펙에 곱/더함)
-  hpMul: number;        // enemy hp *= hpMul
-  hpAdd: number;        // enemy hp += hpAdd
-  speedMul: number;     // enemy speed *= speedMul
-  damageAdd: number;    // enemy damage += damageAdd
+  hpMul: number; // enemy hp *= hpMul
+  hpAdd: number; // enemy hp += hpAdd
+  speedMul: number; // enemy speed *= speedMul
+  damageAdd: number; // enemy damage += damageAdd
 
   // (선택) 박스도 스테이지마다 바꾸고 싶으면
   boxSpawnIntervalSec?: number;
@@ -73,9 +73,9 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
 
   // ---- 1) 난이도 커브(원하는대로 수정) ----
   // hp는 후반 급증, 속도는 완만, 데미지는 완만 증가 예시
-  const hpMul = 1 + (stage - 1) * 0.08;      // 1스테이지 1.00, 30스테이지 3.32
+  const hpMul = 1 + (stage - 1) * 0.08; // 1스테이지 1.00, 30스테이지 3.32
   const hpAdd = Math.floor((stage - 1) * 0.6); // 0 -> 17
-  const speedMul = 1 + (stage - 1) * 0.012;  // 1.00 -> 1.348
+  const speedMul = 1 + (stage - 1) * 0.012; // 1.00 -> 1.348
   const damageAdd = Math.floor((stage - 1) / 6); // 0 -> 4
 
   // ---- 2) 스폰/개체수 커브 ----
@@ -90,10 +90,10 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
   const kindWeights: StageRule["kindWeights"] =
     stage < 6
       ? { normal: 0.85, teddy: 0.15 }
-      : stage < 12
+      : stage < 11
       ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
       : stage < 20
-      ? { normal: 0.45, teddy: 0.3, fat: 0.25 }
+      ? { snowball: 0.15, normal: 0.45, teddy: 0.32, fat: 0.08 }
       : stage < 30
       ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
       : { normal: 0.25, teddy: 0.25, fat: 0.5 };
@@ -117,7 +117,6 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
     boxMaxAlive,
   };
 });
-
 
 // ✅ 기존 간격(가로 0.25, 세로 0.03, 바깥쪽 0.5)을 그대로 반복/확장해서 19개 슬롯 생성
 function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
@@ -365,13 +364,21 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
     widthUnits: 2.4,
     cssClass: "charactor_zoombie3",
   },
+
+  snowball: {
+    hp: 18, // 기본 숫자(스테이지 배율로 더 커질 수도)
+    speedMul: 1.0, // 빨리 굴러오게
+    damage: 2, // 부딪히면 깎일 HP
+    widthUnits: 1.25,
+    cssClass: "enemy_snowball", // (기존 캐릭터 div 대신 원형 렌더로 처리할거라 없어도 됨)
+  },
 };
 
 type BossMission = {
   stage: 10 | 20 | 30;
-  kind: EnemyKind;        // "king" | "queen" 등
+  kind: EnemyKind; // "king" | "queen" 등
   hp: number;
-  speedMul: number;       // BASE_ZOMBIE_SPEED * speedMul * stageCfg.speedMul
+  speedMul: number; // BASE_ZOMBIE_SPEED * speedMul * stageCfg.speedMul
   damage: number;
   widthUnits: number;
   attackInterval: number; // 앵커 도착 후 공격 주기
@@ -416,7 +423,7 @@ const getBossMission = (stage: number): BossMission | undefined =>
 
 const isBossStage = (stage: number) => !!getBossMission(stage);
 
-type EnemyKind = "normal" | "teddy" | "fat" | "king" | "queen";
+type EnemyKind = "normal" | "teddy" | "fat" | "king" | "queen" | "snowball";
 
 type Enemy = {
   id: number;
@@ -597,7 +604,8 @@ const randInt = (a: number, b: number) =>
   Math.floor(a + Math.random() * (b - a + 1));
 
 function stageTarget(stage: number) {
-  return FIRST_STAGE_TARGET + (stage - 1) * NEXT_STAGE_STEP;
+  const stageInBlock = (stage - 1) % 10; // 0 ~ 9
+  return FIRST_STAGE_TARGET + stageInBlock * NEXT_STAGE_STEP;
 }
 
 function pickEnemyTier(w: { t1: number; t2: number; t3: number }): EnemyTier {
@@ -863,7 +871,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 1,
+    stage: 11,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
@@ -921,10 +929,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   }, []);
 
   const currentStageCfg = () =>
-  STAGE_RULES_1_TO_30[
-    Math.max(0, Math.min(29, worldRef.current.stage - 1))
-  ];
-
+    STAGE_RULES_1_TO_30[Math.max(0, Math.min(29, worldRef.current.stage - 1))];
 
   function pickEnemyKind(
     weights: Partial<Record<EnemyKind, number>>
@@ -947,6 +952,16 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const spec = ENEMY_SPECS[kind];
 
+    // ✅ 기존 적들은 “원래 스펙 그대로”
+    let hp = spec.hp;
+    let damage = spec.damage;
+
+    if (kind === "snowball") {
+      const s = worldRef.current.stage; // 11~20
+      hp = clamp(10 + (s - 11), 8, 20); // 예: 11->10, 20->19
+      damage = 1; // 충돌 데미지 낮게
+    }
+
     // (선택) 스테이지 속도만 반영하고 싶으면 cfg.speedMul 같이 곱하면 됨
     const speed = BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
 
@@ -960,11 +975,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       tier: 1, // 이제 tier 의미가 약해지면 지워도 됨(원하면 유지)
       x,
       y: farYRef.current,
-      hp: spec.hp,
-      maxHp: spec.hp,
+      hp,
+      maxHp: hp,
       speed,
       widthUnits,
-      damage: spec.damage,
+      damage,
       anchored: false,
       attackAcc: 0,
       hitFx: 0,
@@ -973,29 +988,28 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const makeBoss = (mission: BossMission): Enemy => {
-  const cfg = currentStageCfg();
+    const cfg = currentStageCfg();
 
-  const halfW = mission.widthUnits / 2;
-  const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
+    const halfW = mission.widthUnits / 2;
+    const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
 
-  return {
-    id: enemyIdSeed++,
-    kind: mission.kind,
-    tier: 3,
-    x,
-    y: farYRef.current,
-    hp: mission.hp,
-    maxHp: mission.hp,
-    speed: BASE_ZOMBIE_SPEED * mission.speedMul * cfg.speedMul,
-    widthUnits: mission.widthUnits,
-    damage: mission.damage,
-    anchored: false,
-    attackAcc: 0,
-    hitFx: 0,
-    hitText: "BOSS",
+    return {
+      id: enemyIdSeed++,
+      kind: mission.kind,
+      tier: 3,
+      x,
+      y: farYRef.current,
+      hp: mission.hp,
+      maxHp: mission.hp,
+      speed: BASE_ZOMBIE_SPEED * mission.speedMul * cfg.speedMul,
+      widthUnits: mission.widthUnits,
+      damage: mission.damage,
+      anchored: false,
+      attackAcc: 0,
+      hitFx: 0,
+      hitText: "BOSS",
+    };
   };
-};
-
 
   const spawnEnemies = (dt: number) => {
     if (worldRef.current.boss?.active) return; // ✅ 추가
@@ -1107,19 +1121,42 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
       tickCombatTimers(dt);
       spawnEnemies(dt);
-      spawnBoxes(dt); // ✅ 박스 스폰
+      spawnBoxes(dt);
       fireIfReady(dt);
 
       setWorld((prev) => {
         if (prev.mode !== "playing") return prev;
+        if (playerRef.current.hp <= 0) {
+          return {
+            ...prev,
+            mode: "gameover",
+            enemies: prev.enemies,
+            bullets: prev.bullets,
+            items: prev.items,
+            boxes: prev.boxes,
+          };
+        }
 
-        // enemies move (anchored stack)
+        // =========================
+        // 1) MOVE
+        // =========================
         let enemies = prev.enemies.map((e) => {
           const nextHitFx = Math.max(0, (e.hitFx ?? 0) - dt);
 
+          // ✅ snowball: 절대 anchored 안 됨. 계속 굴러 내려감
+          if (e.kind === "snowball") {
+            return {
+              ...e,
+              y: e.y + e.speed * dt,
+              hitFx: nextHitFx,
+              anchored: false,
+            };
+          }
+
+          // 기존 적: anchored 로직 유지
           if (!e.anchored) {
             const ny = e.y + e.speed * dt;
-            if (ny >= ANCHOR_Y)
+            if (ny >= ANCHOR_Y) {
               return {
                 ...e,
                 y: ANCHOR_Y,
@@ -1127,6 +1164,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 attackAcc: 0,
                 hitFx: nextHitFx,
               };
+            }
             return { ...e, y: ny, hitFx: nextHitFx };
           }
 
@@ -1138,46 +1176,44 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           };
         });
 
-        let boxes = prev.boxes.map((b) => ({
-          ...b,
-          y: b.y + BOX_SPEED * dt,
-        }));
+        let boxes = prev.boxes.map((b) => ({ ...b, y: b.y + BOX_SPEED * dt }));
 
-        // bullets move up
-        let bullets = prev.bullets.map((b) => ({
-          ...b,
-          y: b.y - b.speed * dt,
-        }));
-        bullets = bullets.filter(
-          (b) => b.y > FAR_Y_DEFAULT - 0.35 && b.y < DESPAWN_Y
-        );
+        let bullets = prev.bullets
+          .map((b) => ({ ...b, y: b.y - b.speed * dt }))
+          .filter((b) => b.y > FAR_Y_DEFAULT - 0.35 && b.y < DESPAWN_Y);
 
-        // items fall down slowly
         let items = prev.items.map((it) => ({ ...it, y: it.y + 0.16 * dt }));
+
+        // (선택) snowball이 화면 아래로 지나가면 제거
+        // enemies = enemies.filter(e => !(e.kind === "snowball" && e.y > DESPAWN_Y));
 
         const deadEnemyIds = new Set<number>();
         const deadBulletIds = new Set<number>();
         const deadBoxIds = new Set<number>();
 
-        // ✅ 보스전이면 보스 1회 생성 (딱 1마리)
+        // =========================
+        // 2) BOSS SPAWN (ONCE)
+        // =========================
         if (prev.boss?.active && !prev.boss.spawned) {
-  const boss = makeBoss(prev.boss.mission);
-  enemies = [...enemies, boss];
-  boxes = []; // 보스전은 박스 제거(원하면 유지)
+          const boss = makeBoss(prev.boss.mission);
+          enemies = [...enemies, boss];
+          boxes = []; // 보스전은 박스 제거
 
-  return {
-    ...prev,
-    enemies,
-    boxes,
-    bullets,
-    items,
-    boss: { ...prev.boss, spawned: true, bossId: boss.id },
-  };
-}
+          return {
+            ...prev,
+            enemies,
+            boxes,
+            bullets,
+            items,
+            boss: { ...prev.boss, spawned: true, bossId: boss.id },
+          };
+        }
 
         const spawnedFromBox: Item[] = [];
 
-        // ===== bullet -> box collision (먼저 처리해도 되고, 적 먼저 처리해도 됨) =====
+        // =========================
+        // 3) BULLET -> BOX
+        // =========================
         for (const b of bullets) {
           if (deadBulletIds.has(b.id)) continue;
 
@@ -1194,12 +1230,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             const hitY = dy < BOX_HEIGHT_HIT_EPS_Y;
 
             if (hitX && hitY) {
-              // 박스 hp 감소 (1방당 -1)
               box.hp -= 1;
 
               if (!b.pierce) deadBulletIds.add(b.id);
 
-              // hp 0되면 +N 아이템으로 변환
               if (box.hp <= 0) {
                 deadBoxIds.add(box.id);
                 spawnedFromBox.push({
@@ -1216,7 +1250,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           }
         }
 
-        // ===== bullet -> enemy collision =====
+        // =========================
+        // 4) BULLET -> ENEMY
+        // =========================
         for (const b of bullets) {
           if (deadBulletIds.has(b.id)) continue;
 
@@ -1234,21 +1270,23 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
             if (hitX && hitY) {
               e.hp -= b.damage;
-
-              // ✅ 피격 연출 ON
               e.hitFx = 0.25;
-              e.hitText = "HIT"; // 원하면 `-${b.damage}` 같은 것도 가능
+              e.hitText = "HIT";
 
               if (!b.pierce) deadBulletIds.add(b.id);
               if (e.hp <= 0) deadEnemyIds.add(e.id);
+
               if (!b.pierce) break;
             }
           }
         }
 
-        // kills + enemy drops(클론 제외)
+        // =========================
+        // 5) KILLS + DROPS
+        // =========================
         let kills = 0;
         const dropped: Item[] = [];
+
         for (const e of enemies) {
           if (deadEnemyIds.has(e.id)) {
             kills += 1;
@@ -1262,14 +1300,15 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         boxes = boxes.filter((bx) => !deadBoxIds.has(bx.id));
         items = [...items, ...dropped, ...spawnedFromBox];
 
-        // ===== item pickup (player) =====
-        const pickedItemIds = new Set<number>();
+        // =========================
+        // 6) BOSS DIED CHECK
+        // =========================
         let nextCombat = prev.combat;
 
-        // ✅ 보스가 죽었으면 최종 클리어
         const bossId = prev.boss?.bossId;
-        const bossStillAlive = bossId != null && enemies.some(e => e.id === bossId);
-const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
+        const bossStillAlive =
+          bossId != null && enemies.some((e) => e.id === bossId);
+        const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
 
         if (bossDied) {
           return {
@@ -1286,20 +1325,20 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
           };
         }
 
+        // =========================
+        // 7) ITEM PICKUP (any unit)
+        // =========================
         const units = getAllPlayerUnitsRef();
+        const pickedItemIds = new Set<number>();
 
-        // 아이템 하나를 어떤 유닛이든 먹으면 사라지게
         for (const it of items) {
-          // y 먼저 체크해서 연산 줄이기
           if (Math.abs(it.y - PLAYER_Y) >= 0.06) continue;
 
           let picked = false;
-
           for (const u of units) {
             const dx = Math.abs(it.x - u.x);
             const dy = Math.abs(it.y - u.y);
 
-            // ✅ 유닛 중심 기준 픽업 판정
             const inX = dx < playerRef.current.widthUnits * 0.7;
             const inY = dy < 0.07;
 
@@ -1308,10 +1347,8 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
               break;
             }
           }
-
           if (!picked) continue;
 
-          // ✅ addClone 먹으면: 적용 + 아이템 제거
           if (it.kind === "addClone") {
             if (!consumedCloneItemIdsRef.current.has(it.id)) {
               consumedCloneItemIdsRef.current.add(it.id);
@@ -1321,38 +1358,84 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
             continue;
           }
 
-          // ✅ 나머지 아이템도 먹으면 제거
           pickedItemIds.add(it.id);
           nextCombat = applyItem(nextCombat, it);
         }
 
-        // ✅ 먹은 아이템은 화면에서 제거
         items = items.filter(
           (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
         );
 
-        items = items.filter(
-          (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
-        );
-
-        // ===== anchored enemies attack =====
-        let totalDamage = 0;
-
+        // =========================
+        // 8) DAMAGE: SNOWBALL CRASH (ONCE)
+        // =========================
         const setPlayerHp = (nextHp: number) => {
-          // ✅ ref를 먼저 최신으로 만들어서, 같은 프레임 계산이 꼬이지 않게
           playerRef.current = { ...playerRef.current, hp: nextHp };
           setPlayer((p) => ({ ...p, hp: nextHp }));
         };
 
         if (hurtCooldownRef.current <= 0) {
+          let hitOnce = false;
+
           for (const e of enemies) {
-            const interval =
-  prev.boss?.active && prev.boss.bossId === e.id
-    ? prev.boss.mission.attackInterval
-    : ANCHORED_ATTACK_INTERVAL;
+            if (e.kind !== "snowball") continue;
+            if (Math.abs(e.y - PLAYER_Y) > 0.06) continue;
 
+            for (const u of units) {
+              const dx = Math.abs(e.x - u.x);
+              const dy = Math.abs(e.y - u.y);
 
+              const hitX =
+                dx < playerRef.current.widthUnits * 0.55 + e.widthUnits * 0.5;
+              const hitY = dy < 0.06;
+
+              if (hitX && hitY) {
+                const crashDamage = 1; // ✅ 여기만 바꾸면 됨 (1 추천)
+                const nextHp = Math.max(0, playerRef.current.hp - crashDamage);
+                setPlayerHp(nextHp);
+
+                // 충돌한 눈덩이 제거
+                enemies = enemies.filter((x) => x.id !== e.id);
+
+                // 쿨다운
+                hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+
+                if (nextHp <= 0) {
+                  return {
+                    ...prev,
+                    mode: "gameover",
+                    enemies,
+                    bullets,
+                    items,
+                    boxes,
+                    combat: nextCombat,
+                    totalScore: prev.totalScore + kills,
+                    stageScore: prev.stageScore + kills,
+                  };
+                }
+
+                hitOnce = true;
+                break;
+              }
+            }
+
+            if (hitOnce) break;
+          }
+        }
+
+        // =========================
+        // 9) DAMAGE: ANCHORED ENEMY ATTACK
+        // =========================
+        if (hurtCooldownRef.current <= 0) {
+          let totalDamage = 0;
+
+          for (const e of enemies) {
             if (!e.anchored) continue;
+
+            const interval =
+              prev.boss?.active && prev.boss.bossId === e.id
+                ? prev.boss.mission.attackInterval
+                : ANCHORED_ATTACK_INTERVAL;
 
             if (e.attackAcc >= interval) {
               const times = Math.floor(e.attackAcc / interval);
@@ -1364,6 +1447,7 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
           if (totalDamage > 0) {
             const nextHp = Math.max(0, playerRef.current.hp - totalDamage);
             setPlayerHp(nextHp);
+            hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
 
             if (nextHp <= 0) {
               return {
@@ -1381,46 +1465,47 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
           }
         }
 
+        // =========================
+        // 10) STAGE CLEAR CHECK
+        // =========================
         const nextStageScore = prev.stageScore + kills;
         const nextTotalScore = prev.totalScore + kills;
 
         const target = stageTarget(prev.stage);
-        // ✅ 보스전 중에는 stageTarget으로 클리어 처리하면 안 됨
+
         if (!prev.boss?.active && nextStageScore >= target) {
-  const mission = getBossMission(prev.stage);
+          const mission = getBossMission(prev.stage);
 
-  // ✅ 보스 스테이지면: 클리어가 아니라 보스전 진입
-  if (mission) {
-    return {
-      ...prev,
-      mode: "playing",
-      totalScore: nextTotalScore,
-      stageScore: 0,   // 보스전 점수 리셋(권장)
+          if (mission) {
+            return {
+              ...prev,
+              mode: "playing",
+              totalScore: nextTotalScore,
+              stageScore: 0,
+              enemies: [],
+              boxes: [],
+              bullets,
+              items,
+              boss: { active: true, spawned: false, mission },
+            };
+          }
 
-      enemies: [],
-      boxes: [],
-      bullets,
-      items,
+          return {
+            ...prev,
+            mode: "cleared",
+            enemies,
+            bullets,
+            items,
+            boxes,
+            combat: nextCombat,
+            totalScore: nextTotalScore,
+            stageScore: nextStageScore,
+          };
+        }
 
-      boss: { active: true, spawned: false, mission },
-    };
-  }
-
-  // ✅ 일반 스테이지는 기존처럼 클리어
-  return {
-    ...prev,
-    mode: "cleared",
-    enemies,
-    bullets,
-    items,
-    boxes,
-    combat: nextCombat,
-    totalScore: nextTotalScore,
-    stageScore: nextStageScore,
-  };
-}
-
-
+        // =========================
+        // 11) NORMAL RETURN
+        // =========================
         return {
           ...prev,
           enemies,
@@ -1490,6 +1575,82 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
     const hpPct = Math.max(0, Math.min(1, e.hp / e.maxHp));
 
     const hitOffsetPx = e.hitFx > 0 ? -5 : 0; // 1px 뒤로(위로) 살짝
+
+    // ✅ snowball: 흰 동그라미 + 숫자
+    if (e.kind === "snowball") {
+      const size = laneWidth * 0.78 * e.widthUnits;
+
+      return (
+        <div
+          key={e.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            width: 120,
+            height: 120,
+            pointerEvents: "none",
+          }}
+        >
+          {/* ✅ 바닥 그림자(접지 그림자) */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: -6,
+              transform: "translateX(-50%)",
+              width: size * 0.9,
+              height: size * 0.28,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.0) 70%)",
+              filter: "blur(1px)",
+            }}
+          />
+
+          {/* ✅ 구형 본체 */}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 999,
+              // 구 느낌 핵심: radial-gradient (빛 방향: 좌상단)
+              background:
+                "radial-gradient(circle at 30% 28%, rgba(255,255,255,1) 0%, rgba(245,245,245,0.98) 28%, rgba(210,210,210,0.95) 62%, rgba(170,170,170,0.92) 100%)",
+              // 가장자리 살짝 어둡게 + 안쪽 음영
+              boxShadow:
+                "inset -10px -14px 18px rgba(0,0,0,0.16), inset 8px 10px 16px rgba(255,255,255,0.35), 0 18px 22px rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.55)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#4a4c52ff",
+              fontWeight: 800,
+              fontSize: 45,
+            }}
+          >
+            {/* ✅ 숫자 가독성용 미세 그림자 */}
+            <span style={{ textShadow: "0 1px 0 rgba(255,255,255,0.6)" }}>
+              {e.hp}
+            </span>
+          </div>
+
+          {/* (선택) 맞았을 때 반짝 */}
+          {e.hitFx > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                inset: -2,
+                borderRadius: 999,
+                boxShadow: "0 0 18px rgba(180,255,255,0.65)",
+                opacity: Math.min(1, e.hitFx / 0.18),
+              }}
+            />
+          )}
+        </div>
+      );
+    }
 
     return (
       <div
@@ -1791,9 +1952,9 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
     </div>
   );
 
-  let stageBg = "stagebg01"
-  if(world.stage > 10){
-    stageBg = "stagebg02"
+  let stageBg = "stagebg01";
+  if (world.stage > 10) {
+    stageBg = "stagebg02";
   }
 
   return (
@@ -1835,8 +1996,8 @@ const bossDied = prev.boss?.active && bossId != null && !bossStillAlive;
         style={{
           position: "absolute",
           top: 10,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: "50%",
+          transform: "translateX(-50%)",
           color: "#fff",
           fontWeight: 900,
           fontSize: 28,
