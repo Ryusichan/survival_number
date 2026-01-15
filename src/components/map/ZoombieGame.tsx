@@ -23,12 +23,12 @@ const MAX_WIDTH = 480;
 
 // ===== Stage rules =====
 const FIRST_STAGE_TARGET = 20;
-const NEXT_STAGE_STEP = 10;
+const NEXT_STAGE_STEP = 4;
 const MAX_STAGE = 30;
 
 // ===== Stacking enemies =====
 const ANCHOR_Y = PLAYER_Y - 0.08;
-const ANCHORED_ATTACK_INTERVAL = 0.65;
+const ANCHORED_ATTACK_INTERVAL = 1.2;
 const PLAYER_GLOBAL_HURT_COOLDOWN = 0.18;
 
 // ===== Drops (enemy) =====
@@ -46,8 +46,8 @@ const BOX_HEIGHT_HIT_EPS_Y = 0.05; // 박스 피격 y 판정 폭(조금 넉넉�
 
 // ===== Chapter02 Snow Thrower (Stage 11~20) =====
 const THROWER_STOP_Y = 0.32; // 맵 중간에서 멈추는 지점
-const THROW_INTERVAL = 1.5; // 던지는 주기(초)
-const SNOW_SHOT_SPEED = 0.4; // 투사체 속도(units/sec)
+const THROW_INTERVAL = 1.8; // 던지는 주기(초)
+const SNOW_SHOT_SPEED = 0.1; // 투사체 속도(units/sec)
 const SNOW_SHOT_DAMAGE = 1; // 맞으면 데미지
 const SNOW_SHOT_RADIUS = 0.06; // 충돌 반지름
 
@@ -383,7 +383,7 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 
   // ✅ chapter02: 눈을 던지는 적(스테이지 11~20에서만 weights로 등장)
   snowThrower: {
-    hp: 6,
+    hp: 4,
     speedMul: 0.7,
     damage: 0, // 직접 앵커 공격은 안 씀(투사체로 데미지)
     widthUnits: 1.2,
@@ -533,12 +533,18 @@ const POWER_LEVELS = [1, 2, 3, 4];
 
 type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce" | "addClone";
 
-type BuffKind = "fireRateMul" | "damageAdd" | "pierce";
+type BuffKind = "pierce";
 type Buff = { id: string; kind: BuffKind; value: number; timeLeft: number };
 
 type CombatState = {
   baseWeaponId: WeaponId;
   tempWeapon?: { weaponId: WeaponId; timeLeft: number };
+
+  // ✅ 영구 누적 업그레이드(스테이지/무기 변경과 무관)
+  permFireMul: number; // 발사간격에 곱해지는 값(작을수록 더 빠름)
+  permDamageAdd: number; // 데미지 +N
+
+  // ✅ 일시 버프(원하면 유지: pierce 같은 것)
   buffs: Buff[];
 };
 
@@ -656,13 +662,8 @@ function getActiveWeapon(combat: CombatState): Weapon {
     ? WEAPONS[combat.tempWeapon.weaponId]
     : WEAPONS[combat.baseWeaponId];
 
-  const fireMul = combat.buffs
-    .filter((b) => b.kind === "fireRateMul")
-    .reduce((acc, b) => acc * b.value, 1);
-
-  const damageAdd = combat.buffs
-    .filter((b) => b.kind === "damageAdd")
-    .reduce((acc, b) => acc + b.value, 0);
+  const permFireMul = combat.permFireMul ?? 1;
+  const permDamageAdd = combat.permDamageAdd ?? 0;
 
   const hasPierce =
     base.pierce ||
@@ -670,13 +671,14 @@ function getActiveWeapon(combat: CombatState): Weapon {
 
   return {
     ...base,
-    fireIntervalSec: Math.max(0.06, base.fireIntervalSec * fireMul),
-    damage: Math.max(1, base.damage + damageAdd),
+    fireIntervalSec: Math.max(0.06, base.fireIntervalSec * permFireMul),
+    damage: Math.max(1, base.damage + permDamageAdd),
     pierce: hasPierce,
   };
 }
 
 function applyItem(combat: CombatState, item: Item): CombatState {
+  // ✅ 무기 아이템은 "임시 무기"로만 동작(기존 유지)
   if (item.kind === "weapon") {
     const w = WEAPONS[item.weaponId];
     const dur = w.durationSec ?? 6;
@@ -685,34 +687,28 @@ function applyItem(combat: CombatState, item: Item): CombatState {
       tempWeapon: { weaponId: item.weaponId, timeLeft: dur },
     };
   }
+
+  // ✅ 발사속도 아이템은 "영구 누적"
   if (item.kind === "fireRateMul") {
+    // item.mul은 0.7 같은 값(간격을 줄이는 효과)
+    // 너무 빨라지는 것 방지: permFireMul 최소값 제한
+    const nextPerm = Math.max(0.35, (combat.permFireMul ?? 1) * item.mul);
     return {
       ...combat,
-      buffs: [
-        ...combat.buffs,
-        {
-          id: crypto.randomUUID(),
-          kind: "fireRateMul",
-          value: item.mul,
-          timeLeft: item.durationSec,
-        },
-      ],
+      permFireMul: nextPerm,
     };
   }
+
+  // ✅ 공격력 아이템은 "영구 누적"
   if (item.kind === "damageAdd") {
+    const next = (combat.permDamageAdd ?? 0) + item.add;
     return {
       ...combat,
-      buffs: [
-        ...combat.buffs,
-        {
-          id: crypto.randomUUID(),
-          kind: "damageAdd",
-          value: item.add,
-          timeLeft: item.durationSec,
-        },
-      ],
+      permDamageAdd: next,
     };
   }
+
+  // pierce는 원하면 일시 버프로 유지
   if (item.kind === "pierce") {
     return {
       ...combat,
@@ -727,6 +723,7 @@ function applyItem(combat: CombatState, item: Item): CombatState {
       ],
     };
   }
+
   return combat;
 }
 
@@ -833,6 +830,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const laneWidth = WIDTH / LANE_COUNT;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const consumedCloneItemIdsRef = useRef<Set<number>>(new Set());
+  const consumedEnemyShotIdsRef = useRef<Set<number>>(new Set());
 
   const [player, setPlayer] = useState<Player>({
     x: LANE_COUNT / 2,
@@ -904,7 +902,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     items: [],
     boxes: [],
     enemyShots: [], // ✅
-    combat: { baseWeaponId: "pistol", buffs: [] },
+    combat: {
+      baseWeaponId: "pistol",
+      permFireMul: 1,
+      permDamageAdd: 0,
+      buffs: [],
+    },
     boss: undefined,
   }));
   const worldRef = useRef(world);
@@ -1427,6 +1430,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         items = [...items, ...dropped, ...spawnedFromBox];
         enemyShots = enemyShots.filter(
           (s) =>
+            !consumedEnemyShotIdsRef.current.has(s.id) &&
             s.y < DESPAWN_Y + 0.2 &&
             s.y > FAR_Y_DEFAULT - 0.6 &&
             s.x > -1 &&
@@ -1538,7 +1542,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           }
 
           if (hitShotId != null) {
-            // ✅ 맞은 샷 즉시 제거
+            // ✅ 이 샷은 앞으로 절대 다시 데미지 못 주게 영구 마킹
+            consumedEnemyShotIdsRef.current.add(hitShotId);
+
+            // ✅ 즉시 제거
             enemyShots = enemyShots.filter((ss) => ss.id !== hitShotId);
 
             const nextHp = Math.max(0, playerRef.current.hp - damage);
@@ -1630,9 +1637,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 : ANCHORED_ATTACK_INTERVAL;
 
             if (e.attackAcc >= interval) {
-              const times = Math.floor(e.attackAcc / interval);
-              totalDamage += times * e.damage;
-              e.attackAcc = e.attackAcc - times * interval;
+              totalDamage += e.damage; //무조건 1번만 적용
+              e.attackAcc = 0; //누적 리셋 (몰아치기 방지)
             }
           }
 
@@ -1732,6 +1738,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     boxSpawnAccRef.current = 0;
     farYRef.current = FAR_Y_DEFAULT;
     hurtCooldownRef.current = 0;
+    consumedEnemyShotIdsRef.current.clear();
 
     setPlayer((p) => ({ ...p, x: LANE_COUNT / 2, hp: p.maxHp }));
     setClones([]);
@@ -1746,7 +1753,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       items: [],
       boxes: [],
       enemyShots: [], // ✅
-      combat: { baseWeaponId: "pistol", buffs: [] },
+      combat: {
+        baseWeaponId: "pistol",
+        permFireMul: 1,
+        permDamageAdd: 0,
+        buffs: [],
+      },
       boss: undefined,
     }));
   };
@@ -1857,10 +1869,51 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
+            filter:
+              e.hitFx > 0
+                ? "drop-shadow(0 14px 16px rgba(95, 183, 255, 0.5))"
+                : "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
             pointerEvents: "none",
           }}
         >
+          {/* 바닥 그림자 */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: 0,
+              transform: "translateX(-50%)",
+              width: laneWidth * 0.78 * e.widthUnits,
+              height: 10,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
+              filter: "blur(2px)",
+            }}
+          />
+
+          {e.hitFx > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: "0%",
+                fontSize: 12,
+                rotate: "40deg",
+                fontWeight: 1000,
+                padding: "2px 6px",
+                borderRadius: 8,
+                background: "rgba(0,0,0,0.55)",
+                color: "#fff",
+                opacity: Math.min(1, e.hitFx / 0.18),
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+                zIndex: 20,
+              }}
+            >
+              {e.hitText}
+            </div>
+          )}
           {/* hp bar */}
           <div
             style={{
@@ -1911,6 +1964,22 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               : "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
         }}
       >
+        {/* 바닥 그림자 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 0,
+            transform: "translateX(-50%)",
+            width: laneWidth * 0.78 * e.widthUnits,
+            height: 10,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
+            filter: "blur(2px)",
+          }}
+        />
+
         {e.hitFx > 0 && (
           <div
             style={{
@@ -1981,13 +2050,38 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           transform: `translate(-50%, -50%) scale(${scale})`,
           width: size,
           height: size,
-          borderRadius: 999,
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(255,255,255,1) 0%, rgba(220,220,220,1) 60%, rgba(170,170,170,1) 100%)",
-          boxShadow: "0 10px 14px rgba(0,0,0,0.35)",
           pointerEvents: "none",
         }}
-      />
+      >
+        {/* ✅ 바닥 그림자 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: -6,
+            transform: "translateX(-50%)",
+            width: size * 0.9,
+            height: size * 0.28,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
+            filter: "blur(2px)",
+          }}
+        />
+
+        {/* ✅ 눈 본체 */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 999,
+            background:
+              "radial-gradient(circle at 30% 30%, rgba(255,255,255,1) 0%, rgba(245,245,245,1) 45%, rgba(200,200,200,1) 100%)",
+            boxShadow:
+              "inset -6px -8px 10px rgba(0,0,0,0.18), inset 6px 6px 10px rgba(255,255,255,0.4)",
+          }}
+        />
+      </div>
     );
   };
 
@@ -2337,68 +2431,99 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       {world.boxes.map(renderBox)}
       {world.enemies.map(renderEnemy)}
       {/* players (leader + clones) */}
-      {units.map((u) => {
-        const xpx = xUnitsToPx(u.x);
-        const ypx = u.y * HEIGHT;
-        const BASE_PLAYER_Z = 100;
-        const zIndex =
-          u.id === 0
-            ? BASE_PLAYER_Z
-            : BASE_PLAYER_Z +
-              1 +
-              (clones.find((c) => c.id === u.id)?.slotIndex ?? 0);
-
-        return (
+      <div
+        style={{
+          position: "absolute",
+          left: xUnitsToPx(player.x),
+          top: PLAYER_Y * HEIGHT,
+          transform: "translate(-50%, -50%)",
+          width: laneWidth * player.widthUnits,
+          height: 100,
+          zIndex: 120, // ✅ 플레이어 전체 레이어
+          pointerEvents: "none",
+          isolation: "isolate", // ✅ 내부 z-index 안정화
+        }}
+      >
+        {/* ✅ HP BAR : 항상 최상단 */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 56,
+            height: 8,
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.2)",
+            overflow: "hidden",
+            boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
+            zIndex: 999, // ✅ wrapper 내부 최상단
+            pointerEvents: "none",
+          }}
+        >
           <div
-            key={u.id}
             style={{
-              position: "absolute",
-              left: xpx,
-              top: ypx,
-              transform: "translate(-50%, -50%)",
-              width: laneWidth * player.widthUnits,
-              height: 86,
-              zIndex,
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "center",
-              pointerEvents: "none",
+              width: `${playerHpPct * 100}%`,
+              height: "100%",
+              borderRadius: 999,
+              background: "#57aeff",
             }}
-          >
+          />
+        </div>
+
+        {units.map((u) => {
+          const offsetX =
+            u.id === 0 ? 0 : xUnitsToPx(u.x) - xUnitsToPx(player.x); // ✅ wrapper 기준 좌우 오프셋
+
+          const offsetY = (u.y - PLAYER_Y) * HEIGHT;
+
+          const isLeader = u.id === 0;
+          const isHit = isLeader && hurtCooldownRef.current > 0;
+
+          return (
             <div
+              key={u.id}
               style={{
                 position: "absolute",
-                bottom: 62,
-                width: 56,
-                height: 8,
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.2)",
-                overflow: "hidden",
-                boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
+                left: `calc(50% + ${offsetX}px)`,
+                top: `calc(50% + ${offsetY}px)`,
+                transform: "translate(-50%, -50%)",
+                width: laneWidth * player.widthUnits,
+                height: 86,
+                zIndex: isLeader ? 20 : 10, // 클론은 아래
+                pointerEvents: "none",
               }}
             >
+              {/* 바닥 그림자 */}
+              <div className="player-shadow" />
+
+              {/* 본체 */}
               <div
+                className={`game_player ${playerWeaponClass} ${
+                  isHit ? "player-hit" : ""
+                }`}
                 style={{
-                  width: `${playerHpPct * 100}%`,
-                  height: "100%",
-                  borderRadius: 999,
-                  background: "#57aeff",
+                  position: "absolute",
+                  left: "50%",
+                  bottom: 0,
+                  transform: "translateX(-50%)",
+                  zIndex: 20,
                 }}
               />
-            </div>
 
-            <div
-              style={{
-                outline:
-                  hurtCooldownRef.current > 0
-                    ? "2px solid rgba(248,113,113,0.9)"
-                    : "none",
-              }}
-              className={`game_player ${playerWeaponClass}`}
-            />
-          </div>
-        );
-      })}
+              {/* 피격 이펙트 (리더만) */}
+              {isHit && (
+                <div className="hit-blood">
+                  <span className="b1" />
+                  <span className="b2" />
+                  <span className="b3" />
+                  <span className="b4" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
       {/* dialogs */}
       {world.mode !== "playing" && (
         <div

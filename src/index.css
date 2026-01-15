@@ -87,7 +87,7 @@ code {
 .enemy_snow_thrower {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/snow_charactor1.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/snow_charactor2.png"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -261,6 +261,105 @@ code {
 
 .weapon-blink {
   animation: weaponBlink 0.3s infinite;
+}
+
+/* 바닥 그림자 */
+.player-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.16) 45%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  filter: blur(2px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 피격 흔들림(선택) */
+.player-hit {
+  animation: player-hit-shake 0.18s linear;
+}
+
+@keyframes player-hit-shake {
+  0% {
+    transform: translateX(-50%) translateX(0);
+  }
+  25% {
+    transform: translateX(-50%) translateX(-2px);
+  }
+  50% {
+    transform: translateX(-50%) translateX(2px);
+  }
+  75% {
+    transform: translateX(-50%) translateX(-1px);
+  }
+  100% {
+    transform: translateX(-50%) translateX(0);
+  }
+}
+
+/* 핏방울 4개 */
+.hit-blood {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.hit-blood span {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff4d4f 0%, #b91c1c 70%);
+  opacity: 0;
+  animation: blood-splash 0.35s ease-out forwards;
+}
+
+/* 각 핏방울 시작 위치 + 튀는 방향 */
+.hit-blood .b1 {
+  left: 50%;
+  top: 42%;
+  --dx: 10px;
+  --dy: -14px;
+}
+.hit-blood .b2 {
+  left: 38%;
+  top: 52%;
+  --dx: -14px;
+  --dy: -6px;
+}
+.hit-blood .b3 {
+  left: 62%;
+  top: 52%;
+  --dx: 14px;
+  --dy: -6px;
+}
+.hit-blood .b4 {
+  left: 50%;
+  top: 64%;
+  --dx: 8px;
+  --dy: 12px;
+}
+
+@keyframes blood-splash {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+      scale(1.2);
+    opacity: 0;
+  }
 }
 
 /* 걷는 애니메이션 */
