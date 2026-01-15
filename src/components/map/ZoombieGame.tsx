@@ -23,7 +23,7 @@ const MAX_WIDTH = 480;
 
 // ===== Stage rules =====
 const FIRST_STAGE_TARGET = 20;
-const NEXT_STAGE_STEP = 4;
+const NEXT_STAGE_STEP = 3;
 const MAX_STAGE = 30;
 
 // ===== Stacking enemies =====
@@ -406,7 +406,7 @@ const BOSS_MISSIONS: BossMission[] = [
   {
     stage: 10,
     kind: "king",
-    hp: 1880,
+    hp: 2880,
     speedMul: 0.55,
     damage: 4,
     widthUnits: 4.2,
