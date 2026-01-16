@@ -283,9 +283,373 @@ code {
   pointer-events: none;
 }
 
+/* ===== Healer Enemy ===== */
+@keyframes healerFloat {
+  0% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-3px);
+  }
+  100% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+}
+
+@keyframes healerPulse {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes healerGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(34, 197, 94, 0.55),
+      0 0 46px rgba(34, 197, 94, 0.22);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@keyframes healerTwinkle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(18deg);
+  }
+  60% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.85) rotate(34deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(60deg);
+  }
+}
+
+.healer-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 78%;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.34) 0%,
+    rgba(0, 0, 0, 0.14) 45%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  filter: blur(2px);
+}
+
+.enemy_healer-body {
+  /* position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 76px;
+  transform: translate(-50%, -50%);
+  border-radius: 18px;
+  background: linear-gradient(
+    180deg,
+    rgba(240, 255, 245, 0.92),
+    rgba(210, 255, 225, 0.72)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  animation: healerFloat 1.2s ease-in-out infinite;
+  overflow: visible; */
+
+  width: 64px; /* 프레임 하나의 실제 너비 */
+  height: 80px; /* 프레임 하나의 실제 높이 */
+  background-image: url("/public/charactor/snow_charactor3.png"); /* 너가 받은 스프라이트 */
+  background-repeat: no-repeat;
+
+  /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
+  background-size: 512px 80px; /* (100px * 8프레임) */
+
+  animation: eightpx-walk 0.8s steps(8) infinite;
+  /* transition: 3.32s ease-in-out; */
+}
+
+.healer-aura {
+  position: absolute;
+  inset: -12px;
+  border-radius: 22px;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(34, 197, 94, 0.24) 0%,
+    rgba(34, 197, 94, 0.14) 40%,
+    rgba(34, 197, 94, 0) 72%
+  );
+  filter: blur(1px);
+  animation: healerPulse 1.1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.healer-cross {
+  position: absolute;
+  left: 42%;
+  top: 19px;
+  width: 24px;
+  height: 24px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+  animation: healerGlow 1s ease-in-out infinite;
+}
+
+/* 십자 모양(가로/세로 막대) */
+.healer-cross::before,
+.healer-cross::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(34, 197, 94, 0.95);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+}
+
+.healer-cross::before {
+  width: 18px;
+  height: 6px;
+}
+
+.healer-cross::after {
+  width: 6px;
+  height: 18px;
+}
+
+/* 스파클 */
+.healer-spark {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(34, 197, 94, 0.85) 45%,
+    rgba(34, 197, 94, 0) 72%
+  );
+  filter: blur(0.2px);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.healer-spark::before,
+.healer-spark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.healer-spark::before {
+  width: 10px;
+  height: 2px;
+}
+.healer-spark::after {
+  width: 2px;
+  height: 10px;
+}
+
+.healer-spark.s1 {
+  left: 18%;
+  top: 22%;
+  animation: healerTwinkle 1s ease-in-out infinite;
+}
+.healer-spark.s2 {
+  left: 82%;
+  top: 30%;
+  animation: healerTwinkle 1.25s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+.healer-spark.s3 {
+  left: 70%;
+  top: 78%;
+  animation: healerTwinkle 1.15s ease-in-out infinite;
+  animation-delay: 0.35s;
+}
+
+/* 너가 실제 스프라이트를 쓰려면 enemy_healer에 크기/포지션만 맞춰주면 됨 */
+.enemy_healer {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  /* 예시: 이미지 스프라이트/배경 넣는 자리 */
+  /* background: url("/sprites/healer.png") center/contain no-repeat; */
+  opacity: 0.98;
+}
+
 /* 피격 흔들림(선택) */
 .player-hit {
   animation: player-hit-shake 0.18s linear;
+}
+
+@keyframes healRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.95;
+  }
+  70% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes healGlow {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(34, 197, 94, 0));
+  }
+  35% {
+    filter: drop-shadow(0 0 18px rgba(34, 197, 94, 0.55))
+      drop-shadow(0 0 36px rgba(34, 197, 94, 0.22));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(34, 197, 94, 0));
+  }
+}
+
+@keyframes healSpark {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.25) rotate(50deg);
+    opacity: 0;
+  }
+}
+
+.heal-fx {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 110px;
+  height: 110px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 200; /* HP바(999) 아래든 위든 원하는대로 조절 가능 */
+  animation: healGlow 0.75s ease-out forwards;
+}
+
+.heal-fx::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 92px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(34, 197, 94, 0.1) 0%,
+    rgba(34, 197, 94, 0.06) 35%,
+    rgba(34, 197, 94, 0) 70%
+  );
+  box-shadow: 0 0 18px rgba(34, 197, 94, 0.35), 0 0 42px rgba(34, 197, 94, 0.18);
+  animation: healRing 0.75s ease-out forwards;
+}
+
+.heal-spark {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(34, 197, 94, 0.9) 45%,
+    rgba(34, 197, 94, 0) 75%
+  );
+  opacity: 0;
+}
+
+.heal-spark::before,
+.heal-spark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  opacity: 0.9;
+}
+.heal-spark::before {
+  width: 12px;
+  height: 2px;
+}
+.heal-spark::after {
+  width: 2px;
+  height: 12px;
+}
+
+.heal-spark.hs1 {
+  left: 18%;
+  top: 22%;
+  animation: healSpark 0.75s ease-out forwards;
+}
+.heal-spark.hs2 {
+  left: 82%;
+  top: 28%;
+  animation: healSpark 0.75s ease-out forwards;
+  animation-delay: 0.06s;
+}
+.heal-spark.hs3 {
+  left: 24%;
+  top: 80%;
+  animation: healSpark 0.75s ease-out forwards;
+  animation-delay: 0.12s;
+}
+.heal-spark.hs4 {
+  left: 76%;
+  top: 78%;
+  animation: healSpark 0.75s ease-out forwards;
+  animation-delay: 0.18s;
 }
 
 @keyframes player-hit-shake {

@@ -55,6 +55,11 @@ const SNOW_SHOT_RADIUS = 0.06; // 충돌 반지름
 const MAX_UNITS = 20;
 const MAX_CLONES = MAX_UNITS - 1;
 
+// ===== Healer (치료 캐릭터) =====
+const HEALER_SPEED = 0.22; // ✅ 내려오는 속도 (units/sec)
+const HEALER_PICKUP_EPS_Y = 0.06; // ✅ y 판정
+const HEALER_PICKUP_EPS_X = 0.55; // ✅ x 판정(플레이어 폭 기준 계수)
+
 // ==============================
 // ✅ STAGE 1~30 CONFIG (edit here)
 // ==============================
@@ -65,7 +70,8 @@ type EnemyKind =
   | "king"
   | "queen"
   | "snowball"
-  | "snowThrower";
+  | "snowThrower"
+  | "healer";
 
 type StageRule = {
   spawnIntervalSec: number;
@@ -106,9 +112,9 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
       ? { normal: 0.85, teddy: 0.15 }
       : stage < 11
       ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
-      : stage < 20
+      : stage < 21
       ? // ? { snowball: 0.12, snowThrower: 0.6, normal: 0.1, teddy: 0.1, fat: 0.08 }
-        { snowThrower: 1 }
+        { snowThrower: 0.9, healer: 0.1 }
       : stage < 30
       ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
       : { normal: 0.25, teddy: 0.25, fat: 0.5 };
@@ -388,6 +394,14 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
     damage: 0, // 직접 앵커 공격은 안 씀(투사체로 데미지)
     widthUnits: 1.2,
     cssClass: "enemy_snow_thrower",
+  },
+
+  healer: {
+    hp: 1, // 의미 없음(총알 무시할거라)
+    speedMul: 1.0, // 의미 없음(HEALER_SPEED를 직접 쓸거라)
+    damage: 0,
+    widthUnits: 1.0,
+    cssClass: "enemy_healer", // ✅ 너가 css로 캐릭터 이미지/스프라이트 넣으면 됨
   },
 };
 
@@ -831,6 +845,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const consumedCloneItemIdsRef = useRef<Set<number>>(new Set());
   const consumedEnemyShotIdsRef = useRef<Set<number>>(new Set());
+  const healFxRef = useRef(0);
 
   const [player, setPlayer] = useState<Player>({
     x: LANE_COUNT / 2,
@@ -893,7 +908,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 1,
+    stage: 11,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
@@ -979,6 +994,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     let hp = spec.hp;
     let damage = spec.damage;
 
+    if (kind === "healer") {
+      hp = 1;
+      damage = 0;
+    }
+
     if (kind === "snowball") {
       const s = worldRef.current.stage; // 11~20
       hp = clamp(10 + (s - 11), 8, 20);
@@ -991,7 +1011,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       damage = 0;
     }
 
-    const speed = BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
+    const speed =
+      kind === "healer"
+        ? HEALER_SPEED
+        : BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
     const widthUnits = spec.widthUnits;
     const halfW = widthUnits / 2;
     const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
@@ -1169,8 +1192,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const loop = (time: number) => {
       if (lastTimeRef.current == null) lastTimeRef.current = time;
+
       const dt = Math.min(0.033, (time - lastTimeRef.current) / 1000);
       lastTimeRef.current = time;
+      healFxRef.current = Math.max(0, healFxRef.current - dt);
 
       hurtCooldownRef.current = Math.max(0, hurtCooldownRef.current - dt);
 
@@ -1192,6 +1217,17 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         let enemies = prev.enemies.map((e) => {
           const nextHitFx = Math.max(0, (e.hitFx ?? 0) - dt);
+
+          // healer는 그냥내려옴
+          if (e.kind === "healer") {
+            return {
+              ...e,
+              y: e.y + e.speed * dt,
+              anchored: false,
+              attackAcc: 0,
+              hitFx: nextHitFx,
+            };
+          }
 
           // ✅ snowball: 절대 anchored 안 됨. 계속 굴러 내려감
           if (e.kind === "snowball") {
@@ -1388,6 +1424,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           for (const e of enemies) {
             if (deadEnemyIds.has(e.id)) continue;
 
+            if (e.kind === "healer") continue; // ✅ 총알 무시(무적)
+
             const dx = Math.abs(e.x - b.x);
             const dy = Math.abs(e.y - b.y);
 
@@ -1418,6 +1456,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         for (const e of enemies) {
           if (deadEnemyIds.has(e.id)) {
+            if (e.kind === "healer") continue; // 점수제외
             kills += 1;
             const drop = maybeDropEnemyItem(e.x, e.y);
             if (drop) dropped.push(drop);
@@ -1503,6 +1542,46 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         items = items.filter(
           (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
         );
+
+        // =========================
+        // 7.5) HEALER PICKUP (full heal)
+        // =========================
+        {
+          const units = getAllPlayerUnitsRef();
+          let healed = false;
+
+          for (const e of enemies) {
+            if (e.kind !== "healer") continue;
+
+            // y 근처에서만 체크
+            if (Math.abs(e.y - PLAYER_Y) > HEALER_PICKUP_EPS_Y) continue;
+
+            for (const u of units) {
+              const dx = Math.abs(e.x - u.x);
+              const dy = Math.abs(e.y - u.y);
+
+              const hitX =
+                dx <
+                playerRef.current.widthUnits * HEALER_PICKUP_EPS_X +
+                  e.widthUnits * 0.5;
+              const hitY = dy < HEALER_PICKUP_EPS_Y;
+
+              if (hitX && hitY) {
+                // ✅ healer는 먹으면 사라짐 + 풀회복
+                enemies = enemies.filter((x) => x.id !== e.id);
+
+                const full = playerRef.current.maxHp;
+                playerRef.current = { ...playerRef.current, hp: full };
+                setPlayer((p) => ({ ...p, hp: full }));
+
+                healFxRef.current = 0.75; // ✅ 0.75초 동안 치료 이펙트
+                healed = true;
+                break;
+              }
+            }
+            if (healed) break; // 한 번 먹으면 이번 프레임 종료
+          }
+        }
 
         // =========================
         // 8) DAMAGE HELPERS
@@ -1939,6 +2018,47 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           </div>
 
           <div className={ENEMY_SPECS[e.kind].cssClass} />
+        </div>
+      );
+    }
+
+    // ✅ healer: 초록 십자 + 반짝 + 오라
+    if (e.kind === "healer") {
+      const size = laneWidth * 0.78 * e.widthUnits;
+
+      return (
+        <div
+          key={e.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            width: size,
+            height: 76,
+            pointerEvents: "none",
+            filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.32))",
+          }}
+        >
+          {/* 바닥 그림자 */}
+          <div className="healer-shadow" />
+
+          {/* 본체(기본 캐릭터) */}
+          <div className="enemy_healer-body">
+            {/* 초록 오라 */}
+            <div className="healer-aura" />
+
+            {/* 십자 마크 */}
+            <div className="healer-cross" />
+
+            {/* 스파클 3개 */}
+            <span className="healer-spark s1" />
+            <span className="healer-spark s2" />
+            <span className="healer-spark s3" />
+
+            {/* 너 스프라이트/이미지 넣고 싶으면 여기 */}
+            <div className={ENEMY_SPECS[e.kind].cssClass} />
+          </div>
         </div>
       );
     }
@@ -2456,7 +2576,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             borderRadius: 999,
             background: "rgba(255,255,255,0.2)",
             overflow: "hidden",
-            boxShadow: "0 6px 14px rgba(0,0,0,0.35)",
             zIndex: 999, // ✅ wrapper 내부 최상단
             pointerEvents: "none",
           }}
@@ -2470,6 +2589,21 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             }}
           />
         </div>
+
+        {/* ✅ HEAL FX (치료 시 잠깐) */}
+        {healFxRef.current > 0 && (
+          <div
+            className="heal-fx"
+            style={{
+              opacity: Math.min(1, healFxRef.current / 0.25),
+            }}
+          >
+            <span className="heal-spark hs1" />
+            <span className="heal-spark hs2" />
+            <span className="heal-spark hs3" />
+            <span className="heal-spark hs4" />
+          </div>
+        )}
 
         {units.map((u) => {
           const offsetX =
