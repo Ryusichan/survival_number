@@ -908,7 +908,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 11,
+    stage: 1,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
