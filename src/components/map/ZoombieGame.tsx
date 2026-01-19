@@ -66,9 +66,9 @@ const HEALER_BOSS_MAX_ALIVE = 2; // 보스전 힐러 최대 동시 존재
 // ===== Stage20 Boss Missile Patterns =====
 const BOSS20_Y = 0.14; // 상단 고정 y
 const BOSS20_ENTRY_SPEED = 0.28;
-const BOSS20_FIRE_INTERVAL = 0.14; // 패턴 내부 틱
-const BOSS20_PATTERN_DUR = 4.8; // 패턴 1개 지속 시간(초)
-const BOSS20_SHOT_SPEED = 0.18;
+const BOSS20_FIRE_INTERVAL = 0.42; // 전체 발사 템포 느리게
+const BOSS20_PATTERN_DUR = 3.8; // 패턴 교체는 조금 빠르게
+const BOSS20_SHOT_SPEED = 0.16; // 너무 빠르지 않게
 
 const BOSS10_STOP_Y = 0.22;
 const BOSS20_STOP_Y = 0.14; // 너가 쓰던 BOSS20_Y랑 동일하게 써도 됨
@@ -77,7 +77,7 @@ const BOSS30_STOP_Y = 0.2;
 const getBossStopY = (stage: number) =>
   stage === 10 ? BOSS10_STOP_Y : stage === 20 ? BOSS20_STOP_Y : BOSS30_STOP_Y;
 
-const BOSS20_ORDER: ShotStyle[] = ["spray", "spiral", "big", "spray"]; // ✅ “규칙적으로”
+const BOSS20_ORDER: ShotStyle[] = ["aimBurst", "laneGap", "sniper"];
 
 // ==============================
 // ✅ STAGE 1~30 CONFIG (edit here)
@@ -449,7 +449,7 @@ const BOSS_MISSIONS: BossMission[] = [
   {
     stage: 20,
     kind: "queen",
-    hp: 3200,
+    hp: 4200,
     speedMul: 0.58,
     damage: 6,
     widthUnits: 4.4,
@@ -629,7 +629,7 @@ type BossState = {
   mission: BossMission;
 };
 
-type ShotStyle = "spray" | "spiral" | "big";
+type ShotStyle = "throw" | "aimBurst" | "laneGap" | "sniper";
 
 // ✅ 적 투사체(눈 던지기)
 type EnemyShot = {
@@ -938,7 +938,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 20,
+    stage: 1,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
@@ -1155,6 +1155,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     setWorld((prev) => {
       // ✅ 보스전: healer만 계속
       if (prev.boss?.active) {
+        const bossStage = prev.boss.mission.stage;
+        const allowHealer = bossStage !== 10; // ✅ stage10에서는 힐러 금지
+
+        if (!allowHealer) return prev;
+
         const healerAlive = prev.enemies.filter(
           (e) => e.kind === "healer"
         ).length;
@@ -1447,7 +1452,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               vy: uy * SNOW_SHOT_SPEED,
               radius: SNOW_SHOT_RADIUS,
               damage: SNOW_SHOT_DAMAGE,
-              style: "spray",
+              style: "throw",
             });
           }
 
@@ -1512,12 +1517,26 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 const tx = playerRef.current.x;
                 const ty = PLAYER_Y;
 
-                if (style === "spray") {
-                  const N = 11;
-                  const spread = 0.95;
+                if (style === "aimBurst") {
+                  // ✅ 조준 3점사 (총게임 느낌)
+                  const N: number = 3;
+                  const spread = 0.22; // 살짝 퍼지게
+                  const dx = tx - e.x;
+                  const dy = ty - ny;
+                  const len = Math.max(0.0001, Math.hypot(dx, dy));
+                  const ux = dx / len;
+                  const uy = dy / len;
+
+                  // 직각 벡터(퍼짐용)
+                  const px = -uy;
+                  const py = ux;
+
                   for (let i = 0; i < N; i++) {
-                    const t = i / (N - 1);
-                    const ax = (t - 0.5) * spread;
+                    const t = N === 1 ? 0 : i / (N - 1);
+                    const off = (t - 0.5) * spread;
+
+                    const vx = (ux + px * off) * BOSS20_SHOT_SPEED;
+                    const vy = (uy + py * off) * BOSS20_SHOT_SPEED;
 
                     spawnedBossShots.push({
                       id: enemyShotIdSeed++,
@@ -1525,34 +1544,45 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                       y: ny,
                       px: e.x,
                       py: ny,
-                      vx: ax * BOSS20_SHOT_SPEED,
-                      vy: 1.0 * BOSS20_SHOT_SPEED,
+                      vx,
+                      vy,
                       radius: 0.055,
                       damage: 1,
-                      style: "spray",
+                      style: "aimBurst",
                     });
                   }
                 }
 
-                if (style === "spiral") {
-                  spiralA += 0.42;
-                  spawnedBossShots.push({
-                    id: enemyShotIdSeed++,
-                    x: e.x,
-                    y: ny,
-                    px: e.x,
-                    py: ny,
-                    vx: Math.cos(spiralA) * (BOSS20_SHOT_SPEED * 0.95),
-                    vy:
-                      (0.9 + Math.abs(Math.sin(spiralA)) * 0.6) *
-                      (BOSS20_SHOT_SPEED * 0.85),
-                    radius: 0.05,
-                    damage: 1,
-                    style: "spiral",
-                  });
+                if (style === "laneGap") {
+                  // ✅ 내려오는 벽탄 + 빈틈 1 lane (회피 재미 확 좋아짐)
+                  // lane 단위로 '안전 lane'을 이동시키자
+                  const t = e.bossPatternT ?? 0; // 0~PATTERN_DUR
+                  const safeLane = Math.floor(
+                    (Math.sin(t * 1.2) + 1) * 0.5 * (LANE_COUNT - 1)
+                  );
+                  // safeLane은 0~LANE_COUNT-1
+
+                  for (let lane = 0; lane < LANE_COUNT; lane++) {
+                    if (lane === safeLane) continue; // ✅ 여기만 통로
+
+                    const xLane = lane + 0.5; // lane 중앙
+                    spawnedBossShots.push({
+                      id: enemyShotIdSeed++,
+                      x: xLane,
+                      y: ny,
+                      px: xLane,
+                      py: ny,
+                      vx: 0,
+                      vy: 1.0 * (BOSS20_SHOT_SPEED * 0.95),
+                      radius: 0.06,
+                      damage: 1,
+                      style: "laneGap",
+                    });
+                  }
                 }
 
-                if (style === "big") {
+                if (style === "sniper") {
+                  // ✅ 저속 대탄 1발 (유도 회피)
                   const dx = tx - e.x;
                   const dy = ty - ny;
                   const len = Math.max(0.0001, Math.hypot(dx, dy));
@@ -1565,11 +1595,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                     y: ny,
                     px: e.x,
                     py: ny,
-                    vx: ux * (BOSS20_SHOT_SPEED * 0.65),
-                    vy: uy * (BOSS20_SHOT_SPEED * 0.65),
-                    radius: 0.12,
+                    vx: ux * (BOSS20_SHOT_SPEED * 0.72),
+                    vy: uy * (BOSS20_SHOT_SPEED * 0.72),
+                    radius: 0.12, // 큼직
                     damage: 2,
-                    style: "big",
+                    style: "sniper",
                   });
                 }
               }
@@ -2175,10 +2205,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             top: ypx,
             transform: `translate(-50%, -50%) scale(${scale})`,
             width: laneWidth * e.widthUnits,
-            height: 140, // ✅ 보스 전용 크기
+            height: 300, // ✅ 보스 전용 크기
             zIndex: 90,
             pointerEvents: "none",
             filter: "drop-shadow(0 28px 36px rgba(0,0,0,0.45))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
           {/* 바닥 그림자 */}
@@ -2227,6 +2260,47 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               }}
             />
           </div>
+
+          {/* 바닥 그림자 */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: 0,
+              transform: "translateX(-50%)",
+              width: laneWidth * 0.78 * e.widthUnits,
+              height: 10,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
+              filter: "blur(2px)",
+            }}
+          />
+
+          {e.hitFx > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: "0%",
+                fontSize: 12,
+                rotate: "40deg",
+                fontWeight: 1000,
+                padding: "2px 6px",
+                borderRadius: 8,
+                background: "rgba(0,0,0,0.55)",
+                color: "#fff",
+                opacity: Math.min(1, e.hitFx / 0.18),
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+                zIndex: 20,
+              }}
+            >
+              {e.hitText}
+            </div>
+          )}
+
+          <div className={ENEMY_SPECS[e.kind].cssClass} />
         </div>
       );
     }
@@ -2457,16 +2531,23 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const baseX = xUnitsToPx(s.x);
     const x = centerX + (baseX - centerX) * spread;
 
-    const size = 22;
+    const baseSize =
+      s.style === "sniper"
+        ? 52
+        : s.style === "laneGap"
+        ? 26
+        : s.style === "aimBurst"
+        ? 20
+        : 22; // throw 기본
 
-    const baseSize = s.style === "big" ? 52 : s.style === "spray" ? 22 : 20;
+    const size = baseSize;
 
-    const glow =
-      s.style === "big"
-        ? "0 0 24px rgba(99, 255, 180, 0.45)"
-        : s.style === "spiral"
-        ? "0 0 18px rgba(96, 165, 250, 0.55)"
-        : "0 0 12px rgba(255,255,255,0.25)";
+    // const glow =
+    //   s.style === "big"
+    //     ? "0 0 24px rgba(99, 255, 180, 0.45)"
+    //     : s.style === "spiral"
+    //     ? "0 0 18px rgba(96, 165, 250, 0.55)"
+    //     : "0 0 12px rgba(255,255,255,0.25)";
 
     return (
       <div
@@ -2476,8 +2557,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           left: x,
           top: ypx,
           transform: `translate(-50%, -50%) scale(${scale})`,
-          width: size,
-          height: size,
+          width: baseSize,
+          height: baseSize,
           pointerEvents: "none",
         }}
       >
