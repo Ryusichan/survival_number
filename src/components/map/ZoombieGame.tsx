@@ -609,7 +609,7 @@ type Item =
   | { id: number; x: number; y: number; kind: "pierce"; durationSec: number }
   | { id: number; x: number; y: number; kind: "addClone"; count: 1 | 2 | 3 };
 
-type Mode = "playing" | "cleared" | "gameover";
+type Mode = "playing" | "paused" | "cleared" | "gameover";
 
 // ✅ ItemBox entity
 type ItemBox = {
@@ -876,6 +876,33 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const consumedCloneItemIdsRef = useRef<Set<number>>(new Set());
   const consumedEnemyShotIdsRef = useRef<Set<number>>(new Set());
   const healFxRef = useRef(0);
+
+  const pauseGame = () => {
+    setWorld((prev) => {
+      if (prev.mode !== "playing") return prev;
+      return { ...prev, mode: "paused" };
+    });
+  };
+
+  const resumeGame = () => {
+    setWorld((prev) => {
+      if (prev.mode !== "paused") return prev;
+      // ✅ 재개 시 dt 튐 방지
+      lastTimeRef.current = null;
+      return { ...prev, mode: "playing" };
+    });
+  };
+
+  const togglePause = () => {
+    setWorld((prev) => {
+      if (prev.mode === "playing") return { ...prev, mode: "paused" };
+      if (prev.mode === "paused") {
+        lastTimeRef.current = null; // ✅ dt 튐 방지
+        return { ...prev, mode: "playing" };
+      }
+      return prev;
+    });
+  };
 
   const [player, setPlayer] = useState<Player>({
     x: LANE_COUNT / 2,
@@ -2877,12 +2904,29 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         }}
       >
         총점수 {world.totalScore}
+        <button
+          onClick={togglePause}
+          style={{
+            zIndex: 200,
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.35)",
+            background: "rgba(0,0,0,0.35)",
+            color: "#fff",
+            fontWeight: 900,
+            cursor: "pointer",
+            backdropFilter: "blur(6px)",
+            marginLeft: 8,
+          }}
+        >
+          {world.mode === "paused" ? "▶ 시작" : "⏸"}
+        </button>
       </div>
       <div
         style={{
           position: "absolute",
-          top: 34,
-          right: 12,
+          top: 38,
+          right: 60,
           color: "rgba(255,255,255,0.9)",
           fontWeight: 900,
           fontSize: 12,
@@ -3069,20 +3113,58 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             zIndex: 300,
           }}
         >
+          {/* ✅ 아이콘 */}
           <div style={{ fontSize: 44, marginBottom: 6 }}>
-            {world.mode === "gameover" ? "💀" : "🎉"}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 1000 }}>
-            {world.mode === "gameover" ? "GAME OVER" : "STAGE CLEAR"}
-          </div>
-          <div style={{ fontSize: 14, opacity: 0.92 }}>
-            STAGE {world.stage} · STAGE SCORE {world.stageScore} / {target}
-          </div>
-          <div style={{ fontSize: 14, opacity: 0.92, marginBottom: 10 }}>
-            TOTAL SCORE: {world.totalScore}
+            {world.mode === "gameover"
+              ? "💀"
+              : world.mode === "cleared"
+              ? "🎉"
+              : "⏸️"}
           </div>
 
+          {/* ✅ 타이틀 */}
+          <div style={{ fontSize: 22, fontWeight: 1000 }}>
+            {world.mode === "gameover"
+              ? "GAME OVER"
+              : world.mode === "cleared"
+              ? "STAGE CLEAR"
+              : "PAUSED"}
+          </div>
+
+          {/* ✅ paused일 때는 점수줄 필요 없으면 숨김 */}
+          {world.mode !== "paused" && (
+            <>
+              <div style={{ fontSize: 14, opacity: 0.92 }}>
+                STAGE {world.stage} · STAGE SCORE {world.stageScore} / {target}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.92, marginBottom: 10 }}>
+                TOTAL SCORE: {world.totalScore}
+              </div>
+            </>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
+            {/* ✅ paused 전용 버튼: 재개 */}
+            {world.mode === "paused" && (
+              <button
+                onClick={resumeGame}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: 12,
+                  border: "none",
+                  fontWeight: 1000,
+                  fontSize: 16,
+                  background: "linear-gradient(180deg, #34d399, #059669)",
+                  color: "#fff",
+                  cursor: "pointer",
+                  boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                }}
+              >
+                계속하기
+              </button>
+            )}
+
+            {/* ✅ 공통: 다시 시작 (paused에서도 가능하게 할지 선택 가능) */}
             <button
               onClick={handleRetry}
               style={{
@@ -3100,6 +3182,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               다시 시작
             </button>
 
+            {/* ✅ cleared 전용: 다음 스테이지 */}
             {world.mode === "cleared" && world.stage < MAX_STAGE && (
               <button
                 onClick={handleNextStage}
@@ -3118,6 +3201,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 다음 STAGE
               </button>
             )}
+
+            {/* ✅ gameover에서만 보여주고 싶으면 (선택) */}
+            {/* {world.mode === "gameover" && (
+        <button ...>나가기</button>
+      )} */}
           </div>
         </div>
       )}
