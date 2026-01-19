@@ -60,6 +60,25 @@ const HEALER_SPEED = 0.22; // ✅ 내려오는 속도 (units/sec)
 const HEALER_PICKUP_EPS_Y = 0.06; // ✅ y 판정
 const HEALER_PICKUP_EPS_X = 0.55; // ✅ x 판정(플레이어 폭 기준 계수)
 
+const HEALER_BOSS_SPAWN_INTERVAL = 2.4; // 보스전 힐러 스폰 간격
+const HEALER_BOSS_MAX_ALIVE = 2; // 보스전 힐러 최대 동시 존재
+
+// ===== Stage20 Boss Missile Patterns =====
+const BOSS20_Y = 0.14; // 상단 고정 y
+const BOSS20_ENTRY_SPEED = 0.28;
+const BOSS20_FIRE_INTERVAL = 0.14; // 패턴 내부 틱
+const BOSS20_PATTERN_DUR = 4.8; // 패턴 1개 지속 시간(초)
+const BOSS20_SHOT_SPEED = 0.18;
+
+const BOSS10_STOP_Y = 0.22;
+const BOSS20_STOP_Y = 0.14; // 너가 쓰던 BOSS20_Y랑 동일하게 써도 됨
+const BOSS30_STOP_Y = 0.2;
+
+const getBossStopY = (stage: number) =>
+  stage === 10 ? BOSS10_STOP_Y : stage === 20 ? BOSS20_STOP_Y : BOSS30_STOP_Y;
+
+const BOSS20_ORDER: ShotStyle[] = ["spray", "spiral", "big", "spray"]; // ✅ “규칙적으로”
+
 // ==============================
 // ✅ STAGE 1~30 CONFIG (edit here)
 // ==============================
@@ -376,7 +395,7 @@ const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
     speedMul: 1.1,
     damage: 2,
     widthUnits: 2.4,
-    cssClass: "charactor_zoombie3",
+    cssClass: "charactor_zoombie5",
   },
 
   snowball: {
@@ -429,7 +448,7 @@ const BOSS_MISSIONS: BossMission[] = [
   },
   {
     stage: 20,
-    kind: "king",
+    kind: "queen",
     hp: 3200,
     speedMul: 0.58,
     damage: 6,
@@ -472,6 +491,13 @@ type Enemy = {
 
   // ✅ snowThrower 전용: 던지기 누적 타이머
   throwAcc?: number;
+
+  // ✅ boss20 패턴 상태
+  bossArrived?: boolean; // ✅ stage20 보스 입장 완료 여부
+  bossFireAcc?: number;
+  bossPatternT?: number; // 현재 패턴 진행 시간
+  bossPatternIdx?: number; // 패턴 인덱스
+  bossSpiralA?: number; // 소용돌이 각도
 };
 
 type Bullet = {
@@ -603,6 +629,8 @@ type BossState = {
   mission: BossMission;
 };
 
+type ShotStyle = "spray" | "spiral" | "big";
+
 // ✅ 적 투사체(눈 던지기)
 type EnemyShot = {
   id: number;
@@ -614,6 +642,7 @@ type EnemyShot = {
   vy: number;
   radius: number;
   damage: number;
+  style: ShotStyle;
 };
 
 type World = {
@@ -628,6 +657,7 @@ type World = {
   enemyShots: EnemyShot[]; // ✅ 추가
   combat: CombatState;
   boss?: BossState;
+  bossBannerT: number;
 };
 
 type CloneUnit = { id: number; slotIndex: number };
@@ -908,7 +938,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   };
 
   const [world, setWorld] = useState<World>(() => ({
-    stage: 1,
+    stage: 20,
     totalScore: 0,
     stageScore: 0,
     mode: "playing",
@@ -924,6 +954,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       buffs: [],
     },
     boss: undefined,
+    bossBannerT: 0,
   }));
   const worldRef = useRef(world);
   useEffect(() => {
@@ -985,12 +1016,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     return "normal";
   }
 
-  const makeEnemy = (): Enemy => {
+  const makeEnemy = (forceKind?: EnemyKind): Enemy => {
     const cfg = currentStageCfg();
-    const kind = pickEnemyKind(cfg.kindWeights ?? { normal: 1 });
+    const kind = forceKind ?? pickEnemyKind(cfg.kindWeights ?? { normal: 1 });
     const spec = ENEMY_SPECS[kind];
 
-    // ✅ 기존 적들은 “원래 스펙 그대로”
     let hp = spec.hp;
     let damage = spec.damage;
 
@@ -1000,14 +1030,14 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     }
 
     if (kind === "snowball") {
-      const s = worldRef.current.stage; // 11~20
+      const s = worldRef.current.stage;
       hp = clamp(10 + (s - 11), 8, 20);
-      damage = 1; // 충돌 데미지 낮게
+      damage = 1;
     }
 
     if (kind === "snowThrower") {
-      const s = worldRef.current.stage; // 11~20
-      hp = clamp(5 + Math.floor((s - 11) * 0.4), 5, 10);
+      const s = worldRef.current.stage;
+      // hp = clamp(5 + Math.floor((s - 11) * 0.4), 5, 10);
       damage = 0;
     }
 
@@ -1015,6 +1045,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       kind === "healer"
         ? HEALER_SPEED
         : BASE_ZOMBIE_SPEED * spec.speedMul * cfg.speedMul;
+
     const widthUnits = spec.widthUnits;
     const halfW = widthUnits / 2;
     const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
@@ -1040,25 +1071,43 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const makeBoss = (mission: BossMission): Enemy => {
     const cfg = currentStageCfg();
-    const halfW = mission.widthUnits / 2;
-    const x = halfW + Math.random() * (LANE_COUNT - 2 * halfW);
+    const x = LANE_COUNT / 2;
 
-    return {
+    const stopY = getBossStopY(mission.stage);
+
+    // ✅ 보스는 위에서 시작
+    const base: Enemy = {
       id: enemyIdSeed++,
       kind: mission.kind,
       tier: 3,
       x,
-      y: farYRef.current,
+      y: farYRef.current, // ✅ 여기 중요: 위에서 시작
       hp: mission.hp,
       maxHp: mission.hp,
-      speed: BASE_ZOMBIE_SPEED * mission.speedMul * cfg.speedMul,
+      // ✅ 입장 속도는 따로(원하면 stage별로 다르게)
+      speed:
+        mission.stage === 20
+          ? BOSS20_ENTRY_SPEED
+          : BASE_ZOMBIE_SPEED * mission.speedMul * cfg.speedMul,
       widthUnits: mission.widthUnits,
       damage: mission.damage,
       anchored: false,
       attackAcc: 0,
       hitFx: 0,
       hitText: "BOSS",
+      bossArrived: false, // ✅ 초기 false
+      bossFireAcc: 0,
+      bossPatternT: 0,
+      bossPatternIdx: 0,
+      bossSpiralA: 0,
     };
+
+    // ✅ stage20은 근접딜 안 쓰고 미사일만
+    if (mission.stage === 20) {
+      return { ...base, damage: 0 };
+    }
+
+    return base;
   };
 
   function segmentCircleHit(
@@ -1090,21 +1139,38 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   }
 
   const spawnEnemies = (dt: number) => {
-    if (worldRef.current.boss?.active) return;
-    const cfg = currentStageCfg();
-    spawnAccRef.current += dt;
-    if (spawnAccRef.current < cfg.spawnIntervalSec) return;
-
     const w = worldRef.current;
-    if (w.enemies.length >= cfg.maxAlive) return;
+    const bossActive = !!w.boss?.active;
 
-    spawnAccRef.current -= cfg.spawnIntervalSec;
-    const count = randInt(cfg.batch.min, cfg.batch.max);
+    const cfg = currentStageCfg();
+
+    spawnAccRef.current += dt;
+
+    const interval = bossActive
+      ? HEALER_BOSS_SPAWN_INTERVAL
+      : cfg.spawnIntervalSec;
+    if (spawnAccRef.current < interval) return;
+    spawnAccRef.current -= interval;
 
     setWorld((prev) => {
+      // ✅ 보스전: healer만 계속
+      if (prev.boss?.active) {
+        const healerAlive = prev.enemies.filter(
+          (e) => e.kind === "healer"
+        ).length;
+        if (healerAlive >= HEALER_BOSS_MAX_ALIVE) return prev;
+
+        return { ...prev, enemies: [...prev.enemies, makeEnemy("healer")] };
+      }
+
+      // ✅ 평상시: 기존 스폰 로직
+      if (prev.enemies.length >= cfg.maxAlive) return prev;
+
+      const count = randInt(cfg.batch.min, cfg.batch.max);
       const room = cfg.maxAlive - prev.enemies.length;
       const spawnCount = Math.max(0, Math.min(count, room));
       if (spawnCount === 0) return prev;
+
       const newEnemies = Array.from({ length: spawnCount }, () => makeEnemy());
       return { ...prev, enemies: [...prev.enemies, ...newEnemies] };
     });
@@ -1207,6 +1273,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       setWorld((prev) => {
         if (prev.mode !== "playing") return prev;
 
+        const nextBannerT = Math.max(0, (prev.bossBannerT ?? 0) - dt);
+
         // ✅ HP 0이면 즉시 gameover로 상태 고정
         if (playerRef.current.hp <= 0) {
           return { ...prev, mode: "gameover" };
@@ -1268,6 +1336,25 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             };
           }
 
+          // ✅ stage20 보스: 다른 적처럼 위에서 내려오다가 BOSS20_Y에서 정지
+          if (
+            prev.boss?.active &&
+            prev.boss.mission.stage === 20 &&
+            prev.boss.bossId === e.id
+          ) {
+            const ny = Math.min(BOSS20_Y, e.y + e.speed * dt);
+            const arrived = ny >= BOSS20_Y - 0.0001;
+
+            return {
+              ...e,
+              y: ny,
+              anchored: arrived && prev.boss.mission.stage !== 20, // ✅ 10/30은 anchored 공격 사용
+              attackAcc: arrived ? e.attackAcc + dt : 0, // ✅ 도착 전엔 공격 타이머 0
+              bossArrived: arrived,
+              hitFx: nextHitFx,
+            };
+          }
+
           // 기존 적: anchored 로직 유지
           if (!e.anchored) {
             const ny = e.y + e.speed * dt;
@@ -1315,17 +1402,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         if (prev.boss?.active && !prev.boss.spawned) {
           const boss = makeBoss(prev.boss.mission);
-          enemies = [...enemies, boss];
-          boxes = [];
-          enemyShots = []; // ✅ 보스전 진입 시 투사체 정리
 
           return {
             ...prev,
-            enemies,
-            boxes,
-            bullets,
-            items,
-            enemyShots,
+            bossBannerT: 1.2,
+            enemies: [...enemies, boss], // ✅ 기존 적 유지 + 보스 추가
+            // ✅ boxes/bullets/items/enemyShots 절대 비우지 않음
             boss: { ...prev.boss, spawned: true, bossId: boss.id },
           };
         }
@@ -1365,6 +1447,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               vy: uy * SNOW_SHOT_SPEED,
               radius: SNOW_SHOT_RADIUS,
               damage: SNOW_SHOT_DAMAGE,
+              style: "spray",
             });
           }
 
@@ -1373,6 +1456,146 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
         // ✅ spawn 결과를 실제 enemyShots에 반영
         enemyShots = [...enemyShots, ...spawnedEnemyShots];
+
+        // =========================
+        // 2.6) BOSS20 -> ENTRY + PATTERNED MISSILES
+        // =========================
+        if (
+          prev.boss?.active &&
+          prev.boss.mission.stage === 20 &&
+          prev.boss.bossId != null
+        ) {
+          const bossId = prev.boss.bossId;
+          const spawnedBossShots: EnemyShot[] = [];
+
+          enemies = enemies.map((e) => {
+            if (e.id !== bossId) return e;
+
+            // ✅ 1) 입장 연출: 위에서 내려와서 멈춤
+            if (!e.bossArrived) {
+              const ny = e.y;
+              const arrived = ny >= BOSS20_Y - 0.0001;
+
+              return {
+                ...e,
+                y: ny,
+                bossArrived: arrived,
+                // 도착 전에는 패턴 타이머 누적/발사 금지
+                bossFireAcc: 0,
+                bossPatternT: 0,
+                bossPatternIdx: 0,
+                bossSpiralA: 0,
+              };
+            }
+
+            // ✅ 2) 도착 후: 위치 고정 + 패턴 발사
+            const ny = BOSS20_Y;
+
+            const fireAcc = (e.bossFireAcc ?? 0) + dt;
+            const pattT = (e.bossPatternT ?? 0) + dt;
+            let pattIdx = e.bossPatternIdx ?? 0;
+            let spiralA = e.bossSpiralA ?? 0;
+
+            // 패턴 로테이션
+            if (pattT >= BOSS20_PATTERN_DUR) {
+              pattIdx = (pattIdx + 1) % BOSS20_ORDER.length;
+              spiralA = 0;
+            }
+            const nextPattT = pattT >= BOSS20_PATTERN_DUR ? 0 : pattT;
+            const style = BOSS20_ORDER[pattIdx];
+
+            if (fireAcc >= BOSS20_FIRE_INTERVAL) {
+              const times = Math.floor(fireAcc / BOSS20_FIRE_INTERVAL);
+              const nextAcc = fireAcc - times * BOSS20_FIRE_INTERVAL;
+
+              for (let k = 0; k < times; k++) {
+                const tx = playerRef.current.x;
+                const ty = PLAYER_Y;
+
+                if (style === "spray") {
+                  const N = 11;
+                  const spread = 0.95;
+                  for (let i = 0; i < N; i++) {
+                    const t = i / (N - 1);
+                    const ax = (t - 0.5) * spread;
+
+                    spawnedBossShots.push({
+                      id: enemyShotIdSeed++,
+                      x: e.x,
+                      y: ny,
+                      px: e.x,
+                      py: ny,
+                      vx: ax * BOSS20_SHOT_SPEED,
+                      vy: 1.0 * BOSS20_SHOT_SPEED,
+                      radius: 0.055,
+                      damage: 1,
+                      style: "spray",
+                    });
+                  }
+                }
+
+                if (style === "spiral") {
+                  spiralA += 0.42;
+                  spawnedBossShots.push({
+                    id: enemyShotIdSeed++,
+                    x: e.x,
+                    y: ny,
+                    px: e.x,
+                    py: ny,
+                    vx: Math.cos(spiralA) * (BOSS20_SHOT_SPEED * 0.95),
+                    vy:
+                      (0.9 + Math.abs(Math.sin(spiralA)) * 0.6) *
+                      (BOSS20_SHOT_SPEED * 0.85),
+                    radius: 0.05,
+                    damage: 1,
+                    style: "spiral",
+                  });
+                }
+
+                if (style === "big") {
+                  const dx = tx - e.x;
+                  const dy = ty - ny;
+                  const len = Math.max(0.0001, Math.hypot(dx, dy));
+                  const ux = dx / len;
+                  const uy = dy / len;
+
+                  spawnedBossShots.push({
+                    id: enemyShotIdSeed++,
+                    x: e.x,
+                    y: ny,
+                    px: e.x,
+                    py: ny,
+                    vx: ux * (BOSS20_SHOT_SPEED * 0.65),
+                    vy: uy * (BOSS20_SHOT_SPEED * 0.65),
+                    radius: 0.12,
+                    damage: 2,
+                    style: "big",
+                  });
+                }
+              }
+
+              return {
+                ...e,
+                y: ny,
+                bossFireAcc: nextAcc,
+                bossPatternT: nextPattT,
+                bossPatternIdx: pattIdx,
+                bossSpiralA: spiralA,
+              };
+            }
+
+            return {
+              ...e,
+              y: ny,
+              bossFireAcc: fireAcc,
+              bossPatternT: nextPattT,
+              bossPatternIdx: pattIdx,
+              bossSpiralA: spiralA,
+            };
+          });
+
+          enemyShots = [...enemyShots, ...spawnedBossShots];
+        }
 
         // =========================
         // 3) BULLET -> BOX
@@ -1760,11 +1983,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               mode: "playing",
               totalScore: nextTotalScore,
               stageScore: 0,
-              enemies: [],
-              boxes: [],
+              // ✅ 기존 적/박스/투사체 유지
+              enemies,
+              boxes,
               bullets,
               items,
-              enemyShots: [], // ✅ 보스전 진입 시 정리
+              enemyShots,
               boss: { active: true, spawned: false, mission },
               combat: nextCombat,
             };
@@ -1789,6 +2013,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         return {
           ...prev,
+          bossBannerT: nextBannerT,
           enemies,
           bullets,
           items,
@@ -1839,6 +2064,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         buffs: [],
       },
       boss: undefined,
+      bossBannerT: 0,
     }));
   };
 
@@ -1862,6 +2088,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const hpPct = Math.max(0, Math.min(1, e.hp / e.maxHp));
     const hitOffsetPx = e.hitFx > 0 ? -5 : 0;
+    const isBoss = world.boss?.active && world.boss.bossId === e.id;
 
     // ✅ snowball: 구형 + 그림자 + 숫자
     if (e.kind === "snowball") {
@@ -1928,6 +2155,78 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               }}
             />
           )}
+        </div>
+      );
+    }
+
+    if (isBoss) {
+      const ypx = projectYpx(e.y, farYRef.current);
+      const { scale, spread } = getPerspective(e.y, farYRef.current);
+      const centerX = WIDTH / 2;
+      const baseX = xUnitsToPx(e.x);
+      const x = centerX + (baseX - centerX) * spread;
+
+      return (
+        <div
+          key={e.id}
+          style={{
+            position: "absolute",
+            left: x,
+            top: ypx,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            width: laneWidth * e.widthUnits,
+            height: 140, // ✅ 보스 전용 크기
+            zIndex: 90,
+            pointerEvents: "none",
+            filter: "drop-shadow(0 28px 36px rgba(0,0,0,0.45))",
+          }}
+        >
+          {/* 바닥 그림자 */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              bottom: 6,
+              transform: "translateX(-50%)",
+              width: laneWidth * e.widthUnits * 0.95,
+              height: 22,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0) 75%)",
+              filter: "blur(4px)",
+            }}
+          />
+
+          {/* 보스 본체 */}
+          <div
+            className={`boss-${e.kind}`} // boss-queen / boss-king
+            style={{
+              position: "absolute",
+              inset: 0,
+            }}
+          />
+
+          {/* HP BAR */}
+          <div
+            style={{
+              position: "absolute",
+              top: -14,
+              left: "10%",
+              right: "10%",
+              height: 10,
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.25)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${(e.hp / e.maxHp) * 100}%`,
+                height: "100%",
+                background: "linear-gradient(90deg, #fb7185, #f43f5e)",
+              }}
+            />
+          </div>
         </div>
       );
     }
@@ -2159,6 +2458,15 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const x = centerX + (baseX - centerX) * spread;
 
     const size = 22;
+
+    const baseSize = s.style === "big" ? 52 : s.style === "spray" ? 22 : 20;
+
+    const glow =
+      s.style === "big"
+        ? "0 0 24px rgba(99, 255, 180, 0.45)"
+        : s.style === "spiral"
+        ? "0 0 18px rgba(96, 165, 250, 0.55)"
+        : "0 0 12px rgba(255,255,255,0.25)";
 
     return (
       <div
@@ -2658,6 +2966,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           );
         })}
       </div>
+      {world.bossBannerT > 0 && (
+        <div className="boss-banner">
+          <span className="boss-banner-text">보스출현!</span>
+        </div>
+      )}
       {/* dialogs */}
       {world.mode !== "playing" && (
         <div
