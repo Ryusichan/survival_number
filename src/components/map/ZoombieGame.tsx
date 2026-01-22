@@ -130,13 +130,13 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
     stage < 6
       ? { normal: 0.85, teddy: 0.15 }
       : stage < 11
-      ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
-      : stage < 21
-      ? // ? { snowball: 0.12, snowThrower: 0.6, normal: 0.1, teddy: 0.1, fat: 0.08 }
-        { snowThrower: 0.9, healer: 0.1 }
-      : stage < 30
-      ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
-      : { normal: 0.25, teddy: 0.25, fat: 0.5 };
+        ? { normal: 0.6, teddy: 0.25, fat: 0.15 }
+        : stage < 21
+          ? // ? { snowball: 0.12, snowThrower: 0.6, normal: 0.1, teddy: 0.1, fat: 0.08 }
+            { snowThrower: 0.9, healer: 0.1 }
+          : stage < 30
+            ? { normal: 0.35, teddy: 0.25, fat: 0.4 }
+            : { normal: 0.25, teddy: 0.25, fat: 0.5 };
 
   // ---- 4) 박스 난이도 커브(선택) ----
   const boxSpawnIntervalSec = Math.max(3.8, 6.2 - (stage - 1) * 0.06);
@@ -997,7 +997,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
   const { projectYpx, getPerspective } = useMemo(
     () => makeProjectors(HEIGHT),
-    [HEIGHT]
+    [HEIGHT],
   );
 
   const movePlayerByTouchX = (clientX: number) => {
@@ -1030,7 +1030,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     STAGE_RULES_1_TO_30[Math.max(0, Math.min(29, worldRef.current.stage - 1))];
 
   function pickEnemyKind(
-    weights: Partial<Record<EnemyKind, number>>
+    weights: Partial<Record<EnemyKind, number>>,
   ): EnemyKind {
     const entries = Object.entries(weights) as [EnemyKind, number][];
     const sum = entries.reduce((a, [, w]) => a + w, 0);
@@ -1144,7 +1144,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     by: number,
     cx: number,
     cy: number,
-    r: number
+    r: number,
   ) {
     const abx = bx - ax;
     const aby = by - ay;
@@ -1188,7 +1188,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         if (!allowHealer) return prev;
 
         const healerAlive = prev.enemies.filter(
-          (e) => e.kind === "healer"
+          (e) => e.kind === "healer",
         ).length;
         if (healerAlive >= HEALER_BOSS_MAX_ALIVE) return prev;
 
@@ -1356,7 +1356,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
             const nextThrowAcc = stopped
               ? (e.throwAcc ?? 0) + dt
-              : e.throwAcc ?? 0;
+              : (e.throwAcc ?? 0);
 
             return {
               ...e,
@@ -1585,7 +1585,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                   // lane 단위로 '안전 lane'을 이동시키자
                   const t = e.bossPatternT ?? 0; // 0~PATTERN_DUR
                   const safeLane = Math.floor(
-                    (Math.sin(t * 1.2) + 1) * 0.5 * (LANE_COUNT - 1)
+                    (Math.sin(t * 1.2) + 1) * 0.5 * (LANE_COUNT - 1),
                   );
                   // safeLane은 0~LANE_COUNT-1
 
@@ -1753,7 +1753,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             s.y < DESPAWN_Y + 0.2 &&
             s.y > FAR_Y_DEFAULT - 0.6 &&
             s.x > -1 &&
-            s.x < LANE_COUNT + 1
+            s.x < LANE_COUNT + 1,
         );
 
         // =========================
@@ -1820,7 +1820,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         }
 
         items = items.filter(
-          (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y
+          (it) => !pickedItemIds.has(it.id) && it.y <= DESPAWN_Y,
         );
 
         // =========================
@@ -2562,10 +2562,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       s.style === "sniper"
         ? 52
         : s.style === "laneGap"
-        ? 26
-        : s.style === "aimBurst"
-        ? 20
-        : 22; // throw 기본
+          ? 26
+          : s.style === "aimBurst"
+            ? 20
+            : 22; // throw 기본
 
     const size = baseSize;
 
@@ -2664,16 +2664,16 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       it.kind === "addClone"
         ? `+${it.count}`
         : it.kind === "weapon"
-        ? it.weaponId === "rapid"
-          ? "⚡"
-          : it.weaponId === "pierce"
-          ? "🟣"
-          : "💥"
-        : it.kind === "fireRateMul"
-        ? "⏱️"
-        : it.kind === "damageAdd"
-        ? "🔺"
-        : "🧿";
+          ? it.weaponId === "rapid"
+            ? "⚡"
+            : it.weaponId === "pierce"
+              ? "🟣"
+              : "💥"
+          : it.kind === "fireRateMul"
+            ? "⏱️"
+            : it.kind === "damageAdd"
+              ? "🔺"
+              : "🧿";
 
     let gunsName = "guns01";
     if (it.kind === "weapon") {
@@ -2887,6 +2887,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           fontWeight: 900,
           fontSize: 28,
           textShadow: "0 2px 6px rgba(0,0,0,0.55)",
+        }}
+        onClick={() => {
+          // 테스트용: 다음 스테이지로 이동
+          handleNextStage();
         }}
       >
         STAGE {world.stage}
@@ -3118,8 +3122,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             {world.mode === "gameover"
               ? "💀"
               : world.mode === "cleared"
-              ? "🎉"
-              : "⏸️"}
+                ? "🎉"
+                : "⏸️"}
           </div>
 
           {/* ✅ 타이틀 */}
@@ -3127,8 +3131,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             {world.mode === "gameover"
               ? "GAME OVER"
               : world.mode === "cleared"
-              ? "STAGE CLEAR"
-              : "PAUSED"}
+                ? "STAGE CLEAR"
+                : "PAUSED"}
           </div>
 
           {/* ✅ paused일 때는 점수줄 필요 없으면 숨김 */}
