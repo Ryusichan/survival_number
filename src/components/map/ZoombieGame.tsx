@@ -449,7 +449,7 @@ const BOSS_MISSIONS: BossMission[] = [
   {
     stage: 20,
     kind: "queen",
-    hp: 4200,
+    hp: 5200,
     speedMul: 0.58,
     damage: 6,
     widthUnits: 4.4,
