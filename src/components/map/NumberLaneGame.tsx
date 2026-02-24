@@ -71,24 +71,20 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [4, 5, 6], rowCount: 7 },
 ];
 
-function getPossibleTotals(values: number[], rowCount: number): number[] {
-  const result = new Set<number>();
-  const dfs = (depth: number, sum: number) => {
-    if (depth === rowCount) {
-      result.add(sum);
-      return;
+/** 실제 생성된 행들에서 달성 가능한 모든 합계를 계산 */
+function getAchievableTotals(rowsValues: number[][]): number[] {
+  let sums = [0];
+  for (const rowVals of rowsValues) {
+    const unique = Array.from(new Set(rowVals));
+    const next = new Set<number>();
+    for (let i = 0; i < sums.length; i++) {
+      for (let j = 0; j < unique.length; j++) {
+        next.add(sums[i] + unique[j]);
+      }
     }
-    for (const v of values) dfs(depth + 1, sum + v);
-  };
-  dfs(0, 0);
-  return Array.from(result).sort((a, b) => a - b);
-}
-
-function getRandomGoal(values: number[], rowCount: number): number {
-  const totals = getPossibleTotals(values, rowCount);
-  if (totals.length === 0) return 0;
-  const idx = Math.floor(Math.random() * totals.length);
-  return totals[idx];
+    sums = Array.from(next);
+  }
+  return sums.sort((a, b) => a - b);
 }
 
 // ===== 3D perspective helpers =====
@@ -163,6 +159,11 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const latestStage = useRef(stage);
   const initializedRef = useRef(false);
   const farYRef = useRef<number>(-1);
+  const stageSnapshotRef = useRef<{
+    normalValues: number[][];
+    goalA: number;
+    goalB: number;
+  } | null>(null);
 
   const { projectRowYpx, getPerspective } = useMemo(
     () => makeProjectors(HEIGHT),
@@ -190,41 +191,53 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     farYRef.current = -(rowCount * ROW_GAP + ROW_GAP * 2);
     lastTimeRef.current = null;
 
-    const totals = getPossibleTotals(values, rowCount);
-    const shuffled = [...totals].sort(() => Math.random() - 0.5);
-    const goalA = shuffled[0] ?? 0;
-    const goalB = shuffled[1] ?? goalA;
+    let normalValues: number[][];
+    let goalA: number;
+    let goalB: number;
+
+    if (!isNewStage && stageSnapshotRef.current) {
+      // 다시도전: 저장된 숫자 그대로 사용
+      ({ normalValues, goalA, goalB } = stageSnapshotRef.current);
+    } else {
+      // 새 스테이지: 랜덤 생성 후 실제 달성 가능한 목표 계산
+      normalValues = Array.from({ length: rowCount }, () =>
+        Array.from({ length: LANE_COUNT }, () => {
+          const i = Math.floor(Math.random() * values.length);
+          return values[i];
+        }),
+      );
+
+      const totals = getAchievableTotals(normalValues);
+      const shuffled = [...totals].sort(() => Math.random() - 0.5);
+      goalA = shuffled[0] ?? 0;
+      goalB = shuffled[1] ?? goalA;
+
+      stageSnapshotRef.current = { normalValues, goalA, goalB };
+    }
 
     setGoalValues([goalA, goalB]);
     latestGoal.current = [goalA, goalB];
 
-    const makeNormalRow = (offsetY: number): Row => ({
+    const newRows: Row[] = [];
+    for (let i = 0; i < rowCount; i++) {
+      newRows.push({
+        id: rowIdSeed++,
+        y: -i * ROW_GAP,
+        values: [...normalValues[i]],
+        kind: "normal",
+        handled: false,
+        hitLane: null,
+      });
+    }
+    newRows.push({
       id: rowIdSeed++,
-      y: offsetY,
-      values: Array.from({ length: LANE_COUNT }, () => {
-        const i = Math.floor(Math.random() * values.length);
-        return values[i];
-      }),
-      kind: "normal",
-      handled: false,
-      hitLane: null,
-    });
-
-    const makeGoalRow = (offsetY: number): Row => ({
-      id: rowIdSeed++,
-      y: offsetY,
+      y: -rowCount * ROW_GAP,
       values: [goalA, goalB],
       kind: "goal",
       handled: false,
       hitLane: null,
       fadeOut: false,
     });
-
-    const newRows: Row[] = [];
-    for (let i = 0; i < rowCount; i++) {
-      newRows.push(makeNormalRow(-i * ROW_GAP));
-    }
-    newRows.push(makeGoalRow(-rowCount * ROW_GAP));
 
     setRows(newRows);
     setPlayer((prev) => ({ ...prev, value: 0 }));
