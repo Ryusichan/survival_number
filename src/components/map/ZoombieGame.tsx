@@ -16,8 +16,9 @@ const PLAYER_Y = 0.82;
 const FAR_Y_DEFAULT = -0.8;
 const DESPAWN_Y = 1.25;
 
-const BASE_ZOMBIE_SPEED = 0.18;
+const BASE_ZOMBIE_SPEED = 0.22;
 const HIT_EPS_Y = 0.03;
+const HIT_FX_DURATION = 0.25;
 
 const MAX_WIDTH = 480;
 
@@ -28,7 +29,7 @@ const MAX_STAGE = 30;
 
 // ===== Stacking enemies =====
 const ANCHOR_Y = PLAYER_Y - 0.08;
-const ANCHORED_ATTACK_INTERVAL = 1.2;
+const ANCHORED_ATTACK_INTERVAL = 1.0;
 const PLAYER_GLOBAL_HURT_COOLDOWN = 0.18;
 
 // ===== Drops (enemy) =====
@@ -40,7 +41,6 @@ const ENEMY_DROP_CHANCE = 0.28;
 const BOX_SPAWN_INTERVAL = 6.2; // 평균 스폰 간격(스테이지별로 바꾸고 싶으면 STAGES에 넣어도 됨)
 const BOX_MAX_ALIVE = 2;
 const BOX_SPEED = 0.12;
-const BOX_STOP_Y = 0.26; // 이 위치에 도달하면 멈춰서 맞추기 쉽게 (현재 move에서는 미사용)
 const BOX_WIDTH_UNITS = 1.1;
 const BOX_HEIGHT_HIT_EPS_Y = 0.05; // 박스 피격 y 판정 폭(조금 넉넉히)
 
@@ -119,7 +119,7 @@ const STAGE_RULES_1_TO_30: StageRule[] = Array.from({ length: 30 }, (_, i) => {
   const damageAdd = Math.floor((stage - 1) / 6);
 
   // ---- 2) 스폰/개체수 커브 ----
-  const spawnIntervalSec = Math.max(0.42, 1.15 - (stage - 1) * 0.025);
+  const spawnIntervalSec = Math.max(0.38, 1.0 - (stage - 1) * 0.025);
   const maxAlive = Math.min(22, 6 + Math.floor((stage - 1) * 0.55));
   const batchMin = stage < 6 ? 1 : stage < 14 ? 2 : 3;
   const batchMax = stage < 6 ? 2 : stage < 14 ? 3 : 5;
@@ -220,16 +220,6 @@ function buildCloneSlots(maxClones: number): Array<{ dx: number; dy: number }> {
 const CLONE_SLOTS: Array<{ dx: number; dy: number }> =
   buildCloneSlots(MAX_CLONES);
 
-type StageConfig = {
-  spawnIntervalSec: number;
-  maxAlive: number;
-  batch: { min: number; max: number };
-  enemyTierWeights: { t1: number; t2: number; t3: number };
-  hpBase: number;
-  speedMul: number;
-  kindWeights?: Partial<Record<EnemyKind, number>>;
-};
-
 const PLAYER_WEAPON_CLASS: Record<WeaponId, string> = {
   pistol: "player_pistol",
   rapid: "player_rapid",
@@ -242,108 +232,6 @@ const BULLET_CLASS: Record<WeaponId, string> = {
   rapid: "b_rapid",
   pierce: "b_pierce",
   shotgun: "b_shotgun",
-};
-
-// (구버전 stages: 현재 stageRule로 운영 중이라 사실상 미사용)
-const STAGES: StageConfig[] = [
-  {
-    spawnIntervalSec: 1.15,
-    maxAlive: 6,
-    batch: { min: 1, max: 1 },
-    enemyTierWeights: { t1: 0.85, t2: 0.15, t3: 0.0 },
-    hpBase: 0,
-    speedMul: 0.95,
-    kindWeights: { normal: 0.9, teddy: 0.1 },
-  },
-  {
-    spawnIntervalSec: 1.05,
-    maxAlive: 7,
-    batch: { min: 1, max: 2 },
-    enemyTierWeights: { t1: 0.75, t2: 0.25, t3: 0.0 },
-    hpBase: 0,
-    speedMul: 1.0,
-    kindWeights: { normal: 0.7, teddy: 0.2, fat: 0.1 },
-  },
-  {
-    spawnIntervalSec: 0.98,
-    maxAlive: 8,
-    batch: { min: 1, max: 2 },
-    enemyTierWeights: { t1: 0.65, t2: 0.32, t3: 0.03 },
-    hpBase: 0,
-    speedMul: 1.03,
-    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
-  },
-  {
-    spawnIntervalSec: 0.92,
-    maxAlive: 9,
-    batch: { min: 1, max: 2 },
-    enemyTierWeights: { t1: 0.55, t2: 0.37, t3: 0.08 },
-    hpBase: 1,
-    speedMul: 1.06,
-    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
-  },
-  {
-    spawnIntervalSec: 0.86,
-    maxAlive: 10,
-    batch: { min: 1, max: 3 },
-    enemyTierWeights: { t1: 0.48, t2: 0.4, t3: 0.12 },
-    hpBase: 1,
-    speedMul: 1.1,
-    kindWeights: { normal: 0.6, teddy: 0.3, fat: 0.1 },
-  },
-  {
-    spawnIntervalSec: 0.82,
-    maxAlive: 11,
-    batch: { min: 2, max: 3 },
-    enemyTierWeights: { t1: 0.4, t2: 0.44, t3: 0.16 },
-    hpBase: 2,
-    speedMul: 1.14,
-    kindWeights: { normal: 0.6, teddy: 0.2, fat: 0.2 },
-  },
-  {
-    spawnIntervalSec: 0.78,
-    maxAlive: 12,
-    batch: { min: 2, max: 3 },
-    enemyTierWeights: { t1: 0.34, t2: 0.46, t3: 0.2 },
-    hpBase: 2,
-    speedMul: 1.18,
-    kindWeights: { normal: 0.6, teddy: 0.2, fat: 0.2 },
-  },
-  {
-    spawnIntervalSec: 0.74,
-    maxAlive: 13,
-    batch: { min: 2, max: 4 },
-    enemyTierWeights: { t1: 0.28, t2: 0.48, t3: 0.24 },
-    hpBase: 3,
-    speedMul: 1.22,
-    kindWeights: { normal: 0.5, teddy: 0.3, fat: 0.2 },
-  },
-  {
-    spawnIntervalSec: 0.7,
-    maxAlive: 14,
-    batch: { min: 3, max: 4 },
-    enemyTierWeights: { t1: 0.22, t2: 0.5, t3: 0.28 },
-    hpBase: 3,
-    speedMul: 1.26,
-    kindWeights: { normal: 0.5, teddy: 0.3, fat: 0.2 },
-  },
-  {
-    spawnIntervalSec: 0.66,
-    maxAlive: 15,
-    batch: { min: 3, max: 5 },
-    enemyTierWeights: { t1: 0.18, t2: 0.5, t3: 0.32 },
-    hpBase: 4,
-    speedMul: 1.3,
-    kindWeights: { normal: 0.4, teddy: 0.3, fat: 0.3 },
-  },
-];
-
-type EnemyTier = 1 | 2 | 3;
-
-const ENEMY_WIDTH_UNITS: Record<EnemyTier, number> = {
-  1: 1.0,
-  2: 2.0,
-  3: 2.6,
 };
 
 type Player = {
@@ -477,7 +365,6 @@ type Enemy = {
   id: number;
   x: number;
   y: number;
-  tier: EnemyTier;
   hp: number;
   maxHp: number;
   speed: number;
@@ -567,14 +454,9 @@ const WEAPONS: Record<WeaponId, Weapon> = {
   },
 };
 
-const SPEED_LEVELS = [0.6, 0.7, 0.8, 0.9];
-
 const POWER_LEVELS = [1, 2, 3, 4];
 
-type ItemKind = "weapon" | "fireRateMul" | "damageAdd" | "pierce" | "addClone";
-
-type BuffKind = "pierce";
-type Buff = { id: string; kind: BuffKind; value: number; timeLeft: number };
+type Buff = { id: string; kind: "pierce"; value: number; timeLeft: number };
 
 type CombatState = {
   baseWeaponId: WeaponId;
@@ -678,13 +560,6 @@ const randInt = (a: number, b: number) =>
 function stageTarget(stage: number) {
   const stageInBlock = (stage - 1) % 10; // 0 ~ 9
   return FIRST_STAGE_TARGET + stageInBlock * NEXT_STAGE_STEP;
-}
-
-function pickEnemyTier(w: { t1: number; t2: number; t3: number }): EnemyTier {
-  const r = Math.random();
-  if (r < w.t1) return 1;
-  if (r < w.t1 + w.t2) return 2;
-  return 3;
 }
 
 function makeEvenOffsets(pellets: number, spreadUnits: number) {
@@ -907,8 +782,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const [player, setPlayer] = useState<Player>({
     x: LANE_COUNT / 2,
     widthUnits: 1.3,
-    hp: 10,
-    maxHp: 10,
+    hp: 12,
+    maxHp: 12,
   });
   const playerRef = useRef(player);
   useEffect(() => {
@@ -937,21 +812,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     });
   };
 
-  const getAllPlayerUnits = () => {
-    const leader = { id: 0, x: playerRef.current.x, y: PLAYER_Y };
-    const extra = clonesRef.current.map((c) => {
-      const slot = CLONE_SLOTS[c.slotIndex] ?? { dx: 0, dy: 0 };
-      return {
-        id: c.id,
-        x: clamp(playerRef.current.x + slot.dx, 0, LANE_COUNT),
-        y: PLAYER_Y + slot.dy,
-      };
-    });
-    return [leader, ...extra];
-  };
-
-  // ✅ setWorld 내부에서도 안전하게 쓰는 유닛 리스트(leader + clones)
-  const getAllPlayerUnitsRef = () => {
+  const getAllUnits = () => {
     const leader = { id: 0, x: playerRef.current.x, y: PLAYER_Y };
     const extra = clonesRef.current.map((c) => {
       const slot = CLONE_SLOTS[c.slotIndex] ?? { dx: 0, dy: 0 };
@@ -994,6 +855,14 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const boxSpawnAccRef = useRef(0);
   const hurtCooldownRef = useRef(0);
   const farYRef = useRef(FAR_Y_DEFAULT);
+
+  // ===== Arcade FX refs =====
+  const shakeRef = useRef({ t: 0, intensity: 0 });
+  const [killFxList, setKillFxList] = useState<
+    { id: number; x: number; y: number; text: string; timer: number }[]
+  >([]);
+  const killFxIdRef = useRef(0);
+  const bossFlashRef = useRef(0);
 
   const { projectYpx, getPerspective } = useMemo(
     () => makeProjectors(HEIGHT),
@@ -1080,7 +949,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     return {
       id: enemyIdSeed++,
       kind,
-      tier: 1,
       x,
       y: farYRef.current,
       hp,
@@ -1106,7 +974,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     const base: Enemy = {
       id: enemyIdSeed++,
       kind: mission.kind,
-      tier: 3,
       x,
       y: farYRef.current, // ✅ 여기 중요: 위에서 시작
       hp: mission.hp,
@@ -1255,7 +1122,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     if (fireAccRef.current < weapon.fireIntervalSec) return;
     fireAccRef.current -= weapon.fireIntervalSec;
 
-    const units = getAllPlayerUnits();
+    const units = getAllUnits();
     const bulletsToAdd: Bullet[] = [];
 
     const offsets =
@@ -1296,6 +1163,15 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       healFxRef.current = Math.max(0, healFxRef.current - dt);
 
       hurtCooldownRef.current = Math.max(0, hurtCooldownRef.current - dt);
+
+      // ===== Arcade FX tick =====
+      shakeRef.current.t = Math.max(0, shakeRef.current.t - dt);
+      bossFlashRef.current = Math.max(0, bossFlashRef.current - dt);
+      setKillFxList((prev) =>
+        prev
+          .map((fx) => ({ ...fx, timer: fx.timer - dt }))
+          .filter((fx) => fx.timer > 0),
+      );
 
       tickCombatTimers(dt);
       spawnEnemies(dt);
@@ -1434,12 +1310,14 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         if (prev.boss?.active && !prev.boss.spawned) {
           const boss = makeBoss(prev.boss.mission);
+          // ===== Arcade: 보스 등장 연출 =====
+          shakeRef.current = { t: 0.3, intensity: 6 };
+          bossFlashRef.current = 0.3;
 
           return {
             ...prev,
             bossBannerT: 1.2,
-            enemies: [...enemies, boss], // ✅ 기존 적 유지 + 보스 추가
-            // ✅ boxes/bullets/items/enemyShots 절대 비우지 않음
+            enemies: [...enemies, boss],
             boss: { ...prev.boss, spawned: true, bossId: boss.id },
           };
         }
@@ -1717,7 +1595,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
             if (hitX && hitY) {
               e.hp -= b.damage;
-              e.hitFx = 0.25;
+              e.hitFx = HIT_FX_DURATION;
               e.hitText = "HIT";
 
               if (!b.pierce) deadBulletIds.add(b.id);
@@ -1734,13 +1612,29 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         let kills = 0;
         const dropped: Item[] = [];
 
+        const newKillFx: typeof killFxList = [];
+
         for (const e of enemies) {
           if (deadEnemyIds.has(e.id)) {
             if (e.kind === "healer") continue; // 점수제외
             kills += 1;
+
+            // ===== Arcade: kill damage FX =====
+            newKillFx.push({
+              id: killFxIdRef.current++,
+              x: e.x,
+              y: e.y,
+              text: `${e.maxHp}`,
+              timer: 0.6,
+            });
+
             const drop = maybeDropEnemyItem(e.x, e.y);
             if (drop) dropped.push(drop);
           }
+        }
+
+        if (newKillFx.length > 0) {
+          setKillFxList((prev) => [...prev, ...newKillFx]);
         }
 
         enemies = enemies.filter((e) => !deadEnemyIds.has(e.id));
@@ -1755,6 +1649,20 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             s.x > -1 &&
             s.x < LANE_COUNT + 1,
         );
+
+        // gameover 헬퍼 (중복 제거)
+        const toGameover = (nc: CombatState): World => ({
+          ...prev,
+          mode: "gameover",
+          enemies,
+          bullets,
+          items,
+          boxes,
+          enemyShots,
+          combat: nc,
+          totalScore: prev.totalScore + kills,
+          stageScore: prev.stageScore + kills,
+        });
 
         // =========================
         // 6) BOSS DIED CHECK
@@ -1785,7 +1693,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         // 7) ITEM PICKUP (any unit)
         // =========================
-        const units = getAllPlayerUnitsRef();
+        const units = getAllUnits();
         const pickedItemIds = new Set<number>();
 
         for (const it of items) {
@@ -1827,7 +1735,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // 7.5) HEALER PICKUP (full heal)
         // =========================
         {
-          const units = getAllPlayerUnitsRef();
+          const units = getAllUnits();
           let healed = false;
 
           for (const e of enemies) {
@@ -1875,7 +1783,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // 8-0) DAMAGE: ENEMY SHOT HIT (snow thrower)
         // =========================
         if (hurtCooldownRef.current <= 0 && enemyShots.length > 0) {
-          const units = getAllPlayerUnitsRef();
+          const units = getAllUnits();
 
           let hitShotId: number | null = null;
           let damage = 0;
@@ -1912,21 +1820,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             setPlayer((p) => ({ ...p, hp: nextHp }));
 
             hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+            shakeRef.current = { t: 0.15, intensity: 5 };
 
-            if (nextHp <= 0) {
-              return {
-                ...prev,
-                mode: "gameover",
-                enemies,
-                bullets,
-                items,
-                boxes,
-                enemyShots,
-                combat: nextCombat,
-                totalScore: prev.totalScore + kills,
-                stageScore: prev.stageScore + kills,
-              };
-            }
+            if (nextHp <= 0) return toGameover(nextCombat);
           }
         }
 
@@ -1956,21 +1852,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 enemies = enemies.filter((x) => x.id !== e.id);
 
                 hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+            shakeRef.current = { t: 0.15, intensity: 5 };
 
-                if (nextHp <= 0) {
-                  return {
-                    ...prev,
-                    mode: "gameover",
-                    enemies,
-                    bullets,
-                    items,
-                    boxes,
-                    enemyShots,
-                    combat: nextCombat,
-                    totalScore: prev.totalScore + kills,
-                    stageScore: prev.stageScore + kills,
-                  };
-                }
+                if (nextHp <= 0) return toGameover(nextCombat);
 
                 hitOnce = true;
                 break;
@@ -2005,21 +1889,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             const nextHp = Math.max(0, playerRef.current.hp - totalDamage);
             setPlayerHp(nextHp);
             hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
+            shakeRef.current = { t: 0.15, intensity: 5 };
 
-            if (nextHp <= 0) {
-              return {
-                ...prev,
-                mode: "gameover",
-                enemies,
-                bullets,
-                items,
-                boxes,
-                enemyShots,
-                combat: nextCombat,
-                totalScore: prev.totalScore + kills,
-                stageScore: prev.stageScore + kills,
-              };
-            }
+            if (nextHp <= 0) return toGameover(nextCombat);
           }
         }
 
@@ -2134,7 +2006,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const target = stageTarget(world.stage);
   const playerHpPct = player.maxHp > 0 ? clamp01(player.hp / player.maxHp) : 0;
 
-  const units = getAllPlayerUnits();
+  const units = getAllUnits();
 
   const renderEnemy = (e: Enemy) => {
     const ypx = projectYpx(e.y, farYRef.current);
@@ -2569,13 +2441,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     const size = baseSize;
 
-    // const glow =
-    //   s.style === "big"
-    //     ? "0 0 24px rgba(99, 255, 180, 0.45)"
-    //     : s.style === "spiral"
-    //     ? "0 0 18px rgba(96, 165, 250, 0.55)"
-    //     : "0 0 12px rgba(255,255,255,0.25)";
-
     return (
       <div
         key={s.id}
@@ -2842,6 +2707,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   let stageBg = "stagebg01";
   if (world.stage > 10) stageBg = "stagebg02";
 
+  // ===== Screen shake transform =====
+  const shakeT = shakeRef.current.t;
+  const shakeI = shakeRef.current.intensity;
+  const shakeX = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 2 : 0;
+  const shakeY = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 2 : 0;
+
   return (
     <div
       ref={containerRef}
@@ -2853,6 +2724,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         overflow: "hidden",
         background: "#0b1020",
         touchAction: "none",
+        transform: shakeT > 0 ? `translate(${shakeX}px, ${shakeY}px)` : undefined,
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -3100,6 +2972,55 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           <span className="boss-banner-text">보스출현!</span>
         </div>
       )}
+
+      {/* ===== Boss Flash ===== */}
+      {bossFlashRef.current > 0 && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(255, 40, 40, 0.35)",
+            opacity: Math.min(1, bossFlashRef.current / 0.15),
+            pointerEvents: "none",
+            zIndex: 400,
+          }}
+        />
+      )}
+
+      {/* ===== Kill FX Popups ===== */}
+      {killFxList.map((fx) => {
+        const ypx = projectYpx(fx.y, farYRef.current);
+        const { spread } = getPerspective(fx.y, farYRef.current);
+        const centerX = WIDTH / 2;
+        const baseX = xUnitsToPx(fx.x);
+        const fxX = centerX + (baseX - centerX) * spread;
+        const progress = 1 - fx.timer / 0.6;
+        const dmg = parseInt(fx.text, 10);
+        const isBig = dmg >= 5;
+
+        return (
+          <div
+            key={fx.id}
+            style={{
+              position: "absolute",
+              left: fxX,
+              top: ypx - progress * 40,
+              transform: `translate(-50%, -50%) scale(${isBig ? 1.2 : 1})`,
+              fontSize: isBig ? 18 : 14,
+              fontWeight: 1000,
+              color: isBig ? "#ff6b6b" : "#facc15",
+              textShadow: "0 2px 6px rgba(0,0,0,0.7)",
+              opacity: 1 - progress * 0.8,
+              pointerEvents: "none",
+              zIndex: 250,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {fx.text}
+          </div>
+        );
+      })}
+
       {/* dialogs */}
       {world.mode !== "playing" && (
         <div
