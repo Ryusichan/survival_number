@@ -5,12 +5,7 @@ import BackButton from "components/item/BackButton";
 const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.2;
-const HIT_RANGE = 0.05;
 const ROW_GAP = 0.2;
-
-interface Props {
-  setSelct: (value: string) => void;
-}
 
 type Player = { lane: number; value: number };
 type RowKind = "normal" | "goal";

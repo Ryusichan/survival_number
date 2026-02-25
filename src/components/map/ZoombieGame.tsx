@@ -70,13 +70,6 @@ const BOSS20_FIRE_INTERVAL = 0.42; // 전체 발사 템포 느리게
 const BOSS20_PATTERN_DUR = 3.8; // 패턴 교체는 조금 빠르게
 const BOSS20_SHOT_SPEED = 0.16; // 너무 빠르지 않게
 
-const BOSS10_STOP_Y = 0.22;
-const BOSS20_STOP_Y = 0.14; // 너가 쓰던 BOSS20_Y랑 동일하게 써도 됨
-const BOSS30_STOP_Y = 0.2;
-
-const getBossStopY = (stage: number) =>
-  stage === 10 ? BOSS10_STOP_Y : stage === 20 ? BOSS20_STOP_Y : BOSS30_STOP_Y;
-
 const BOSS20_ORDER: ShotStyle[] = ["aimBurst", "laneGap", "sniper"];
 
 // ==============================
@@ -358,8 +351,6 @@ const BOSS_MISSIONS: BossMission[] = [
 
 const getBossMission = (stage: number): BossMission | undefined =>
   BOSS_MISSIONS.find((m) => m.stage === stage);
-
-const isBossStage = (stage: number) => !!getBossMission(stage);
 
 type Enemy = {
   id: number;
@@ -752,13 +743,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const consumedEnemyShotIdsRef = useRef<Set<number>>(new Set());
   const healFxRef = useRef(0);
 
-  const pauseGame = () => {
-    setWorld((prev) => {
-      if (prev.mode !== "playing") return prev;
-      return { ...prev, mode: "paused" };
-    });
-  };
-
   const resumeGame = () => {
     setWorld((prev) => {
       if (prev.mode !== "paused") return prev;
@@ -926,14 +910,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     }
 
     if (kind === "snowball") {
-      const s = worldRef.current.stage;
-      hp = clamp(10 + (s - 11), 8, 20);
+      hp = clamp(10 + (worldRef.current.stage - 11), 8, 20);
       damage = 1;
     }
 
     if (kind === "snowThrower") {
-      const s = worldRef.current.stage;
-      // hp = clamp(5 + Math.floor((s - 11) * 0.4), 5, 10);
       damage = 0;
     }
 
@@ -967,8 +948,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   const makeBoss = (mission: BossMission): Enemy => {
     const cfg = currentStageCfg();
     const x = LANE_COUNT / 2;
-
-    const stopY = getBossStopY(mission.stage);
 
     // ✅ 보스는 위에서 시작
     const base: Enemy = {
@@ -1783,8 +1762,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // 8-0) DAMAGE: ENEMY SHOT HIT (snow thrower)
         // =========================
         if (hurtCooldownRef.current <= 0 && enemyShots.length > 0) {
-          const units = getAllUnits();
-
           let hitShotId: number | null = null;
           let damage = 0;
 
@@ -1959,6 +1936,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
 
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [world.mode]);
 
   const activeWeapon = getActiveWeapon(world.combat);
