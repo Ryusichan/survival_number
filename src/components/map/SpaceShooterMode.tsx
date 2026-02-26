@@ -633,7 +633,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const laneWidth = WIDTH / LANE_COUNT;
 
   /* ---- stage & mode (React state for lifecycle) ---- */
-  const [stage, setStage] = useState(10);
+  const [stage, setStage] = useState(1);
   const [mode, setMode] = useState<Mode>("chapter");
   const stageRef = useRef(stage);
   useEffect(() => {
