@@ -923,6 +923,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               s.totalScore++;
               const drop = maybeDropItem(e.x, e.y);
               if (drop) s.items.push(drop);
+            } else if (e.kind === "spaceBoss" && Math.random() < 0.1) {
+              const bossDrop = maybeDropItem(e.x, e.y + 0.05);
+              if (bossDrop) s.items.push(bossDrop);
             }
             if (!b.pierce) {
               consumed = true;
