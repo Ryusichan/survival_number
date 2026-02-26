@@ -1829,7 +1829,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 enemies = enemies.filter((x) => x.id !== e.id);
 
                 hurtCooldownRef.current = PLAYER_GLOBAL_HURT_COOLDOWN;
-            shakeRef.current = { t: 0.15, intensity: 5 };
+                shakeRef.current = { t: 0.15, intensity: 5 };
 
                 if (nextHp <= 0) return toGameover(nextCombat);
 
@@ -2702,7 +2702,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         overflow: "hidden",
         background: "#0b1020",
         touchAction: "none",
-        transform: shakeT > 0 ? `translate(${shakeX}px, ${shakeY}px)` : undefined,
+        transform:
+          shakeT > 0 ? `translate(${shakeX}px, ${shakeY}px)` : undefined,
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -2950,7 +2951,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           <span className="boss-banner-text">보스출현!</span>
         </div>
       )}
-
       {/* ===== Boss Flash ===== */}
       {bossFlashRef.current > 0 && (
         <div
@@ -2964,7 +2964,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           }}
         />
       )}
-
       {/* ===== Kill FX Popups ===== */}
       {killFxList.map((fx) => {
         const ypx = projectYpx(fx.y, farYRef.current);
@@ -2998,7 +2997,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           </div>
         );
       })}
-
       {/* dialogs */}
       {world.mode !== "playing" && (
         <div

@@ -891,3 +891,28 @@ code {
     opacity: 1;
   }
 }
+
+/* ===== Space Shooter Animations ===== */
+.engine-flame {
+  animation: engineFlame 0.3s ease-in-out infinite alternate;
+}
+@keyframes engineFlame {
+  0% { opacity: 0.4; transform: scaleY(0.85); }
+  100% { opacity: 1; transform: scaleY(1.15); }
+}
+
+.boss-shield {
+  animation: bossShield 2s ease-in-out infinite;
+}
+@keyframes bossShield {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.03); }
+}
+
+.player-hit {
+  animation: playerHit 0.15s ease-out;
+}
+@keyframes playerHit {
+  0% { filter: brightness(3) saturate(0); }
+  100% { filter: brightness(1) saturate(1); }
+}

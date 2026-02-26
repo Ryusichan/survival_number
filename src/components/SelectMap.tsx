@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import NumberLaneGame from "./map/NumberLaneGame";
 import ZoombieGame from "./map/ZoombieGame";
+import SpaceShooterMode from "./map/SpaceShooterMode";
 import styled from "styled-components";
 
 const Container = styled.div`
@@ -40,20 +41,21 @@ const Box = styled.div`
 
 const ButtonBox = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 2;
+  gap: 8px;
   & > div {
     cursor: pointer;
     display: flex;
-    /* align-items: center;
-    justify-content: start; */
+    align-items: flex-end;
     width: calc(50% - 6px);
     padding: 12px;
     border-radius: 12px;
     box-sizing: border-box;
-    min-height: 180px;
+    min-height: 140px;
     opacity: 0.5;
     border: 4px solid #fff;
+    transition: opacity 0.3s;
   }
   & > div:hover {
     opacity: 1;
@@ -61,7 +63,7 @@ const ButtonBox = styled.div`
 `;
 
 const SelectMap = () => {
-  const [select, setSelect] = useState<"" | "addGame" | "zoombieGame">("");
+  const [select, setSelect] = useState<"" | "addGame" | "zoombieGame" | "spaceGame">("");
   const backSelectMode = () => {
     setSelect("");
   };
@@ -72,6 +74,10 @@ const SelectMap = () => {
 
   if (select === "zoombieGame") {
     return <ZoombieGame key={select} onExit={backSelectMode} />;
+  }
+
+  if (select === "spaceGame") {
+    return <SpaceShooterMode key={select} onExit={backSelectMode} />;
   }
   return (
     <Container>
@@ -123,6 +129,23 @@ const SelectMap = () => {
             }}
           >
             숫자를 더하라!!!
+          </div>
+          <div
+            onClick={() => setSelect("spaceGame")}
+            style={{
+              fontSize: 16,
+              fontFamily: "Fredoka",
+              fontWeight: 600,
+              color: "#e0e0e0",
+              backgroundColor: "#1a1a3e",
+              transition: "1s",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            우주를 지켜라!! 🚀
           </div>
         </ButtonBox>
       </Box>
