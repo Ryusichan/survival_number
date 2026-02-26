@@ -7,10 +7,11 @@ import styled from "styled-components";
 const Container = styled.div`
   width: 100vw;
   height: 100vh;
-  /* background-color: #cecece; */
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const Bg = styled.div`
@@ -26,16 +27,15 @@ const Box = styled.div`
   display: flex;
   width: 100%;
   max-width: 450px;
-  min-height: 360px;
   justify-content: center;
   flex-direction: column;
   background-color: #ffffff96;
   padding: 24px;
   border-radius: 24px;
-  margin: 12rem 1rem 2rem 1rem;
+  margin: clamp(2rem, 8vh, 12rem) 1rem 2rem 1rem;
   z-index: 5;
   & > div {
-    margin-bottom: 18px;
+    margin-bottom: 14px;
   }
 `;
 
@@ -52,7 +52,7 @@ const ButtonBox = styled.div`
     padding: 12px;
     border-radius: 12px;
     box-sizing: border-box;
-    min-height: 140px;
+    min-height: clamp(80px, 15vh, 140px);
     opacity: 0.5;
     border: 4px solid #fff;
     transition: opacity 0.3s;
@@ -63,7 +63,9 @@ const ButtonBox = styled.div`
 `;
 
 const SelectMap = () => {
-  const [select, setSelect] = useState<"" | "addGame" | "zoombieGame" | "spaceGame">("");
+  const [select, setSelect] = useState<
+    "" | "addGame" | "zoombieGame" | "spaceGame"
+  >("");
   const backSelectMode = () => {
     setSelect("");
   };
