@@ -146,7 +146,7 @@ const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 3;
 const MAX_STAGE = 10;
 const MAX_CLONES = 12;
-const ENEMY_DROP_CHANCE = 0.1;
+const ENEMY_DROP_CHANCE = 0.3;
 const ITEM_SPEED = 0.18;
 
 const WEAPONS: Record<WeaponId, Weapon> = {
@@ -493,7 +493,7 @@ function maybeDropItem(x: number, y: number): Item | null {
   if (Math.random() > ENEMY_DROP_CHANCE) return null;
   const r = Math.random();
   // 10% heal pill
-  if (r < 0.1) return { id: _iid++, x, y, kind: "heal" };
+  if (r < 0.3) return { id: _iid++, x, y, kind: "heal" };
   // 35% weapon
   if (r < 0.45) {
     const w: WeaponId = (["rapid", "pierce", "shotgun"] as WeaponId[])[
