@@ -10,6 +10,12 @@ import {
   EliteUfo,
   SpaceBossSvg,
   EnemyBulletSvg,
+  ItemWeaponSvg,
+  ItemFireRateSvg,
+  ItemDamageUpSvg,
+  ItemPierceSvg,
+  ItemCloneSvg,
+  ItemHealPillSvg,
 } from "./spaceSvgAssets";
 
 /* =========================================================
@@ -53,7 +59,8 @@ type Item =
       durationSec: number;
     }
   | { id: number; x: number; y: number; kind: "pierce"; durationSec: number }
-  | { id: number; x: number; y: number; kind: "addClone"; count: 1 | 2 | 3 };
+  | { id: number; x: number; y: number; kind: "addClone"; count: 1 | 2 | 3 }
+  | { id: number; x: number; y: number; kind: "heal" };
 
 type Mode = "playing" | "paused" | "cleared" | "gameover" | "chapter";
 
@@ -139,7 +146,7 @@ const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 3;
 const MAX_STAGE = 10;
 const MAX_CLONES = 12;
-const ENEMY_DROP_CHANCE = 0.28;
+const ENEMY_DROP_CHANCE = 0.1;
 const ITEM_SPEED = 0.18;
 
 const WEAPONS: Record<WeaponId, Weapon> = {
@@ -208,7 +215,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   bomber: {
-    hp: 8,
+    hp: 14,
     speed: 0.08,
     damage: 2,
     widthUnits: 1.4,
@@ -216,7 +223,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "straight",
   },
   carrier: {
-    hp: 12,
+    hp: 22,
     speed: 0.06,
     damage: 1,
     widthUnits: 1.8,
@@ -341,7 +348,7 @@ const STAGE_RULES: StageRule[] = [
     speedMul: 1.16,
   },
   /* 10 */ {
-    spawnInterval: 999,
+    spawnInterval: 0.3,
     maxAlive: 1,
     batchMin: 1,
     batchMax: 1,
@@ -361,6 +368,7 @@ const randInt = (a: number, b: number) =>
 const randFloat = (a: number, b: number) => a + Math.random() * (b - a);
 
 function stageTarget(stage: number) {
+  if (stage >= MAX_STAGE) return 1; // boss: kill 1
   const idx = (stage - 1) % 10;
   return FIRST_STAGE_TARGET + idx * NEXT_STAGE_STEP;
 }
@@ -484,14 +492,19 @@ function makeEnemy(kind: SpaceEnemyKind, rule: StageRule): SpaceEnemy {
 function maybeDropItem(x: number, y: number): Item | null {
   if (Math.random() > ENEMY_DROP_CHANCE) return null;
   const r = Math.random();
-  if (r < 0.42) {
+  // 10% heal pill
+  if (r < 0.1) return { id: _iid++, x, y, kind: "heal" };
+  // 35% weapon
+  if (r < 0.45) {
     const w: WeaponId = (["rapid", "pierce", "shotgun"] as WeaponId[])[
       randInt(0, 2)
     ];
     return { id: _iid++, x, y, kind: "weapon", weaponId: w };
   }
-  if (r < 0.72)
+  // 25% fire rate
+  if (r < 0.7)
     return { id: _iid++, x, y, kind: "fireRateMul", mul: 0.7, durationSec: 6 };
+  // 30% damage up
   return { id: _iid++, x, y, kind: "damageAdd", add: 1, durationSec: 6 };
 }
 
@@ -620,7 +633,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const laneWidth = WIDTH / LANE_COUNT;
 
   /* ---- stage & mode (React state for lifecycle) ---- */
-  const [stage, setStage] = useState(1);
+  const [stage, setStage] = useState(10);
   const [mode, setMode] = useState<Mode>("chapter");
   const stageRef = useRef(stage);
   useEffect(() => {
@@ -971,7 +984,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       const remainItems: Item[] = [];
       for (const it of s.items) {
         if (Math.abs(it.x - p.x) < 0.6 && Math.abs(it.y - p.y) < 0.08) {
-          if (it.kind === "addClone") {
+          if (it.kind === "heal") {
+            p.hp = p.maxHp;
+          } else if (it.kind === "addClone") {
             for (let i = 0; i < it.count && s.clones.length < MAX_CLONES; i++) {
               s.clones.push({ id: Date.now() + i, dx: 0, dy: 0 });
             }
@@ -1196,32 +1211,19 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             left: xToPx(it.x),
             top: yToPx(it.y),
             transform: "translate(-50%, -50%)",
-            width: 20,
-            height: 20,
-            borderRadius: 6,
-            background:
-              it.kind === "weapon"
-                ? "#f59e0b"
-                : it.kind === "fireRateMul"
-                  ? "#3b82f6"
-                  : "#10b981",
-            boxShadow: "0 0 8px rgba(255,255,255,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10,
-            color: "#fff",
-            fontWeight: 900,
             zIndex: 15,
+            filter:
+              it.kind === "heal"
+                ? "drop-shadow(0 0 6px rgba(255,80,80,0.7))"
+                : "drop-shadow(0 0 4px rgba(255,255,255,0.4))",
           }}
         >
-          {it.kind === "weapon"
-            ? "W"
-            : it.kind === "fireRateMul"
-              ? "F"
-              : it.kind === "damageAdd"
-                ? "D"
-                : "P"}
+          {it.kind === "weapon" && <ItemWeaponSvg size={26} />}
+          {it.kind === "fireRateMul" && <ItemFireRateSvg size={26} />}
+          {it.kind === "damageAdd" && <ItemDamageUpSvg size={26} />}
+          {it.kind === "pierce" && <ItemPierceSvg size={26} />}
+          {it.kind === "addClone" && <ItemCloneSvg size={26} />}
+          {it.kind === "heal" && <ItemHealPillSvg size={30} />}
         </div>
       ))}
 
@@ -1372,7 +1374,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             top: "42%",
             transform: "translate(-50%, 0%)",
             zIndex: 22,
-            opacity: 0.9,
+            opacity: 1,
           }}
         >
           <JetpackSvg size={40} />
