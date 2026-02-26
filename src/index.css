@@ -840,6 +840,46 @@ code {
   }
 }
 
+@keyframes ballDribble {
+  0%,
+  100% {
+    transform: translate(-50%, -80%) translateY(0) scaleX(1.04) scaleY(0.96);
+    animation-timing-function: ease-out;
+  }
+  15% {
+    transform: translate(-50%, -80%) translateY(-6px) scaleX(1) scaleY(1);
+  }
+  50% {
+    transform: translate(-50%, -80%) translateY(-16px) scaleX(0.98) scaleY(1.02);
+    animation-timing-function: ease-in;
+  }
+  85% {
+    transform: translate(-50%, -80%) translateY(-6px) scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes ballSpin {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes ballShadow {
+  0%,
+  100% {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateX(-50%) scaleX(0.55);
+    opacity: 0.1;
+  }
+}
+
 @keyframes weaponBlink {
   0% {
     opacity: 1;

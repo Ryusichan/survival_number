@@ -33,6 +33,61 @@ const DigitNumber: React.FC<{
   );
 };
 
+const SoccerBall: React.FC<{ size: number }> = ({ size }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size}>
+    <defs>
+      <radialGradient id="soccerBody" cx="38%" cy="34%" r="58%">
+        <stop offset="0%" stopColor="#ffffff" />
+        <stop offset="50%" stopColor="#f2f2f2" />
+        <stop offset="100%" stopColor="#c4c4c4" />
+      </radialGradient>
+    </defs>
+    <circle cx="50" cy="50" r="48" fill="url(#soccerBody)" />
+    <circle cx="50" cy="50" r="48" fill="none" stroke="#b0b0b0" strokeWidth="1.5" />
+    <g style={{ clipPath: "circle(47.5% at 50% 50%)" }}>
+      {/* Curved pentagons - center enlarged */}
+      <g fill="#2a2a2a" stroke="#1a1a1a" strokeWidth="0.8" strokeLinejoin="round">
+        <path d="M50,27 Q65,30 72,41 Q73,55 64,66 Q50,73 36,66 Q27,55 28,41 Q35,30 50,27Z" />
+        <path d="M35,3 Q39,10 50,10 Q61,10 65,3 L60,-8 L40,-8Z" />
+        <path d="M82,18 Q82,26 88,38 Q91,50 95,55 L105,42 L100,22Z" />
+        <path d="M88,72 Q81,73 74,82 Q65,88 65,95 L78,105 L95,90Z" />
+        <path d="M35,95 Q35,88 26,82 Q19,73 12,72 L5,90 L22,105Z" />
+        <path d="M5,55 Q9,50 12,38 Q18,25 18,18 L0,22 L-5,42Z" />
+      </g>
+      {/* Curved seam lines */}
+      <g
+        fill="none"
+        stroke="rgba(0,0,0,0.15)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      >
+        <path d="M50,27 Q53,19 50,10" />
+        <path d="M72,41 Q81,36 88,38" />
+        <path d="M64,66 Q70,73 74,82" />
+        <path d="M36,66 Q30,73 26,82" />
+        <path d="M28,41 Q19,36 12,38" />
+        <path d="M50,10 Q41,4 35,3" />
+        <path d="M50,10 Q59,4 65,3" />
+        <path d="M88,38 Q87,27 82,18" />
+        <path d="M88,38 Q94,47 95,55" />
+        <path d="M74,82 Q83,78 88,72" />
+        <path d="M74,82 Q68,91 65,95" />
+        <path d="M26,82 Q32,91 35,95" />
+        <path d="M26,82 Q17,78 12,72" />
+        <path d="M12,38 Q6,47 5,55" />
+        <path d="M12,38 Q13,27 18,18" />
+        <path d="M65,3 Q77,7 82,18" />
+        <path d="M95,55 Q95,64 88,72" />
+        <path d="M65,95 Q50,101 35,95" />
+        <path d="M12,72 Q5,64 5,55" />
+        <path d="M18,18 Q23,7 35,3" />
+      </g>
+    </g>
+    {/* Specular highlight */}
+    <ellipse cx="38" cy="34" rx="11" ry="8" fill="rgba(255,255,255,0.4)" />
+  </svg>
+);
+
 let rowIdSeed = 0;
 
 const stageSettings: { values: number[]; rowCount: number }[] = [
@@ -84,13 +139,13 @@ function getAchievableTotals(rowsValues: number[][]): number[] {
 
 // ===== 3D perspective helpers =====
 const GAMMA_Y = 2.2;
-const VANISH_RATIO = 0.35; // 소실점에서 좌우가 좁아지는 비율
+const VANISH_RATIO = 0.15; // 소실점에서 좌우가 좁아지는 비율
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function makeProjectors(height: number) {
-  const FAR_SCREEN_Y = -0.22 * height;
+  const FAR_SCREEN_Y = 0.13 * height; // 소실점이 화면 상단 13%에 보임
 
   const projectRowYpx = (worldY: number, farY: number) => {
     const nearY = PLAYER_Y;
@@ -109,7 +164,7 @@ function makeProjectors(height: number) {
     const nearY = PLAYER_Y;
     const t = clamp01((worldY - farY) / (nearY - farY));
     const tt = Math.pow(t, GAMMA_Y);
-    const minScale = kind === "goal" ? 0.55 : 0.35;
+    const minScale = kind === "goal" ? 0.25 : 0.2;
     const scale = lerp(minScale, 1.0, tt);
     const spread = lerp(VANISH_RATIO, 1.0, tt);
     return { scale, spread };
@@ -375,69 +430,175 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
   const balloonSize = Math.min(68 + player.value * 2, 140);
 
-  // ===== 3D lane lines (converging to vanishing point) =====
+  // ===== 3D Road Rendering =====
   const vanishY = projectRowYpx(farYRef.current, farYRef.current);
   const playerLinePx = PLAYER_Y * HEIGHT;
-  const laneLines = useMemo(() => {
-    const lines: React.ReactNode[] = [];
+  const roadSvg = useMemo(() => {
     const cx = WIDTH / 2;
+    const vy = Math.max(0, vanishY);
+    const topHW = (WIDTH / 2) * VANISH_RATIO;
+    const botY = HEIGHT;
 
-    // 수평 격자선 (깊이감)
-    const GRID_COUNT = 12;
-    for (let i = 0; i <= GRID_COUNT; i++) {
-      const t = i / GRID_COUNT;
-      const tt = Math.pow(t, GAMMA_Y);
-      const yPx = lerp(vanishY, playerLinePx, tt);
-      const spread = lerp(VANISH_RATIO, 1.0, tt);
-      const alpha = lerp(0.03, 0.12, t);
+    // 잔디 (도로 양쪽 삼각형)
+    const leftGrass = `0,${vy} ${cx - topHW},${vy} 0,${botY}`;
+    const rightGrass = `${cx + topHW},${vy} ${WIDTH},${vy} ${WIDTH},${botY}`;
 
-      lines.push(
-        <div
-          key={`hgrid-${i}`}
-          style={{
-            position: "absolute",
-            top: yPx,
-            left: cx - (WIDTH / 2) * spread,
-            width: WIDTH * spread,
-            height: 1,
-            background: `rgba(255,255,255,${alpha})`,
-            pointerEvents: "none",
-          }}
+    // 도로 사다리꼴
+    const roadPoints = [
+      `${cx - topHW},${vy}`,
+      `${cx + topHW},${vy}`,
+      `${WIDTH},${botY}`,
+      `${0},${botY}`,
+    ].join(" ");
+
+    // 세로 레인 구분선
+    const vLines: React.ReactNode[] = [];
+    for (let i = 0; i <= LANE_COUNT; i++) {
+      const baseX = (i / LANE_COUNT) * WIDTH;
+      const topX = cx + (baseX - cx) * VANISH_RATIO;
+      const isEdge = i === 0 || i === LANE_COUNT;
+      vLines.push(
+        <line
+          key={`vl-${i}`}
+          x1={topX}
+          y1={vy}
+          x2={baseX}
+          y2={playerLinePx + 60}
+          stroke={isEdge ? "#c8a850" : "rgba(255,255,255,0.3)"}
+          strokeWidth={isEdge ? 3 : 1.5}
+          strokeDasharray={isEdge ? "none" : "8 16"}
         />,
       );
     }
 
-    // 세로 lane 구분선 (소실점으로 수렴)
-    for (let lane = 0; lane <= LANE_COUNT; lane++) {
-      const baseX = (lane / LANE_COUNT) * WIDTH;
-      const topX = cx + (baseX - cx) * VANISH_RATIO;
-      const botX = baseX;
-
-      lines.push(
-        <svg
-          key={`vline-${lane}`}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: WIDTH,
-            height: HEIGHT,
-            pointerEvents: "none",
-          }}
-        >
-          <line
-            x1={topX}
-            y1={Math.max(0, vanishY)}
-            x2={botX}
-            y2={playerLinePx + 40}
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={1}
-          />
-        </svg>,
+    // 가로 깊이선
+    const hLines: React.ReactNode[] = [];
+    const HC = 16;
+    for (let i = 1; i < HC; i++) {
+      const t = i / HC;
+      const tt = Math.pow(t, GAMMA_Y);
+      const y = lerp(vy, playerLinePx, tt);
+      const spread = lerp(VANISH_RATIO, 1.0, tt);
+      const halfW = (WIDTH / 2) * spread;
+      const alpha = lerp(0.04, 0.14, t);
+      hLines.push(
+        <line
+          key={`hl-${i}`}
+          x1={cx - halfW}
+          y1={y}
+          x2={cx + halfW}
+          y2={y}
+          stroke={`rgba(255,255,255,${alpha})`}
+          strokeWidth={1}
+        />,
       );
     }
 
-    return lines;
+    // 나무 & 덤불 (도로 가장자리)
+    const decos: React.ReactNode[] = [];
+    const DC = 7;
+    for (let i = 0; i < DC; i++) {
+      const t = (i + 0.4) / DC;
+      const tt = Math.pow(t, GAMMA_Y);
+      const y = lerp(vy + 5, playerLinePx - 20, tt);
+      const spread = lerp(VANISH_RATIO, 1.0, tt);
+      const s = lerp(0.25, 0.85, tt);
+      const lx = cx - (WIDTH / 2) * spread - 10 * s;
+      const rx = cx + (WIDTH / 2) * spread + 10 * s;
+
+      if (i % 3 === 0) {
+        // 나무
+        const tree = (key: string, tx: number) => (
+          <g key={key} transform={`translate(${tx},${y}) scale(${s})`}>
+            <rect x="-2.5" y="-2" width="5" height="14" rx="2" fill="#8d6e63" />
+            <circle cx="0" cy="-10" r="11" fill="#5a9a60" />
+            <circle cx="-6" cy="-4" r="8" fill="#4d8a52" />
+            <circle cx="6" cy="-4" r="8" fill="#3f7a42" />
+          </g>
+        );
+        decos.push(tree(`tl-${i}`, lx));
+        decos.push(tree(`tr-${i}`, rx));
+      } else {
+        // 덤불
+        const bush = (key: string, bx: number) => (
+          <g key={key} transform={`translate(${bx},${y}) scale(${s})`}>
+            <ellipse cx="0" cy="-2" rx="11" ry="7" fill="#3f7a42" />
+            <ellipse cx="-5" cy="-5" rx="7" ry="5" fill="#5a9a60" />
+            <ellipse cx="6" cy="-3" rx="8" ry="6" fill="#4d8a52" />
+          </g>
+        );
+        decos.push(bush(`bl-${i}`, lx));
+        decos.push(bush(`br-${i}`, rx));
+      }
+    }
+
+    // 꽃 (잔디 위)
+    const flowers: React.ReactNode[] = [];
+    const FP = [
+      { t: 0.12, side: -1, off: 0.35 },
+      { t: 0.22, side: 1, off: 0.5 },
+      { t: 0.32, side: -1, off: 0.6 },
+      { t: 0.42, side: 1, off: 0.25 },
+      { t: 0.52, side: -1, off: 0.45 },
+      { t: 0.62, side: 1, off: 0.65 },
+      { t: 0.72, side: -1, off: 0.55 },
+      { t: 0.82, side: 1, off: 0.35 },
+      { t: 0.18, side: 1, off: 0.7 },
+      { t: 0.48, side: -1, off: 0.7 },
+    ];
+    const FC = ["#d4849a", "#c87080", "#b05060", "#c07888", "#a888b0"];
+    for (let fi = 0; fi < FP.length; fi++) {
+      const fp = FP[fi];
+      const tt = Math.pow(fp.t, GAMMA_Y);
+      const fy = lerp(vy, playerLinePx, tt);
+      const spread = lerp(VANISH_RATIO, 1.0, tt);
+      const s = lerp(0.2, 0.65, tt);
+      const roadEdge = (WIDTH / 2) * spread;
+      const grassW = cx - roadEdge;
+      const fx = cx + fp.side * (roadEdge + grassW * fp.off);
+      const c = FC[fi % FC.length];
+      flowers.push(
+        <g key={`fl-${fi}`} transform={`translate(${fx},${fy}) scale(${s})`}>
+          <circle cx="3" cy="-3" r="3.5" fill={c} opacity="0.9" />
+          <circle cx="-3" cy="-3" r="3.5" fill={c} opacity="0.9" />
+          <circle cx="3" cy="3" r="3.5" fill={c} opacity="0.9" />
+          <circle cx="-3" cy="3" r="3.5" fill={c} opacity="0.9" />
+          <circle cx="0" cy="0" r="2.8" fill="#d4c878" />
+        </g>,
+      );
+    }
+
+    return (
+      <svg
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: WIDTH,
+          height: HEIGHT,
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      >
+        <defs>
+          <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4a7a4e" />
+            <stop offset="100%" stopColor="#6a9a6e" />
+          </linearGradient>
+          <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#a09880" />
+            <stop offset="100%" stopColor="#bab298" />
+          </linearGradient>
+        </defs>
+        <polygon points={leftGrass} fill="url(#grassGrad)" />
+        <polygon points={rightGrass} fill="url(#grassGrad)" />
+        <polygon points={roadPoints} fill="url(#roadGrad)" />
+        {vLines}
+        {hLines}
+        {flowers}
+        {decos}
+      </svg>
+    );
   }, [WIDTH, HEIGHT, vanishY, playerLinePx]);
 
   return (
@@ -450,82 +611,96 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
         margin: "0 auto",
         overflow: "hidden",
         touchAction: "none",
-        background: "#1a1a2e",
+        background: "#7ab0c8",
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {/* ===== 3D Background ===== */}
-      {/* Sky gradient */}
+      {/* ===== 밝은 배경 ===== */}
+      {/* 하늘 */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, #0f0c29 0%, #302b63 35%, #24243e 60%, #1a1a2e 100%)",
+            "linear-gradient(180deg, #7ab0c8 0%, #5a98b0 40%, #4a88a0 100%)",
           pointerEvents: "none",
         }}
       />
 
-      {/* Stars (subtle) */}
+      {/* 태양 */}
       <div
         style={{
           position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6), transparent)," +
-            "radial-gradient(1px 1px at 25% 8%, rgba(255,255,255,0.4), transparent)," +
-            "radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.5), transparent)," +
-            "radial-gradient(1px 1px at 55% 5%, rgba(255,255,255,0.3), transparent)," +
-            "radial-gradient(1px 1px at 70% 18%, rgba(255,255,255,0.5), transparent)," +
-            "radial-gradient(1px 1px at 85% 12%, rgba(255,255,255,0.4), transparent)," +
-            "radial-gradient(1px 1px at 15% 28%, rgba(255,255,255,0.3), transparent)," +
-            "radial-gradient(1px 1px at 60% 25%, rgba(255,255,255,0.4), transparent)," +
-            "radial-gradient(1px 1px at 90% 22%, rgba(255,255,255,0.5), transparent)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Ground plane with perspective gradient */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: Math.max(0, vanishY - 20),
-          bottom: 0,
-          background: `linear-gradient(180deg,
-            rgba(20, 20, 50, 0.95) 0%,
-            rgba(30, 30, 60, 0.9) 20%,
-            rgba(40, 40, 80, 0.85) 50%,
-            rgba(50, 50, 100, 0.8) 80%,
-            rgba(60, 60, 120, 0.75) 100%)`,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Vanishing point glow */}
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: Math.max(0, vanishY),
-          transform: "translate(-50%, -50%)",
-          width: 120,
-          height: 60,
+          right: "14%",
+          top: Math.max(8, vanishY * 0.22),
+          width: 52,
+          height: 52,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(130,100,255,0.25) 0%, rgba(130,100,255,0) 70%)",
+            "radial-gradient(circle, #e8d89a 20%, #d8c880 50%, #c0a860 80%, transparent 100%)",
+          boxShadow:
+            "0 0 24px rgba(210,195,100,0.4), 0 0 48px rgba(190,170,60,0.15)",
           pointerEvents: "none",
+          zIndex: 0,
         }}
       />
 
-      {/* Lane lines */}
-      {laneLines}
+      {/* 구름 1 */}
+      <div
+        style={{
+          position: "absolute",
+          left: "8%",
+          top: Math.max(10, vanishY * 0.18),
+          width: 64,
+          height: 26,
+          borderRadius: 20,
+          background: "rgba(255,255,255,1)",
+          boxShadow:
+            "20px 4px 0 -2px rgba(255,255,255,1), -14px 2px 0 -3px rgba(255,255,255,1), 9px -7px 0 2px rgba(255,255,255,1)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      {/* 구름 2 */}
+      <div
+        style={{
+          position: "absolute",
+          left: "52%",
+          top: Math.max(18, vanishY * 0.35),
+          width: 76,
+          height: 30,
+          borderRadius: 22,
+          background: "rgba(255,255,255,1)",
+          boxShadow:
+            "24px 5px 0 -2px rgba(255,255,255,1), -16px 3px 0 -4px rgba(255,255,255,1), 11px -8px 0 3px rgba(255,255,255,1)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      {/* 구름 3 */}
+      <div
+        style={{
+          position: "absolute",
+          left: "28%",
+          top: Math.max(30, vanishY * 1),
+          width: 52,
+          height: 22,
+          borderRadius: 16,
+          background: "rgba(255,255,255,0.45)",
+          boxShadow:
+            "16px 3px 0 -2px rgba(255,255,255,0.4), -11px 2px 0 -3px rgba(255,255,255,0.35)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
 
-      {/* Player line highlight */}
+      {/* Road SVG (잔디 + 도로 + 나무/꽃) */}
+      {roadSvg}
+
+      {/* 플레이어 라인 */}
       <div
         style={{
           position: "absolute",
@@ -534,21 +709,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           top: playerLinePx - 2,
           height: 4,
           background:
-            "linear-gradient(90deg, transparent 0%, rgba(130,100,255,0.3) 20%, rgba(130,100,255,0.5) 50%, rgba(130,100,255,0.3) 80%, transparent 100%)",
+            "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), rgba(255,255,255,0.65), rgba(255,255,255,0.4), transparent)",
           pointerEvents: "none",
           zIndex: 5,
-        }}
-      />
-
-      {/* Side vignette for depth */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(90deg, rgba(0,0,0,0.4) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.4) 100%)",
-          pointerEvents: "none",
-          zIndex: 2,
         }}
       />
 
@@ -565,7 +728,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           fontFamily: "Fredoka",
           fontWeight: 600,
           color: "#fff",
-          textShadow: "0 2px 10px rgba(130,100,255,0.6)",
+          textShadow:
+            "-1px -1px 0 #2a6e9e, 1px -1px 0 #2a6e9e, -1px 1px 0 #2a6e9e, 1px 1px 0 #2a6e9e, 0 2px 8px rgba(0,0,0,0.3)",
           zIndex: 10,
         }}
       >
@@ -577,7 +741,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           top: 46,
           left: 12,
           fontSize: 13,
-          color: "rgba(255,255,255,0.7)",
+          color: "#fff",
+          fontWeight: 700,
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
       >
@@ -589,7 +755,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           top: 46,
           right: 12,
           fontSize: 13,
-          color: "rgba(255,255,255,0.7)",
+          color: "#fff",
+          fontWeight: 700,
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
       >
@@ -601,13 +769,11 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
         const rowYpx = projectRowYpx(row.y, farYRef.current);
 
         if (row.kind === "goal") {
-          const { scale, spread } = getPerspective(
-            row.y,
-            farYRef.current,
-            row.kind,
+          const { scale } = getPerspective(row.y, farYRef.current, row.kind);
+          const depthT = clamp01(
+            (row.y - farYRef.current) / (PLAYER_Y - farYRef.current),
           );
-          const rowWidth = WIDTH * spread * 0.92;
-          const depthAlpha = lerp(0.4, 1.0, Math.pow(clamp01((row.y - farYRef.current) / (PLAYER_Y - farYRef.current)), 1.2));
+          const depthAlpha = lerp(0.5, 1.0, Math.pow(depthT, 1.2));
 
           return (
             <div
@@ -617,7 +783,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 left: WIDTH / 2,
                 top: rowYpx,
                 transform: `translate(-50%, -50%) scale(${scale})`,
-                width: rowWidth,
+                width: WIDTH * 0.88,
                 height: 90,
                 display: "flex",
                 justifyContent: "space-between",
@@ -700,7 +866,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 justifyContent: "center",
                 opacity: cellOpacity * depthAlpha,
                 transition: "opacity 0.3s ease",
-                filter: `drop-shadow(0 4px 12px rgba(130,100,255,${glowAlpha}))`,
+                filter: `drop-shadow(0 4px 12px rgba(255,200,100,${glowAlpha}))`,
                 zIndex: 10,
               }}
             >
@@ -731,37 +897,58 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               zIndex: 20,
             }}
           >
-            {/* Balloon */}
+            {/* Soccer Ball */}
             <div
               key={player.value}
               style={{
                 position: "absolute",
                 top: 10,
                 left: "50%",
-                transform: "translate(-50%, -80%) scale(1)",
-                minWidth: balloonSize,
-                minHeight: balloonSize,
-                padding: "4px",
-                borderRadius: "50%",
-                background:
-                  "radial-gradient(circle at 30% 30%, #a78bfa, #7c3aed)",
-                color: "#fff",
-                fontSize: 32,
-                fontWeight: 900,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow:
-                  "0 8px 24px rgba(124,58,237,0.4), 0 0 20px rgba(130,100,255,0.2)",
-                animation: "pop 260ms ease-out",
+                transform: "translate(-50%, -80%)",
+                width: balloonSize,
+                height: balloonSize,
+                animation: "ballDribble 480ms ease-in-out infinite",
                 pointerEvents: "none",
                 userSelect: "none",
-                opacity: 0.9,
+                filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.3))",
               }}
               className="player-balloon"
             >
-              {player.value}
+              <div style={{ animation: "ballSpin 480ms ease-in-out infinite" }}>
+                <SoccerBall size={balloonSize} />
+              </div>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: Math.max(28, balloonSize * 0.45),
+                  fontWeight: 900,
+                  textShadow:
+                    "-2px -2px 0 #222, 2px -2px 0 #222, -2px 2px 0 #222, 2px 2px 0 #222, 0 3px 8px rgba(0,0,0,0.4)",
+                }}
+              >
+                {player.value}
+              </div>
             </div>
+
+            {/* Ball bounce shadow */}
+            <div
+              style={{
+                position: "absolute",
+                top: -balloonSize * 0.55,
+                left: "50%",
+                width: balloonSize * 0.6,
+                height: 8,
+                borderRadius: "50%",
+                background: "rgba(0,0,0,0.2)",
+                animation: "ballShadow 480ms ease-in-out infinite",
+                pointerEvents: "none",
+              }}
+            />
 
             {/* Character */}
             <div className="charactor" style={{ zIndex: 1 }} />
@@ -777,7 +964,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 height: 20,
                 borderRadius: "50%",
                 background:
-                  "radial-gradient(ellipse, rgba(130,100,255,0.35) 0%, transparent 70%)",
+                  "radial-gradient(ellipse, rgba(255,200,100,0.3) 0%, transparent 70%)",
                 pointerEvents: "none",
               }}
             />
@@ -859,11 +1046,11 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 fontSize: 16,
                 borderRadius: 12,
                 border: "none",
-                background: "linear-gradient(180deg, #7c3aed, #5b21b6)",
+                background: "linear-gradient(180deg, #e6952e, #c47520)",
                 color: "#fff",
                 cursor: "pointer",
                 fontWeight: 700,
-                boxShadow: "0 8px 20px rgba(124,58,237,0.35)",
+                boxShadow: "0 8px 20px rgba(230,149,46,0.35)",
               }}
             >
               다시 도전
