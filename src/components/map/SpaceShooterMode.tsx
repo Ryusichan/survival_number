@@ -1034,10 +1034,10 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   }, [mode]);
 
   /* ---- handlers ---- */
-  const handleRetry = () => {
+  const handleRetrySameStage = () => {
     g.current = initGameState();
     lastTimeRef.current = null;
-    setStage(1);
+    // keep current stage
     setMode("chapter");
   };
 
@@ -1057,6 +1057,8 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const target = stageTarget(stage);
   const playerHpPct = player.hp / player.maxHp;
   const isHurt = hurtCd > 0;
+  const activeWeapon = getActiveWeapon(g.current.combat);
+  const { combat } = g.current;
 
   /* =========================================================
      RENDER
@@ -1172,6 +1174,120 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       >
         TOTAL: {totalScore}
       </div>
+
+      {/* ===== Weapon Status HUD (bottom-left) ===== */}
+      {(() => {
+        const MAX_BLOCKS = 5;
+        const dmgLv = Math.min(MAX_BLOCKS, combat.permDamageAdd ?? 0);
+        const spdLv = Math.min(
+          MAX_BLOCKS,
+          (combat.permFireMul ?? 1) < 1
+            ? Math.round(
+                Math.log(1 / (combat.permFireMul ?? 1)) / Math.log(1 / 0.7),
+              )
+            : 0,
+        );
+        const gunColor =
+          activeWeapon.id === "shotgun"
+            ? "#f59e0b"
+            : activeWeapon.id === "rapid"
+              ? "#34d399"
+              : activeWeapon.id === "pierce"
+                ? "#c084fc"
+                : "#60a5fa";
+        const block = (filled: boolean, color: string) => (
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 2,
+              background: filled ? color : "rgba(255,255,255,0.12)",
+              transition: "background 0.3s",
+            }}
+          />
+        );
+        return (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "max(28px, calc(env(safe-area-inset-bottom) + 16px))",
+              left: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              zIndex: 30,
+              pointerEvents: "none",
+              background: "rgba(0,0,0,0.5)",
+              borderRadius: 8,
+              padding: "6px 8px",
+              backdropFilter: "blur(4px)",
+              fontFamily: "Fredoka",
+            }}
+          >
+            {/* Gun name */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 900, color: gunColor }}>
+                {activeWeapon.id.toUpperCase()}
+              </span>
+              {combat.tempWeapon && (
+                <span
+                  style={{ fontSize: 8, color: "#fbbf24", fontWeight: 600 }}
+                >
+                  {Math.ceil(combat.tempWeapon.timeLeft)}s
+                </span>
+              )}
+              {activeWeapon.pierce && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 1,
+                    background: "#c084fc",
+                  }}
+                />
+              )}
+            </div>
+            {/* DMG blocks */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <span
+                style={{
+                  fontSize: 8,
+                  fontWeight: 700,
+                  color: "#f87171",
+                  width: 22,
+                }}
+              >
+                DMG
+              </span>
+              {Array.from({ length: MAX_BLOCKS }, (_, i) =>
+                block(i < dmgLv, "#f87171"),
+              )}
+            </div>
+            {/* SPD blocks */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <span
+                style={{
+                  fontSize: 8,
+                  fontWeight: 700,
+                  color: "#34d399",
+                  width: 22,
+                }}
+              >
+                SPD
+              </span>
+              {Array.from({ length: MAX_BLOCKS }, (_, i) =>
+                block(i < spdLv, "#34d399"),
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ===== HP bar (bottom, mobile-friendly) ===== */}
       <div
@@ -1581,7 +1697,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             }}
           >
             <button
-              onClick={handleRetry}
+              onClick={handleRetrySameStage}
               style={{
                 padding: "12px 18px",
                 borderRadius: 12,
@@ -1594,7 +1710,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                 boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
               }}
             >
-              처음부터
+              다시하기
             </button>
             <button
               onClick={onExit}
