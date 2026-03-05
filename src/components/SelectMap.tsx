@@ -32,7 +32,7 @@ const Box = styled.div`
   background-color: #ffffff96;
   padding: 24px;
   border-radius: 24px;
-  margin: clamp(2rem, 8vh, 12rem) 1rem 2rem 1rem;
+  margin: clamp(2rem, 20vh, 12rem) 1rem 2rem 1rem;
   z-index: 5;
   & > div {
     margin-bottom: 14px;
