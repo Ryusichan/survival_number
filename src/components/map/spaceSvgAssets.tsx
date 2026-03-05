@@ -614,3 +614,470 @@ export const ExplosionSvg: React.FC<{ size?: number }> = ({ size = 40 }) => (
     <line x1="7" y1="7" x2="11" y2="11" stroke="#ff6600" strokeWidth="1.5" />
   </svg>
 );
+
+/* =====================================================================
+   CHAPTER 2: FIRE ALIENS — 불의 외계인들
+   ===================================================================== */
+
+const FireShieldHit: React.FC<{ w: number; h: number }> = ({ w, h }) => (
+  <g>
+    <ellipse cx={w/2} cy={h/2} rx={w*0.48} ry={h*0.48} fill="none" stroke="#f90" strokeWidth="1.5" opacity="0.7" />
+    <ellipse cx={w/2} cy={h/2} rx={w*0.38} ry={h*0.38} fill="#ff6600" opacity="0.08" />
+    <path d={`M${w*0.25},${h*0.2} L${w*0.4},${h*0.15} L${w*0.55},${h*0.22}`} fill="none" stroke="#ff0" strokeWidth="1" opacity="0.8" />
+    <path d={`M${w*0.6},${h*0.75} L${w*0.75},${h*0.7} L${w*0.8},${h*0.55}`} fill="none" stroke="#ff0" strokeWidth="1" opacity="0.6" />
+    <path d={`M${w*0.15},${h*0.6} L${w*0.3},${h*0.7} L${w*0.25},${h*0.85}`} fill="none" stroke="#f90" strokeWidth="0.8" opacity="0.5" />
+    <polygon points={`${w*0.3},${h*0.15} ${w*0.38},${h*0.1} ${w*0.45},${h*0.15} ${w*0.45},${h*0.25} ${w*0.38},${h*0.3} ${w*0.3},${h*0.25}`} fill="#f90" opacity="0.15" stroke="#ff0" strokeWidth="0.5" />
+    <polygon points={`${w*0.55},${h*0.65} ${w*0.63},${h*0.6} ${w*0.7},${h*0.65} ${w*0.7},${h*0.75} ${w*0.63},${h*0.8} ${w*0.55},${h*0.75}`} fill="#f90" opacity="0.15" stroke="#ff0" strokeWidth="0.5" />
+    <circle cx={w*0.2} cy={h*0.3} r="1.5" fill="#ff0" opacity="0.9" />
+    <circle cx={w*0.75} cy={h*0.4} r="1" fill="#f90" opacity="0.7" />
+    <circle cx={w*0.5} cy={h*0.85} r="1.2" fill="#ff0" opacity="0.8" />
+  </g>
+);
+
+/* ===== Fire Scout (불꽃 정찰기) ===== */
+export const FireScoutUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 40, hit }) => (
+  <svg viewBox="0 0 40 32" width={size} height={(size * 32) / 40}>
+    {/* 하부 화염빔 */}
+    <ellipse cx="20" cy="28" rx="6" ry="2" fill="#ff4400" opacity="0.3" className="engine-flame" />
+    {/* 원반 본체 */}
+    <ellipse cx="20" cy="20" rx="18" ry="7" fill="#8b3a0a" stroke="#5a2005" strokeWidth="1" />
+    {/* 원반 상부 (용암 표면) */}
+    <ellipse cx="20" cy="19" rx="16" ry="5" fill="#c4500f" />
+    {/* 균열선 */}
+    <path d="M8,19 Q14,17 20,19 Q26,21 32,19" fill="none" stroke="#ff6600" strokeWidth="0.5" opacity="0.6" />
+    {/* 라이트 링 */}
+    <ellipse cx="20" cy="22" rx="15" ry="3" fill="none" stroke="#ff6600" strokeWidth="0.6" opacity="0.6" strokeDasharray="3 2" />
+    {/* 돔 */}
+    <ellipse cx="20" cy="16" rx="8" ry="8" fill="#ff8c42" opacity="0.35" />
+    <path d="M12,16 Q20,4 28,16" fill="#ff6600" opacity="0.4" />
+    {/* 돔 하이라이트 */}
+    <ellipse cx="17" cy="12" rx="3" ry="2.5" fill="rgba(255,200,100,0.35)" />
+    {/* 안테나 불꽃 */}
+    <line x1="20" y1="8" x2="20" y2="4" stroke="#ff6600" strokeWidth="0.8" />
+    <circle cx="20" cy="3.5" r="1.5" fill="#ff4400" opacity="0.9" className="engine-flame" />
+    {/* 사이드 화염 */}
+    <circle cx="6" cy="21" r="1.5" fill="#ff6600" opacity="0.7" className="engine-flame" />
+    <circle cx="34" cy="21" r="1.5" fill="#ff6600" opacity="0.7" className="engine-flame" />
+    {hit && <FireShieldHit w={40} h={32} />}
+  </svg>
+);
+
+/* ===== Fire Fighter (화염 전투기) ===== */
+export const FireFighterUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 50, hit }) => (
+  <svg viewBox="0 0 50 44" width={size} height={(size * 44) / 50}>
+    {/* 화염 윙 좌 */}
+    <path d="M3,30 L18,18 L16,32Z" fill="#ff4400" opacity="0.3" className="engine-flame" />
+    {/* 화염 윙 우 */}
+    <path d="M47,30 L32,18 L34,32Z" fill="#ff4400" opacity="0.3" className="engine-flame" />
+    {/* 메인 바디 */}
+    <path d="M25,6 L40,34 L25,30 L10,34Z" fill="#e64500" stroke="#801a00" strokeWidth="1" />
+    {/* 내부 아머 */}
+    <path d="M25,12 L36,32 L25,28 L14,32Z" fill="#cc3300" opacity="0.6" />
+    {/* 용암 균열 */}
+    <line x1="25" y1="14" x2="25" y2="26" stroke="#ff8800" strokeWidth="0.5" opacity="0.5" />
+    <line x1="20" y1="20" x2="30" y2="20" stroke="#ff8800" strokeWidth="0.5" opacity="0.4" />
+    {/* 화염 눈 (콕핏) */}
+    <ellipse cx="25" cy="18" rx="4" ry="3" fill="#1a0500" />
+    <ellipse cx="25" cy="18" rx="2.5" ry="1.8" fill="#ffcc00" opacity="0.9" />
+    <circle cx="25" cy="18" r="1" fill="#ff4400" />
+    {/* 캐논 화염 */}
+    <circle cx="12" cy="32" r="2" fill="#ff6600" opacity="0.6" className="engine-flame" />
+    <circle cx="38" cy="32" r="2" fill="#ff6600" opacity="0.6" className="engine-flame" />
+    {/* 엔진 화염 */}
+    <ellipse cx="25" cy="36" rx="4" ry="2" fill="#ff4400" opacity="0.5" className="engine-flame" />
+    {hit && <FireShieldHit w={50} h={44} />}
+  </svg>
+);
+
+/* ===== Fire Bomber (용암 폭격기) ===== */
+export const FireBomberUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 60, hit }) => (
+  <svg viewBox="0 0 60 50" width={size} height={(size * 50) / 60}>
+    {/* 하부 용암빔 */}
+    <ellipse cx="30" cy="46" rx="8" ry="3" fill="#ff4400" opacity="0.15" className="engine-flame" />
+    {/* 메인 디스크 */}
+    <ellipse cx="30" cy="28" rx="27" ry="12" fill="#5a1a00" stroke="#3a0a00" strokeWidth="1.2" />
+    {/* 상부 아머 */}
+    <ellipse cx="30" cy="26" rx="24" ry="9" fill="#8b3a10" />
+    {/* 용암 균열선 */}
+    <path d="M10,28 Q20,24 30,28 Q40,32 50,28" fill="none" stroke="#ff4400" strokeWidth="0.7" opacity="0.5" />
+    <path d="M15,24 L25,26 L35,23 L45,26" fill="none" stroke="#ff6600" strokeWidth="0.4" opacity="0.4" />
+    {/* 에너지 코어 */}
+    <circle cx="30" cy="26" r="6" fill="#ff4400" opacity="0.5" className="engine-flame" />
+    <circle cx="30" cy="26" r="3" fill="#ffaa00" opacity="0.7" />
+    {/* 라이트 링 */}
+    {[0,1,2,3,4,5,6,7].map(i => {
+      const a = (i / 8) * Math.PI * 2;
+      return <circle key={i} cx={30 + Math.cos(a) * 20} cy={28 + Math.sin(a) * 8} r="1.2"
+        fill={i % 2 === 0 ? "#ff6600" : "#ffaa00"} opacity="0.7" className="engine-flame" />;
+    })}
+    {/* 하부 캐논 */}
+    <rect x="27" y="36" width="6" height="4" rx="1" fill="#3a0a00" />
+    <circle cx="30" cy="42" r="2" fill="#ff4400" opacity="0.6" className="engine-flame" />
+    {hit && <FireShieldHit w={60} h={50} />}
+  </svg>
+);
+
+/* ===== Fire Carrier (화산 모선) ===== */
+export const FireCarrierUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 80, hit }) => (
+  <svg viewBox="0 0 80 40" width={size} height={(size * 40) / 80}>
+    {/* 실드 링 */}
+    <ellipse cx="40" cy="22" rx="38" ry="16" fill="none" stroke="#ff6600" strokeWidth="0.5" opacity="0.2" strokeDasharray="4 3" />
+    {/* 메인 선체 */}
+    <ellipse cx="40" cy="22" rx="36" ry="13" fill="#4a1a0a" stroke="#2a0a05" strokeWidth="1" />
+    {/* 상부 */}
+    <ellipse cx="40" cy="20" rx="32" ry="10" fill="#6b2a10" />
+    {/* 용암 균열 */}
+    <path d="M12,22 Q26,18 40,22 Q54,26 68,22" fill="none" stroke="#ff4400" strokeWidth="0.6" opacity="0.5" />
+    <path d="M20,18 L32,20 L48,17 L60,20" fill="none" stroke="#ff6600" strokeWidth="0.4" opacity="0.4" />
+    <path d="M16,24 L28,26 L40,23 L52,26 L64,24" fill="none" stroke="#ff4400" strokeWidth="0.3" opacity="0.3" />
+    {/* 브릿지 */}
+    <rect x="32" y="12" width="16" height="8" rx="3" fill="#5a2010" stroke="#3a0a05" strokeWidth="0.8" />
+    <rect x="35" y="14" width="10" height="4" rx="2" fill="#ff6600" opacity="0.25" />
+    {/* 도킹 포트 */}
+    <circle cx="18" cy="22" r="3" fill="#3a0a05" stroke="#ff4400" strokeWidth="0.5" />
+    <circle cx="18" cy="22" r="1.5" fill="#ff4400" opacity="0.5" className="engine-flame" />
+    <circle cx="62" cy="22" r="3" fill="#3a0a05" stroke="#ff4400" strokeWidth="0.5" />
+    <circle cx="62" cy="22" r="1.5" fill="#ff4400" opacity="0.5" className="engine-flame" />
+    {/* 윈도우 */}
+    {[26,32,38,44,50,56].map((x,i) => <rect key={i} x={x} y="20" width="2.5" height="1.5" rx="0.5" fill="#ffaa44" opacity="0.5" />)}
+    {/* 엔진 */}
+    <ellipse cx="14" cy="30" rx="4" ry="2" fill="#ff8800" opacity="0.5" className="engine-flame" />
+    <ellipse cx="40" cy="32" rx="5" ry="2" fill="#ff8800" opacity="0.5" className="engine-flame" />
+    <ellipse cx="66" cy="30" rx="4" ry="2" fill="#ff8800" opacity="0.5" className="engine-flame" />
+    {hit && <FireShieldHit w={80} h={40} />}
+  </svg>
+);
+
+/* ===== Fire Elite (불꽃 엘리트) ===== */
+export const FireEliteUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 48, hit }) => (
+  <svg viewBox="0 0 48 48" width={size} height={size}>
+    {/* 화염 트레일 */}
+    <path d="M24,46 L20,38 L24,40 L28,38Z" fill="#ff4400" opacity="0.25" className="engine-flame" />
+    {/* 다이아몬드 바디 */}
+    <path d="M24,4 L44,24 L24,44 L4,24Z" fill="#8b2a00" stroke="#5a1a00" strokeWidth="1" />
+    {/* 내부 아머 */}
+    <path d="M24,10 L38,24 L24,38 L10,24Z" fill="#cc4400" opacity="0.6" />
+    {/* 코어 */}
+    <path d="M24,16 L32,24 L24,32 L16,24Z" fill="#ff6600" opacity="0.4" />
+    {/* 용암 균열 */}
+    <line x1="24" y1="8" x2="24" y2="40" stroke="#ff8800" strokeWidth="0.4" opacity="0.4" />
+    <line x1="8" y1="24" x2="40" y2="24" stroke="#ff8800" strokeWidth="0.4" opacity="0.4" />
+    {/* 화염 눈 */}
+    <ellipse cx="24" cy="22" rx="5" ry="4" fill="#1a0500" />
+    <ellipse cx="24" cy="22" rx="3.5" ry="2.5" fill="#ffcc00" opacity="0.9" />
+    <circle cx="24" cy="22" r="1.5" fill="#ff4400" />
+    {/* 사이드 캐논 */}
+    <circle cx="8" cy="24" r="2.5" fill="#5a1a00" stroke="#ff6600" strokeWidth="0.5" />
+    <circle cx="8" cy="24" r="1" fill="#ff8800" opacity="0.7" className="engine-flame" />
+    <circle cx="40" cy="24" r="2.5" fill="#5a1a00" stroke="#ff6600" strokeWidth="0.5" />
+    <circle cx="40" cy="24" r="1" fill="#ff8800" opacity="0.7" className="engine-flame" />
+    {hit && <FireShieldHit w={48} h={48} />}
+  </svg>
+);
+
+/* ===== Fire Boss (화산 보스 모선) ===== */
+export const FireBossSvg: React.FC<{ size?: number; hpRatio?: number; hit?: boolean }> = ({ size = 160, hpRatio = 1, hit }) => {
+  const phase = hpRatio > 0.5 ? 0 : hpRatio > 0.25 ? 1 : 2;
+  const C = [
+    { hull: "#3a1a0a", hullLt: "#5a2a10", glow: "#ff6600", eye: "#ffcc00", crack: "#ff4400" },
+    { hull: "#2a0a05", hullLt: "#4a1510", glow: "#ff4400", eye: "#ff8800", crack: "#ff2200" },
+    { hull: "#1a0500", hullLt: "#3a0a08", glow: "#ff2200", eye: "#ff0000", crack: "#cc0000" },
+  ][phase];
+  const w = 160, h = 120;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width={size} height={(size * h) / w}>
+      {/* 화염 오라 */}
+      <ellipse cx="80" cy="60" rx="75" ry="52" fill={C.glow} opacity="0.06" className="boss-shield" />
+      {/* 메인 선체 */}
+      <ellipse cx="80" cy="62" rx="70" ry="28" fill={C.hull} stroke={C.crack} strokeWidth="0.8" opacity="0.9" />
+      <ellipse cx="80" cy="58" rx="65" ry="24" fill={C.hullLt} />
+      {/* 용암 균열 */}
+      <path d="M20,60 Q50,50 80,60 Q110,70 140,60" fill="none" stroke={C.crack} strokeWidth="1" opacity="0.6" />
+      <path d="M30,52 L55,56 L80,50 L105,56 L130,52" fill="none" stroke={C.glow} strokeWidth="0.6" opacity="0.4" />
+      <path d="M25,68 L50,72 L80,66 L110,72 L135,68" fill="none" stroke={C.crack} strokeWidth="0.5" opacity="0.3" />
+      {/* 화염 촉수 (안테나) */}
+      <path d="M30,42 Q20,20 15,10" fill="none" stroke={C.glow} strokeWidth="1.5" opacity="0.6" />
+      <circle cx="15" cy="10" r="3" fill={C.eye} opacity="0.7" className="engine-flame" />
+      <path d="M130,42 Q140,20 145,10" fill="none" stroke={C.glow} strokeWidth="1.5" opacity="0.6" />
+      <circle cx="145" cy="10" r="3" fill={C.eye} opacity="0.7" className="engine-flame" />
+      {/* 브릿지 */}
+      <path d="M60,38 Q80,20 100,38" fill={C.hullLt} stroke={C.crack} strokeWidth="0.6" />
+      <path d="M65,38 Q80,26 95,38" fill={C.glow} opacity="0.15" />
+      {/* 중앙 대형 눈 */}
+      <ellipse cx="80" cy="48" rx="12" ry="8" fill="#0a0200" stroke={C.glow} strokeWidth="1" />
+      <ellipse cx="80" cy="48" rx="8" ry="5" fill={C.eye} opacity="0.8" />
+      <ellipse cx="80" cy="48" rx="4" ry="3" fill={C.crack} opacity="0.9" />
+      <ellipse cx="78" cy="46" rx="2" ry="1.5" fill="rgba(255,255,200,0.5)" />
+      {/* 사이드 눈 */}
+      <ellipse cx="45" cy="54" rx="5" ry="3.5" fill="#0a0200" />
+      <ellipse cx="45" cy="54" rx="3" ry="2" fill={C.eye} opacity="0.7" />
+      <ellipse cx="115" cy="54" rx="5" ry="3.5" fill="#0a0200" />
+      <ellipse cx="115" cy="54" rx="3" ry="2" fill={C.eye} opacity="0.7" />
+      {/* 캐논 포트 */}
+      {[30,55,105,130].map((x,i) => (
+        <React.Fragment key={i}>
+          <rect x={x-3} y="72" width="6" height="8" rx="2" fill={C.hull} stroke={C.crack} strokeWidth="0.4" />
+          <circle cx={x} cy="82" r="2.5" fill={C.glow} opacity="0.6" className="engine-flame" />
+        </React.Fragment>
+      ))}
+      {/* 라이트 링 */}
+      {[0,1,2,3,4,5,6,7,8,9,10,11].map(i => {
+        const a = (i / 12) * Math.PI * 2;
+        return <circle key={i} cx={80 + Math.cos(a) * 55} cy={62 + Math.sin(a) * 22} r="1.8"
+          fill={i % 2 === 0 ? C.glow : C.eye} opacity="0.6" className="engine-flame" />;
+      })}
+      {/* 엔진 화염 */}
+      <ellipse cx="35" cy="80" rx="8" ry="3" fill={C.glow} opacity="0.5" className="engine-flame" />
+      <ellipse cx="80" cy="85" rx="10" ry="4" fill={C.glow} opacity="0.5" className="engine-flame" />
+      <ellipse cx="125" cy="80" rx="8" ry="3" fill={C.glow} opacity="0.5" className="engine-flame" />
+      {/* 엠버 파티클 */}
+      <circle cx="25" cy="40" r="1.5" fill={C.eye} opacity="0.5" className="engine-flame" />
+      <circle cx="135" cy="45" r="1.2" fill={C.eye} opacity="0.4" className="engine-flame" />
+      <circle cx="60" cy="30" r="1" fill={C.glow} opacity="0.5" className="engine-flame" />
+      <circle cx="100" cy="32" r="1.3" fill={C.glow} opacity="0.4" className="engine-flame" />
+      {hit && <FireShieldHit w={w} h={h} />}
+    </svg>
+  );
+};
+
+/* =====================================================================
+   CHAPTER 3: DARK ALIENS — 어둠의 외계인들
+   ===================================================================== */
+
+const DarkShieldHit: React.FC<{ w: number; h: number }> = ({ w, h }) => (
+  <g>
+    <ellipse cx={w/2} cy={h/2} rx={w*0.48} ry={h*0.48} fill="none" stroke="#a855f7" strokeWidth="1.5" opacity="0.7" />
+    <ellipse cx={w/2} cy={h/2} rx={w*0.38} ry={h*0.38} fill="#7c3aed" opacity="0.08" />
+    <path d={`M${w*0.25},${h*0.2} L${w*0.4},${h*0.15} L${w*0.55},${h*0.22}`} fill="none" stroke="#c084fc" strokeWidth="1" opacity="0.8" />
+    <path d={`M${w*0.6},${h*0.75} L${w*0.75},${h*0.7} L${w*0.8},${h*0.55}`} fill="none" stroke="#c084fc" strokeWidth="1" opacity="0.6" />
+    <path d={`M${w*0.15},${h*0.6} L${w*0.3},${h*0.7} L${w*0.25},${h*0.85}`} fill="none" stroke="#a855f7" strokeWidth="0.8" opacity="0.5" />
+    <polygon points={`${w*0.3},${h*0.15} ${w*0.38},${h*0.1} ${w*0.45},${h*0.15} ${w*0.45},${h*0.25} ${w*0.38},${h*0.3} ${w*0.3},${h*0.25}`} fill="#7c3aed" opacity="0.15" stroke="#c084fc" strokeWidth="0.5" />
+    <polygon points={`${w*0.55},${h*0.65} ${w*0.63},${h*0.6} ${w*0.7},${h*0.65} ${w*0.7},${h*0.75} ${w*0.63},${h*0.8} ${w*0.55},${h*0.75}`} fill="#7c3aed" opacity="0.15" stroke="#c084fc" strokeWidth="0.5" />
+    <circle cx={w*0.2} cy={h*0.3} r="1.5" fill="#c084fc" opacity="0.9" />
+    <circle cx={w*0.75} cy={h*0.4} r="1" fill="#a855f7" opacity="0.7" />
+    <circle cx={w*0.5} cy={h*0.85} r="1.2" fill="#c084fc" opacity="0.8" />
+  </g>
+);
+
+/* ===== Dark Scout (그림자 정찰기) ===== */
+export const DarkScoutUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 40, hit }) => (
+  <svg viewBox="0 0 40 32" width={size} height={(size * 32) / 40}>
+    {/* 하부 공허빔 */}
+    <ellipse cx="20" cy="28" rx="6" ry="2" fill="#7c3aed" opacity="0.25" className="engine-flame" />
+    {/* 원반 본체 */}
+    <ellipse cx="20" cy="20" rx="18" ry="7" fill="#1a0a2a" stroke="#0d0518" strokeWidth="1" />
+    {/* 상부 */}
+    <ellipse cx="20" cy="19" rx="16" ry="5" fill="#2a1040" />
+    {/* 그림자 맥 */}
+    <path d="M8,19 Q14,17 20,19 Q26,21 32,19" fill="none" stroke="#7c3aed" strokeWidth="0.4" opacity="0.4" />
+    {/* 라이트 링 */}
+    <ellipse cx="20" cy="22" rx="15" ry="3" fill="none" stroke="#7c3aed" strokeWidth="0.6" opacity="0.5" strokeDasharray="3 2" />
+    {/* 돔 */}
+    <ellipse cx="20" cy="16" rx="8" ry="8" fill="#6b21a8" opacity="0.3" />
+    <path d="M12,16 Q20,4 28,16" fill="#7c3aed" opacity="0.35" />
+    {/* 돔 하이라이트 */}
+    <ellipse cx="17" cy="12" rx="3" ry="2.5" fill="rgba(192,132,252,0.25)" />
+    {/* 안테나 */}
+    <line x1="20" y1="8" x2="20" y2="4" stroke="#a855f7" strokeWidth="0.8" />
+    <circle cx="20" cy="3.5" r="1.2" fill="#a855f7" opacity="0.8" className="engine-flame" />
+    {/* 사이드 라이트 */}
+    <circle cx="6" cy="21" r="1.5" fill="#7c3aed" opacity="0.6" className="engine-flame" />
+    <circle cx="34" cy="21" r="1.5" fill="#7c3aed" opacity="0.6" className="engine-flame" />
+    {hit && <DarkShieldHit w={40} h={32} />}
+  </svg>
+);
+
+/* ===== Dark Fighter (암흑 전투기) ===== */
+export const DarkFighterUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 50, hit }) => (
+  <svg viewBox="0 0 50 44" width={size} height={(size * 44) / 50}>
+    {/* 그림자 윙 좌 */}
+    <path d="M3,30 L18,18 L16,32Z" fill="#7c3aed" opacity="0.2" className="engine-flame" />
+    {/* 그림자 윙 우 */}
+    <path d="M47,30 L32,18 L34,32Z" fill="#7c3aed" opacity="0.2" className="engine-flame" />
+    {/* 메인 바디 */}
+    <path d="M25,6 L40,34 L25,30 L10,34Z" fill="#2d0a4a" stroke="#1a0530" strokeWidth="1" />
+    {/* 내부 */}
+    <path d="M25,12 L36,32 L25,28 L14,32Z" fill="#3d1060" opacity="0.6" />
+    {/* 공허 눈 */}
+    <ellipse cx="25" cy="18" rx="4" ry="3" fill="#0a0210" />
+    <ellipse cx="25" cy="18" rx="2.5" ry="1.8" fill="#c084fc" opacity="0.9" />
+    <circle cx="25" cy="18" r="1" fill="#7c3aed" />
+    {/* 그림자 맥 */}
+    <line x1="25" y1="14" x2="25" y2="26" stroke="#a855f7" strokeWidth="0.4" opacity="0.3" />
+    {/* 캐논 */}
+    <circle cx="12" cy="32" r="2" fill="#6b21a8" opacity="0.5" className="engine-flame" />
+    <circle cx="38" cy="32" r="2" fill="#6b21a8" opacity="0.5" className="engine-flame" />
+    {/* 엔진 */}
+    <ellipse cx="25" cy="36" rx="4" ry="2" fill="#7c3aed" opacity="0.4" className="engine-flame" />
+    {hit && <DarkShieldHit w={50} h={44} />}
+  </svg>
+);
+
+/* ===== Dark Bomber (공허 폭격기) ===== */
+export const DarkBomberUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 60, hit }) => (
+  <svg viewBox="0 0 60 50" width={size} height={(size * 50) / 60}>
+    {/* 어둠 오라 */}
+    <ellipse cx="30" cy="28" rx="28" ry="16" fill="#7c3aed" opacity="0.06" />
+    {/* 하부 공허빔 */}
+    <ellipse cx="30" cy="46" rx="8" ry="3" fill="#6b21a8" opacity="0.12" className="engine-flame" />
+    {/* 메인 디스크 */}
+    <ellipse cx="30" cy="28" rx="27" ry="12" fill="#0d0520" stroke="#08031a" strokeWidth="1.2" />
+    {/* 상부 */}
+    <ellipse cx="30" cy="26" rx="24" ry="9" fill="#1a0a30" />
+    {/* 그림자 맥 */}
+    <path d="M10,28 Q20,24 30,28 Q40,32 50,28" fill="none" stroke="#7c3aed" strokeWidth="0.5" opacity="0.35" />
+    {/* 에너지 코어 */}
+    <circle cx="30" cy="26" r="6" fill="#7c3aed" opacity="0.4" className="engine-flame" />
+    <circle cx="30" cy="26" r="3" fill="#c084fc" opacity="0.6" />
+    {/* 라이트 링 */}
+    {[0,1,2,3,4,5,6,7].map(i => {
+      const a = (i / 8) * Math.PI * 2;
+      return <circle key={i} cx={30 + Math.cos(a) * 20} cy={28 + Math.sin(a) * 8} r="1.2"
+        fill={i % 2 === 0 ? "#7c3aed" : "#a855f7"} opacity="0.5" className="engine-flame" />;
+    })}
+    {/* 하부 캐논 */}
+    <rect x="27" y="36" width="6" height="4" rx="1" fill="#08031a" />
+    <circle cx="30" cy="42" r="2" fill="#6b21a8" opacity="0.5" className="engine-flame" />
+    {hit && <DarkShieldHit w={60} h={50} />}
+  </svg>
+);
+
+/* ===== Dark Carrier (그림자 모선) ===== */
+export const DarkCarrierUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 80, hit }) => (
+  <svg viewBox="0 0 80 40" width={size} height={(size * 40) / 80}>
+    {/* 그림자 오라 */}
+    <ellipse cx="40" cy="22" rx="39" ry="18" fill="#7c3aed" opacity="0.04" />
+    {/* 실드 링 */}
+    <ellipse cx="40" cy="22" rx="38" ry="16" fill="none" stroke="#7c3aed" strokeWidth="0.4" opacity="0.15" strokeDasharray="4 3" />
+    {/* 메인 선체 */}
+    <ellipse cx="40" cy="22" rx="36" ry="13" fill="#0d0518" stroke="#08030f" strokeWidth="1" />
+    {/* 상부 */}
+    <ellipse cx="40" cy="20" rx="32" ry="10" fill="#1a0a28" />
+    {/* 그림자 정맥 */}
+    <path d="M12,22 Q26,18 40,22 Q54,26 68,22" fill="none" stroke="#7c3aed" strokeWidth="0.4" opacity="0.35" />
+    <path d="M20,18 L32,20 L48,17 L60,20" fill="none" stroke="#a855f7" strokeWidth="0.3" opacity="0.25" />
+    <path d="M16,24 L28,26 L40,23 L52,26 L64,24" fill="none" stroke="#6b21a8" strokeWidth="0.3" opacity="0.2" />
+    {/* 브릿지 */}
+    <rect x="32" y="12" width="16" height="8" rx="3" fill="#150825" stroke="#7c3aed" strokeWidth="0.5" opacity="0.8" />
+    <rect x="35" y="14" width="10" height="4" rx="2" fill="#7c3aed" opacity="0.15" />
+    {/* 도킹 포트 */}
+    <circle cx="18" cy="22" r="3" fill="#08030f" stroke="#a855f7" strokeWidth="0.4" />
+    <circle cx="18" cy="22" r="1.5" fill="#a855f7" opacity="0.4" className="engine-flame" />
+    <circle cx="62" cy="22" r="3" fill="#08030f" stroke="#a855f7" strokeWidth="0.4" />
+    <circle cx="62" cy="22" r="1.5" fill="#a855f7" opacity="0.4" className="engine-flame" />
+    {/* 윈도우 */}
+    {[26,32,38,44,50,56].map((x,i) => <rect key={i} x={x} y="20" width="2.5" height="1.5" rx="0.5" fill="#c084fc" opacity="0.35" />)}
+    {/* 엔진 */}
+    <ellipse cx="14" cy="30" rx="4" ry="2" fill="#6b21a8" opacity="0.4" className="engine-flame" />
+    <ellipse cx="40" cy="32" rx="5" ry="2" fill="#6b21a8" opacity="0.4" className="engine-flame" />
+    <ellipse cx="66" cy="30" rx="4" ry="2" fill="#6b21a8" opacity="0.4" className="engine-flame" />
+    {hit && <DarkShieldHit w={80} h={40} />}
+  </svg>
+);
+
+/* ===== Dark Elite (공허 엘리트) ===== */
+export const DarkEliteUfo: React.FC<{ size?: number; hit?: boolean }> = ({ size = 48, hit }) => (
+  <svg viewBox="0 0 48 48" width={size} height={size}>
+    {/* 공허 트레일 */}
+    <path d="M24,46 L20,38 L24,40 L28,38Z" fill="#6b21a8" opacity="0.2" className="engine-flame" />
+    {/* 다이아몬드 바디 */}
+    <path d="M24,4 L44,24 L24,44 L4,24Z" fill="#1a0530" stroke="#0d0218" strokeWidth="1" />
+    {/* 내부 */}
+    <path d="M24,10 L38,24 L24,38 L10,24Z" fill="#2d0a4a" opacity="0.6" />
+    {/* 코어 */}
+    <path d="M24,16 L32,24 L24,32 L16,24Z" fill="#7c3aed" opacity="0.3" />
+    {/* 공허 맥 */}
+    <line x1="24" y1="8" x2="24" y2="40" stroke="#a855f7" strokeWidth="0.3" opacity="0.3" />
+    <line x1="8" y1="24" x2="40" y2="24" stroke="#a855f7" strokeWidth="0.3" opacity="0.3" />
+    {/* 공허 눈 */}
+    <ellipse cx="24" cy="22" rx="5" ry="4" fill="#0a0210" />
+    <ellipse cx="24" cy="22" rx="3.5" ry="2.5" fill="#c084fc" opacity="0.85" />
+    <circle cx="24" cy="22" r="1.5" fill="#7c3aed" />
+    {/* 사이드 캐논 */}
+    <circle cx="8" cy="24" r="2.5" fill="#0d0218" stroke="#a855f7" strokeWidth="0.4" />
+    <circle cx="8" cy="24" r="1" fill="#a855f7" opacity="0.5" className="engine-flame" />
+    <circle cx="40" cy="24" r="2.5" fill="#0d0218" stroke="#a855f7" strokeWidth="0.4" />
+    <circle cx="40" cy="24" r="1" fill="#a855f7" opacity="0.5" className="engine-flame" />
+    {hit && <DarkShieldHit w={48} h={48} />}
+  </svg>
+);
+
+/* ===== Dark Boss (공허 보스) ===== */
+export const DarkBossSvg: React.FC<{ size?: number; hpRatio?: number; hit?: boolean }> = ({ size = 160, hpRatio = 1, hit }) => {
+  const phase = hpRatio > 0.5 ? 0 : hpRatio > 0.25 ? 1 : 2;
+  const C = [
+    { hull: "#0d0518", hullLt: "#1a0a30", glow: "#7c3aed", eye: "#c084fc", vein: "#6b21a8" },
+    { hull: "#08030f", hullLt: "#150825", glow: "#6b21a8", eye: "#a855f7", vein: "#581c87" },
+    { hull: "#050208", hullLt: "#0d0518", glow: "#581c87", eye: "#9333ea", vein: "#4c1d95" },
+  ][phase];
+  const w = 160, h = 120;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width={size} height={(size * h) / w}>
+      {/* 어둠 오라 (빛 흡수) */}
+      <ellipse cx="80" cy="60" rx="78" ry="56" fill="#000" opacity="0.15" />
+      <ellipse cx="80" cy="60" rx="75" ry="52" fill={C.glow} opacity="0.05" className="boss-shield" />
+      {/* 메인 선체 */}
+      <ellipse cx="80" cy="62" rx="70" ry="28" fill={C.hull} stroke={C.vein} strokeWidth="0.8" opacity="0.95" />
+      <ellipse cx="80" cy="58" rx="65" ry="24" fill={C.hullLt} />
+      {/* 공허 정맥 */}
+      <path d="M20,60 Q50,50 80,60 Q110,70 140,60" fill="none" stroke={C.vein} strokeWidth="0.8" opacity="0.5" />
+      <path d="M30,52 L55,56 L80,50 L105,56 L130,52" fill="none" stroke={C.glow} strokeWidth="0.5" opacity="0.3" />
+      <path d="M25,68 L50,72 L80,66 L110,72 L135,68" fill="none" stroke={C.vein} strokeWidth="0.4" opacity="0.25" />
+      <path d="M40,55 Q60,48 80,55 Q100,62 120,55" fill="none" stroke={C.glow} strokeWidth="0.3" opacity="0.2" />
+      {/* 공허 촉수 */}
+      <path d="M30,42 Q18,22 12,8" fill="none" stroke={C.glow} strokeWidth="1.5" opacity="0.5" />
+      <path d="M25,45 Q15,28 8,15" fill="none" stroke={C.vein} strokeWidth="0.8" opacity="0.3" />
+      <circle cx="12" cy="8" r="2.5" fill={C.eye} opacity="0.5" className="engine-flame" />
+      <path d="M130,42 Q142,22 148,8" fill="none" stroke={C.glow} strokeWidth="1.5" opacity="0.5" />
+      <path d="M135,45 Q145,28 152,15" fill="none" stroke={C.vein} strokeWidth="0.8" opacity="0.3" />
+      <circle cx="148" cy="8" r="2.5" fill={C.eye} opacity="0.5" className="engine-flame" />
+      {/* 추가 촉수 (어둠 고유) */}
+      <path d="M45,46 Q35,30 28,18" fill="none" stroke={C.vein} strokeWidth="1" opacity="0.3" />
+      <path d="M115,46 Q125,30 132,18" fill="none" stroke={C.vein} strokeWidth="1" opacity="0.3" />
+      {/* 브릿지 */}
+      <path d="M60,38 Q80,20 100,38" fill={C.hullLt} stroke={C.glow} strokeWidth="0.5" />
+      <path d="M65,38 Q80,26 95,38" fill={C.glow} opacity="0.1" />
+      {/* 중앙 대형 눈 */}
+      <ellipse cx="80" cy="48" rx="13" ry="9" fill="#020108" stroke={C.glow} strokeWidth="1" />
+      <ellipse cx="80" cy="48" rx="9" ry="6" fill={C.eye} opacity="0.7" />
+      <ellipse cx="80" cy="48" rx="5" ry="3.5" fill={C.glow} opacity="0.8" />
+      <circle cx="80" cy="48" r="2" fill="#fff" opacity="0.3" />
+      <ellipse cx="78" cy="46" rx="2" ry="1.5" fill="rgba(192,132,252,0.4)" />
+      {/* 사이드 눈 */}
+      <ellipse cx="45" cy="54" rx="5" ry="3.5" fill="#020108" />
+      <ellipse cx="45" cy="54" rx="3" ry="2" fill={C.eye} opacity="0.6" />
+      <circle cx="45" cy="54" r="1" fill={C.glow} />
+      <ellipse cx="115" cy="54" rx="5" ry="3.5" fill="#020108" />
+      <ellipse cx="115" cy="54" rx="3" ry="2" fill={C.eye} opacity="0.6" />
+      <circle cx="115" cy="54" r="1" fill={C.glow} />
+      {/* 추가 작은 눈 (어둠 고유) */}
+      <ellipse cx="60" cy="58" rx="3" ry="2" fill="#020108" />
+      <ellipse cx="60" cy="58" rx="1.8" ry="1.2" fill={C.eye} opacity="0.5" />
+      <ellipse cx="100" cy="58" rx="3" ry="2" fill="#020108" />
+      <ellipse cx="100" cy="58" rx="1.8" ry="1.2" fill={C.eye} opacity="0.5" />
+      {/* 캐논 포트 */}
+      {[30,55,105,130].map((x,i) => (
+        <React.Fragment key={i}>
+          <rect x={x-3} y="72" width="6" height="8" rx="2" fill={C.hull} stroke={C.vein} strokeWidth="0.4" />
+          <circle cx={x} cy="82" r="2.5" fill={C.glow} opacity="0.5" className="engine-flame" />
+        </React.Fragment>
+      ))}
+      {/* 라이트 링 */}
+      {[0,1,2,3,4,5,6,7,8,9,10,11].map(i => {
+        const a = (i / 12) * Math.PI * 2;
+        return <circle key={i} cx={80 + Math.cos(a) * 55} cy={62 + Math.sin(a) * 22} r="1.5"
+          fill={i % 2 === 0 ? C.glow : C.eye} opacity="0.4" className="engine-flame" />;
+      })}
+      {/* 엔진 */}
+      <ellipse cx="35" cy="80" rx="8" ry="3" fill={C.glow} opacity="0.35" className="engine-flame" />
+      <ellipse cx="80" cy="85" rx="10" ry="4" fill={C.glow} opacity="0.35" className="engine-flame" />
+      <ellipse cx="125" cy="80" rx="8" ry="3" fill={C.glow} opacity="0.35" className="engine-flame" />
+      {/* 어둠 파티클 */}
+      <circle cx="22" cy="38" r="1.5" fill={C.eye} opacity="0.3" className="engine-flame" />
+      <circle cx="138" cy="42" r="1.2" fill={C.eye} opacity="0.25" className="engine-flame" />
+      <circle cx="55" cy="28" r="1" fill={C.glow} opacity="0.3" className="engine-flame" />
+      <circle cx="105" cy="30" r="1.3" fill={C.glow} opacity="0.25" className="engine-flame" />
+      {hit && <DarkShieldHit w={w} h={h} />}
+    </svg>
+  );
+};

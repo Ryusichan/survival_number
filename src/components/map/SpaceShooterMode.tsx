@@ -9,6 +9,18 @@ import {
   CarrierUfo,
   EliteUfo,
   SpaceBossSvg,
+  FireScoutUfo,
+  FireFighterUfo,
+  FireBomberUfo,
+  FireCarrierUfo,
+  FireEliteUfo,
+  FireBossSvg,
+  DarkScoutUfo,
+  DarkFighterUfo,
+  DarkBomberUfo,
+  DarkCarrierUfo,
+  DarkEliteUfo,
+  DarkBossSvg,
   EnemyBulletSvg,
   ItemWeaponSvg,
   ItemFireRateSvg,
@@ -70,7 +82,19 @@ type SpaceEnemyKind =
   | "bomber"
   | "carrier"
   | "elite"
-  | "spaceBoss";
+  | "spaceBoss"
+  | "fireScout"
+  | "fireFighter"
+  | "fireBomber"
+  | "fireCarrier"
+  | "fireElite"
+  | "fireBoss"
+  | "darkScout"
+  | "darkFighter"
+  | "darkBomber"
+  | "darkCarrier"
+  | "darkElite"
+  | "darkBoss";
 
 type SpaceEnemy = {
   id: number;
@@ -144,7 +168,7 @@ const PLAYER_Y_MIN = 0.25;
 const PLAYER_Y_MAX = 0.92;
 const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 3;
-const MAX_STAGE = 10;
+const MAX_STAGE = 30;
 const MAX_CLONES = 12;
 const ENEMY_DROP_CHANCE = 0.3;
 const ITEM_SPEED = 0.18;
@@ -244,6 +268,104 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     damage: 3,
     widthUnits: 3.2,
     fireInterval: 0.6,
+    pattern: "hover",
+  },
+  // === Chapter 2: Fire (빠르고 공격적) ===
+  fireScout: {
+    hp: 3,
+    speed: 0.2,
+    damage: 1,
+    widthUnits: 0.8,
+    fireInterval: 0,
+    pattern: "straight",
+  },
+  fireFighter: {
+    hp: 5,
+    speed: 0.14,
+    damage: 2,
+    widthUnits: 1.0,
+    fireInterval: 2.0,
+    pattern: "zigzag",
+  },
+  fireBomber: {
+    hp: 16,
+    speed: 0.1,
+    damage: 3,
+    widthUnits: 1.4,
+    fireInterval: 2.5,
+    pattern: "straight",
+  },
+  fireCarrier: {
+    hp: 24,
+    speed: 0.07,
+    damage: 2,
+    widthUnits: 1.8,
+    fireInterval: 3.0,
+    pattern: "hover",
+  },
+  fireElite: {
+    hp: 8,
+    speed: 0.16,
+    damage: 3,
+    widthUnits: 1.0,
+    fireInterval: 1.6,
+    pattern: "zigzag",
+  },
+  fireBoss: {
+    hp: 160,
+    speed: 0.04,
+    damage: 4,
+    widthUnits: 3.4,
+    fireInterval: 0.5,
+    pattern: "hover",
+  },
+  // === Chapter 3: Dark (탱키, 고데미지) ===
+  darkScout: {
+    hp: 5,
+    speed: 0.12,
+    damage: 2,
+    widthUnits: 0.9,
+    fireInterval: 0,
+    pattern: "straight",
+  },
+  darkFighter: {
+    hp: 8,
+    speed: 0.1,
+    damage: 2,
+    widthUnits: 1.1,
+    fireInterval: 2.2,
+    pattern: "zigzag",
+  },
+  darkBomber: {
+    hp: 22,
+    speed: 0.07,
+    damage: 3,
+    widthUnits: 1.5,
+    fireInterval: 2.8,
+    pattern: "straight",
+  },
+  darkCarrier: {
+    hp: 32,
+    speed: 0.05,
+    damage: 2,
+    widthUnits: 2.0,
+    fireInterval: 3.2,
+    pattern: "hover",
+  },
+  darkElite: {
+    hp: 12,
+    speed: 0.11,
+    damage: 3,
+    widthUnits: 1.1,
+    fireInterval: 1.8,
+    pattern: "zigzag",
+  },
+  darkBoss: {
+    hp: 240,
+    speed: 0.035,
+    damage: 5,
+    widthUnits: 3.6,
+    fireInterval: 0.45,
     pattern: "hover",
   },
 };
@@ -357,6 +479,249 @@ const STAGE_RULES: StageRule[] = [
     speedMul: 1.0,
     isBoss: true,
   },
+  // === CHAPTER 2: FIRE (stages 11-20) ===
+  /* 11 */ {
+    spawnInterval: 1.6,
+    maxAlive: 10,
+    batchMin: 2,
+    batchMax: 4,
+    kindWeights: { fireScout: 0.8, fireFighter: 0.2 },
+    hpMul: 1.0,
+    speedMul: 1.0,
+  },
+  /* 12 */ {
+    spawnInterval: 1.4,
+    maxAlive: 12,
+    batchMin: 2,
+    batchMax: 4,
+    kindWeights: { fireScout: 0.5, fireFighter: 0.4, fireBomber: 0.1 },
+    hpMul: 1.1,
+    speedMul: 1.03,
+  },
+  /* 13 */ {
+    spawnInterval: 1.3,
+    maxAlive: 12,
+    batchMin: 3,
+    batchMax: 5,
+    kindWeights: {
+      fireScout: 0.3,
+      fireFighter: 0.35,
+      fireBomber: 0.25,
+      fireCarrier: 0.1,
+    },
+    hpMul: 1.2,
+    speedMul: 1.06,
+  },
+  /* 14 */ {
+    spawnInterval: 1.2,
+    maxAlive: 14,
+    batchMin: 3,
+    batchMax: 5,
+    kindWeights: {
+      fireScout: 0.2,
+      fireFighter: 0.3,
+      fireBomber: 0.2,
+      fireCarrier: 0.2,
+      fireElite: 0.1,
+    },
+    hpMul: 1.3,
+    speedMul: 1.08,
+  },
+  /* 15 */ {
+    spawnInterval: 1.1,
+    maxAlive: 14,
+    batchMin: 3,
+    batchMax: 5,
+    kindWeights: {
+      fireScout: 0.15,
+      fireFighter: 0.25,
+      fireBomber: 0.2,
+      fireCarrier: 0.15,
+      fireElite: 0.25,
+    },
+    hpMul: 1.4,
+    speedMul: 1.1,
+  },
+  /* 16 */ {
+    spawnInterval: 1.0,
+    maxAlive: 16,
+    batchMin: 3,
+    batchMax: 6,
+    kindWeights: {
+      fireFighter: 0.25,
+      fireBomber: 0.25,
+      fireCarrier: 0.2,
+      fireElite: 0.3,
+    },
+    hpMul: 1.5,
+    speedMul: 1.12,
+  },
+  /* 17 */ {
+    spawnInterval: 0.9,
+    maxAlive: 16,
+    batchMin: 4,
+    batchMax: 6,
+    kindWeights: {
+      fireFighter: 0.2,
+      fireBomber: 0.25,
+      fireCarrier: 0.2,
+      fireElite: 0.35,
+    },
+    hpMul: 1.6,
+    speedMul: 1.14,
+  },
+  /* 18 */ {
+    spawnInterval: 0.8,
+    maxAlive: 18,
+    batchMin: 4,
+    batchMax: 7,
+    kindWeights: {
+      fireFighter: 0.15,
+      fireBomber: 0.3,
+      fireCarrier: 0.2,
+      fireElite: 0.35,
+    },
+    hpMul: 1.7,
+    speedMul: 1.16,
+  },
+  /* 19 */ {
+    spawnInterval: 0.7,
+    maxAlive: 18,
+    batchMin: 4,
+    batchMax: 7,
+    kindWeights: { fireBomber: 0.25, fireCarrier: 0.25, fireElite: 0.5 },
+    hpMul: 1.85,
+    speedMul: 1.18,
+  },
+  /* 20 */ {
+    spawnInterval: 0.3,
+    maxAlive: 1,
+    batchMin: 1,
+    batchMax: 1,
+    kindWeights: { fireBoss: 1 },
+    hpMul: 1.0,
+    speedMul: 1.0,
+    isBoss: true,
+  },
+  // === CHAPTER 3: DARK (stages 21-30) ===
+  /* 21 */ {
+    spawnInterval: 1.5,
+    maxAlive: 10,
+    batchMin: 2,
+    batchMax: 4,
+    kindWeights: { darkScout: 0.7, darkFighter: 0.3 },
+    hpMul: 1.0,
+    speedMul: 1.0,
+  },
+  /* 22 */ {
+    spawnInterval: 1.3,
+    maxAlive: 12,
+    batchMin: 3,
+    batchMax: 4,
+    kindWeights: { darkScout: 0.4, darkFighter: 0.4, darkBomber: 0.2 },
+    hpMul: 1.1,
+    speedMul: 1.03,
+  },
+  /* 23 */ {
+    spawnInterval: 1.2,
+    maxAlive: 14,
+    batchMin: 3,
+    batchMax: 5,
+    kindWeights: {
+      darkScout: 0.25,
+      darkFighter: 0.3,
+      darkBomber: 0.25,
+      darkCarrier: 0.2,
+    },
+    hpMul: 1.2,
+    speedMul: 1.06,
+  },
+  /* 24 */ {
+    spawnInterval: 1.1,
+    maxAlive: 14,
+    batchMin: 3,
+    batchMax: 5,
+    kindWeights: {
+      darkScout: 0.15,
+      darkFighter: 0.25,
+      darkBomber: 0.2,
+      darkCarrier: 0.2,
+      darkElite: 0.2,
+    },
+    hpMul: 1.3,
+    speedMul: 1.08,
+  },
+  /* 25 */ {
+    spawnInterval: 1.0,
+    maxAlive: 16,
+    batchMin: 3,
+    batchMax: 6,
+    kindWeights: {
+      darkScout: 0.1,
+      darkFighter: 0.2,
+      darkBomber: 0.2,
+      darkCarrier: 0.2,
+      darkElite: 0.3,
+    },
+    hpMul: 1.45,
+    speedMul: 1.1,
+  },
+  /* 26 */ {
+    spawnInterval: 0.9,
+    maxAlive: 16,
+    batchMin: 4,
+    batchMax: 6,
+    kindWeights: {
+      darkFighter: 0.2,
+      darkBomber: 0.25,
+      darkCarrier: 0.2,
+      darkElite: 0.35,
+    },
+    hpMul: 1.6,
+    speedMul: 1.12,
+  },
+  /* 27 */ {
+    spawnInterval: 0.85,
+    maxAlive: 18,
+    batchMin: 4,
+    batchMax: 7,
+    kindWeights: {
+      darkFighter: 0.15,
+      darkBomber: 0.25,
+      darkCarrier: 0.25,
+      darkElite: 0.35,
+    },
+    hpMul: 1.75,
+    speedMul: 1.14,
+  },
+  /* 28 */ {
+    spawnInterval: 0.75,
+    maxAlive: 18,
+    batchMin: 4,
+    batchMax: 7,
+    kindWeights: { darkBomber: 0.2, darkCarrier: 0.25, darkElite: 0.55 },
+    hpMul: 1.9,
+    speedMul: 1.16,
+  },
+  /* 29 */ {
+    spawnInterval: 0.65,
+    maxAlive: 20,
+    batchMin: 5,
+    batchMax: 8,
+    kindWeights: { darkBomber: 0.2, darkCarrier: 0.3, darkElite: 0.5 },
+    hpMul: 2.1,
+    speedMul: 1.18,
+  },
+  /* 30 */ {
+    spawnInterval: 0.3,
+    maxAlive: 1,
+    batchMin: 1,
+    batchMax: 1,
+    kindWeights: { darkBoss: 1 },
+    hpMul: 1.0,
+    speedMul: 1.0,
+    isBoss: true,
+  },
 ];
 
 /* =========================================================
@@ -367,8 +732,51 @@ const randInt = (a: number, b: number) =>
   Math.floor(a + Math.random() * (b - a + 1));
 const randFloat = (a: number, b: number) => a + Math.random() * (b - a);
 
+const BOSS_KINDS = new Set<SpaceEnemyKind>([
+  "spaceBoss",
+  "fireBoss",
+  "darkBoss",
+]);
+const ELITE_KINDS = new Set<SpaceEnemyKind>([
+  "elite",
+  "fireElite",
+  "darkElite",
+]);
+function isBossKind(kind: SpaceEnemyKind) {
+  return BOSS_KINDS.has(kind);
+}
+function isBossStage(stage: number) {
+  return stage === 10 || stage === 20 || stage === 30;
+}
+function getChapter(stage: number): 1 | 2 | 3 {
+  return stage <= 10 ? 1 : stage <= 20 ? 2 : 3;
+}
+function getChapterInfo(stage: number) {
+  const ch = getChapter(stage);
+  if (ch === 1)
+    return {
+      name: "SPACE ZONE",
+      subtitle: "우주의 외계인들",
+      color: "#60a5fa",
+      glowColor: "rgba(100,150,255,0.5)",
+    };
+  if (ch === 2)
+    return {
+      name: "FIRE ZONE",
+      subtitle: "불의 외계인들",
+      color: "#f97316",
+      glowColor: "rgba(255,120,30,0.5)",
+    };
+  return {
+    name: "DARK ZONE",
+    subtitle: "어둠의 외계인들",
+    color: "#a855f7",
+    glowColor: "rgba(168,85,247,0.5)",
+  };
+}
+
 function stageTarget(stage: number) {
-  if (stage >= MAX_STAGE) return 1; // boss: kill 1
+  if (isBossStage(stage)) return 1;
   const idx = (stage - 1) % 10;
   return FIRST_STAGE_TARGET + idx * NEXT_STAGE_STEP;
 }
@@ -471,7 +879,7 @@ function makeEnemy(kind: SpaceEnemyKind, rule: StageRule): SpaceEnemy {
     id: _eid++,
     kind,
     x: randFloat(hw, LANE_COUNT - hw),
-    y: kind === "spaceBoss" ? -0.3 : randFloat(-0.15, -0.05),
+    y: isBossKind(kind) ? -0.3 : randFloat(-0.15, -0.05),
     hp: Math.ceil(spec.hp * rule.hpMul),
     maxHp: Math.ceil(spec.hp * rule.hpMul),
     speed: spec.speed * rule.speedMul,
@@ -480,12 +888,12 @@ function makeEnemy(kind: SpaceEnemyKind, rule: StageRule): SpaceEnemy {
     hitFx: 0,
     pattern: spec.pattern,
     patternPhase: Math.random() * Math.PI * 2,
-    patternAmp: spec.pattern === "zigzag" || kind === "elite" ? 0.6 : 0,
-    patternFreq: kind === "elite" ? 3.0 : 2.0,
+    patternAmp: spec.pattern === "zigzag" || ELITE_KINDS.has(kind) ? 0.6 : 0,
+    patternFreq: ELITE_KINDS.has(kind) ? 3.0 : 2.0,
     fireAcc: 0,
     fireInterval: spec.fireInterval,
-    bossPhase: kind === "spaceBoss" ? 0 : undefined,
-    bossPatternIdx: kind === "spaceBoss" ? 0 : undefined,
+    bossPhase: isBossKind(kind) ? 0 : undefined,
+    bossPatternIdx: isBossKind(kind) ? 0 : undefined,
   };
 }
 
@@ -821,9 +1229,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           for (let i = 0; i < batch && s.enemies.length < rule.maxAlive; i++) {
             const kind =
               rule.isBoss && !s.bossSpawned
-                ? ("spaceBoss" as SpaceEnemyKind)
+                ? (Object.keys(rule.kindWeights)[0] as SpaceEnemyKind)
                 : pickKind(rule.kindWeights);
-            if (kind === "spaceBoss") s.bossSpawned = true;
+            if (isBossKind(kind)) s.bossSpawned = true;
             s.enemies.push(makeEnemy(kind, rule));
           }
         }
@@ -865,8 +1273,14 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             radius: 0.08,
             damage: e.damage,
           });
-          if (e.kind === "spaceBoss") {
-            for (const off of [-0.3, 0.3]) {
+          if (isBossKind(e.kind)) {
+            const offsets =
+              e.kind === "fireBoss"
+                ? [-0.4, -0.2, 0.2, 0.4]
+                : e.kind === "darkBoss"
+                  ? [-0.5, -0.25, 0.25, 0.5]
+                  : [-0.3, 0.3];
+            for (const off of offsets) {
               s.enemyBullets.push({
                 id: _bid++,
                 x: e.x,
@@ -923,7 +1337,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               s.totalScore++;
               const drop = maybeDropItem(e.x, e.y);
               if (drop) s.items.push(drop);
-            } else if (e.kind === "spaceBoss" && Math.random() < 0.1) {
+            } else if (isBossKind(e.kind) && Math.random() < 0.1) {
               const bossDrop = maybeDropItem(e.x, e.y + 0.05);
               if (bossDrop) s.items.push(bossDrop);
             }
@@ -1077,7 +1491,11 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         overscrollBehavior: "none",
         WebkitOverflowScrolling: "touch",
         background:
-          "linear-gradient(180deg, #050510 0%, #0a0a2e 50%, #050510 100%)",
+          getChapter(stage) === 1
+            ? "linear-gradient(180deg, #050510 0%, #0a0a2e 50%, #050510 100%)"
+            : getChapter(stage) === 2
+              ? "linear-gradient(180deg, #150505 0%, #2e0a0a 50%, #150505 100%)"
+              : "linear-gradient(180deg, #0a0510 0%, #150a2e 50%, #0a0510 100%)",
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -1102,32 +1520,49 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       ))}
 
       {/* ===== Nebula effects ===== */}
-      <div
-        style={{
-          position: "absolute",
-          left: "20%",
-          top: "30%",
-          width: 200,
-          height: 200,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(100,50,180,0.06) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          right: "10%",
-          top: "60%",
-          width: 160,
-          height: 160,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(50,100,200,0.05) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
+      {(() => {
+        const ch = getChapter(stage);
+        const n1 =
+          ch === 1
+            ? "rgba(100,50,180,0.06)"
+            : ch === 2
+              ? "rgba(200,80,30,0.08)"
+              : "rgba(120,40,200,0.08)";
+        const n2 =
+          ch === 1
+            ? "rgba(50,100,200,0.05)"
+            : ch === 2
+              ? "rgba(180,50,20,0.06)"
+              : "rgba(80,20,160,0.06)";
+        return (
+          <>
+            <div
+              style={{
+                position: "absolute",
+                left: "20%",
+                top: "30%",
+                width: 200,
+                height: 200,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${n1} 0%, transparent 70%)`,
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: "10%",
+                top: "60%",
+                width: 160,
+                height: 160,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, ${n2} 0%, transparent 70%)`,
+                pointerEvents: "none",
+              }}
+            />
+          </>
+        );
+      })()}
 
       <BackButton onExit={onExit} />
 
@@ -1146,7 +1581,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           zIndex: 10,
         }}
       >
-        STAGE {stage}
+        STAGE {stage}{" "}
+        <span
+          style={{
+            fontSize: "clamp(10px, 2.5vw, 11px)",
+            opacity: 0.6,
+            color: getChapterInfo(stage).color,
+          }}
+        >
+          CH{getChapter(stage)}
+        </span>
       </div>
       <div
         style={{
@@ -1370,18 +1814,28 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         const py = yToPx(e.y);
         const w = e.widthUnits * laneWidth;
         const isHit = e.hitFx > 0;
-        const Svg =
-          e.kind === "scout"
-            ? ScoutUfo
-            : e.kind === "fighter"
-              ? FighterUfo
-              : e.kind === "bomber"
-                ? BomberUfo
-                : e.kind === "carrier"
-                  ? CarrierUfo
-                  : e.kind === "elite"
-                    ? EliteUfo
-                    : null;
+        const ENEMY_SVG: Record<
+          string,
+          React.FC<{ size?: number; hit?: boolean }> | null
+        > = {
+          scout: ScoutUfo,
+          fighter: FighterUfo,
+          bomber: BomberUfo,
+          carrier: CarrierUfo,
+          elite: EliteUfo,
+          fireScout: FireScoutUfo,
+          fireFighter: FireFighterUfo,
+          fireBomber: FireBomberUfo,
+          fireCarrier: FireCarrierUfo,
+          fireElite: FireEliteUfo,
+          darkScout: DarkScoutUfo,
+          darkFighter: DarkFighterUfo,
+          darkBomber: DarkBomberUfo,
+          darkCarrier: DarkCarrierUfo,
+          darkElite: DarkEliteUfo,
+        };
+        const Svg = ENEMY_SVG[e.kind] ?? null;
+        const boss = isBossKind(e.kind);
 
         return (
           <div
@@ -1391,16 +1845,22 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               left: px,
               top: py,
               transform: "translate(-50%, -50%)",
-              zIndex: e.kind === "spaceBoss" ? 18 : 14,
+              zIndex: boss ? 18 : 14,
             }}
           >
-            {e.kind === "spaceBoss" ? (
-              <SpaceBossSvg size={w} hpRatio={e.hp / e.maxHp} hit={isHit} />
+            {boss ? (
+              e.kind === "fireBoss" ? (
+                <FireBossSvg size={w} hpRatio={e.hp / e.maxHp} hit={isHit} />
+              ) : e.kind === "darkBoss" ? (
+                <DarkBossSvg size={w} hpRatio={e.hp / e.maxHp} hit={isHit} />
+              ) : (
+                <SpaceBossSvg size={w} hpRatio={e.hp / e.maxHp} hit={isHit} />
+              )
             ) : Svg ? (
               <Svg size={w} hit={isHit} />
             ) : null}
             {/* HP bar */}
-            {e.kind !== "spaceBoss" && e.hp < e.maxHp && (
+            {!boss && e.hp < e.maxHp && (
               <div
                 style={{
                   position: "absolute",
@@ -1425,7 +1885,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               </div>
             )}
             {/* Boss HP bar */}
-            {e.kind === "spaceBoss" && (
+            {boss && (
               <div
                 style={{
                   position: "absolute",
@@ -1444,7 +1904,12 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                     width: `${(e.hp / e.maxHp) * 100}%`,
                     height: "100%",
                     borderRadius: 3,
-                    background: "linear-gradient(90deg, #ef4444, #f59e0b)",
+                    background:
+                      e.kind === "fireBoss"
+                        ? "linear-gradient(90deg, #ef4444, #f97316)"
+                        : e.kind === "darkBoss"
+                          ? "linear-gradient(90deg, #7c3aed, #a855f7)"
+                          : "linear-gradient(90deg, #ef4444, #f59e0b)",
                   }}
                 />
               </div>
@@ -1592,22 +2057,38 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             style={{
               fontSize: "clamp(10px, 2.5vw, 12px)",
               letterSpacing: 4,
-              opacity: 0.6,
+              opacity: 0.7,
               marginBottom: 4,
+              color: getChapterInfo(stage).color,
             }}
           >
-            SPACE SHOOTER
+            {getChapterInfo(stage).name}
           </div>
+          {(stage === 1 || stage === 11 || stage === 21) && (
+            <div
+              style={{
+                fontSize: "clamp(9px, 2vw, 11px)",
+                opacity: 0.5,
+                marginBottom: 6,
+              }}
+            >
+              {getChapterInfo(stage).subtitle}
+            </div>
+          )}
           <div
             style={{
               fontSize: "clamp(20px, 5.5vw, 28px)",
               fontWeight: 900,
               fontFamily: "Fredoka",
-              textShadow: "0 0 20px rgba(100,150,255,0.5)",
+              textShadow: `0 0 20px ${getChapterInfo(stage).glowColor}`,
               whiteSpace: "nowrap",
             }}
           >
-            {stage === MAX_STAGE ? "F I N A L" : `S T A G E  ${stage}`}
+            {stage === MAX_STAGE
+              ? "F I N A L  B O S S"
+              : isBossStage(stage)
+                ? "B O S S"
+                : `S T A G E  ${stage}`}
           </div>
           <div
             style={{
@@ -1616,7 +2097,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               opacity: 0.5,
             }}
           >
-            {stage === MAX_STAGE
+            {isBossStage(stage)
               ? "BOSS BATTLE"
               : `목표: ${stageTarget(stage)} KILL`}
           </div>
