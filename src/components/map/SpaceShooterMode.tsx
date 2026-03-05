@@ -241,7 +241,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   bomber: {
     hp: 14,
     speed: 0.08,
-    damage: 2,
+    damage: 1,
     widthUnits: 1.4,
     fireInterval: 3.0,
     pattern: "straight",
@@ -257,7 +257,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   elite: {
     hp: 6,
     speed: 0.13,
-    damage: 2,
+    damage: 1,
     widthUnits: 1.0,
     fireInterval: 2.0,
     pattern: "zigzag",
@@ -265,7 +265,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   spaceBoss: {
     hp: 100,
     speed: 0.04,
-    damage: 3,
+    damage: 2,
     widthUnits: 3.2,
     fireInterval: 0.6,
     pattern: "hover",
@@ -282,7 +282,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   fireFighter: {
     hp: 5,
     speed: 0.14,
-    damage: 2,
+    damage: 1,
     widthUnits: 1.0,
     fireInterval: 2.0,
     pattern: "zigzag",
@@ -290,7 +290,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   fireBomber: {
     hp: 16,
     speed: 0.1,
-    damage: 3,
+    damage: 2,
     widthUnits: 1.4,
     fireInterval: 2.5,
     pattern: "straight",
@@ -298,7 +298,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   fireCarrier: {
     hp: 24,
     speed: 0.07,
-    damage: 2,
+    damage: 1,
     widthUnits: 1.8,
     fireInterval: 3.0,
     pattern: "hover",
@@ -306,7 +306,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   fireElite: {
     hp: 8,
     speed: 0.16,
-    damage: 3,
+    damage: 2,
     widthUnits: 1.0,
     fireInterval: 1.6,
     pattern: "zigzag",
@@ -314,16 +314,16 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   fireBoss: {
     hp: 160,
     speed: 0.04,
-    damage: 4,
+    damage: 2,
     widthUnits: 3.4,
-    fireInterval: 0.5,
+    fireInterval: 0.6,
     pattern: "hover",
   },
   // === Chapter 3: Dark (탱키, 고데미지) ===
   darkScout: {
     hp: 5,
     speed: 0.12,
-    damage: 2,
+    damage: 1,
     widthUnits: 0.9,
     fireInterval: 0,
     pattern: "straight",
@@ -331,7 +331,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   darkFighter: {
     hp: 8,
     speed: 0.1,
-    damage: 2,
+    damage: 1,
     widthUnits: 1.1,
     fireInterval: 2.2,
     pattern: "zigzag",
@@ -339,7 +339,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   darkBomber: {
     hp: 22,
     speed: 0.07,
-    damage: 3,
+    damage: 2,
     widthUnits: 1.5,
     fireInterval: 2.8,
     pattern: "straight",
@@ -347,7 +347,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   darkCarrier: {
     hp: 32,
     speed: 0.05,
-    damage: 2,
+    damage: 1,
     widthUnits: 2.0,
     fireInterval: 3.2,
     pattern: "hover",
@@ -355,7 +355,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   darkElite: {
     hp: 12,
     speed: 0.11,
-    damage: 3,
+    damage: 2,
     widthUnits: 1.1,
     fireInterval: 1.8,
     pattern: "zigzag",
@@ -363,9 +363,9 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
   darkBoss: {
     hp: 240,
     speed: 0.035,
-    damage: 5,
+    damage: 3,
     widthUnits: 3.6,
-    fireInterval: 0.45,
+    fireInterval: 0.55,
     pattern: "hover",
   },
 };
