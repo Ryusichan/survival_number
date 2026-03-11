@@ -7,7 +7,7 @@ const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.2;
 const ROW_GAP = 0.2;
 
-type Player = { lane: number; value: number };
+type Player = { x: number; value: number };
 type RowKind = "normal" | "goal";
 type Row = {
   id: number;
@@ -174,7 +174,7 @@ function makeProjectors(height: number) {
 }
 
 const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
-  const [player, setPlayer] = useState<Player>({ lane: 2, value: 0 });
+  const [player, setPlayer] = useState<Player>({ x: 2.5, value: 0 });
   const [rows, setRows] = useState<Row[]>([]);
   const [stage, setStage] = useState(0);
   const [goalValues, setGoalValues] = useState<number[]>([]);
@@ -203,7 +203,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
   const [failBoardOpen, setFailBoardOpen] = useState(false);
   const lastTimeRef = useRef<number | null>(null);
-  const latestLane = useRef(player.lane);
+  const latestX = useRef(player.x);
   const latestValue = useRef(player.value);
   const latestGoal = useRef(goalValues);
   const latestStage = useRef(stage);
@@ -223,7 +223,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    latestLane.current = player.lane;
+    latestX.current = player.x;
     latestValue.current = player.value;
   }, [player]);
 
@@ -290,7 +290,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     });
 
     setRows(newRows);
-    setPlayer((prev) => ({ ...prev, value: 0 }));
+    setPlayer((prev) => ({ ...prev, value: 0, x: LANE_COUNT / 2 }));
   };
 
   useEffect(() => {
@@ -299,17 +299,16 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     initStage(0, true);
   }, []);
 
+  const clamp = (v: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, v));
+
   useEffect(() => {
+    const STEP = 0.55;
     const onKeyDown = (e: KeyboardEvent) => {
-      setPlayer((prev) => {
-        if (e.key === "ArrowLeft") {
-          return { ...prev, lane: Math.max(0, prev.lane - 1) };
-        }
-        if (e.key === "ArrowRight") {
-          return { ...prev, lane: Math.min(LANE_COUNT - 1, prev.lane + 1) };
-        }
-        return prev;
-      });
+      if (e.key === "ArrowLeft")
+        setPlayer((p) => ({ ...p, x: clamp(p.x - STEP, 0, LANE_COUNT) }));
+      if (e.key === "ArrowRight")
+        setPlayer((p) => ({ ...p, x: clamp(p.x + STEP, 0, LANE_COUNT) }));
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -318,11 +317,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const movePlayerByTouchX = (clientX: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const laneWidthPx = rect.width / LANE_COUNT;
-    let lane = Math.floor(x / laneWidthPx);
-    lane = Math.max(0, Math.min(LANE_COUNT - 1, lane));
-    setPlayer((prev) => ({ ...prev, lane }));
+    const xPx = clientX - rect.left;
+    const xUnits = (xPx / rect.width) * LANE_COUNT;
+    setPlayer((p) => ({ ...p, x: clamp(xUnits, 0, LANE_COUNT) }));
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) =>
@@ -343,53 +340,79 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       let hitGoal = false;
       let success = false;
 
+      const HIT_RADIUS_Y = 0.06; // Y 근접 판정 범위
+      const HIT_RADIUS_X = 0.65; // X 근접 판정 범위 (레인 단위)
+
       setRows((prev) => {
         const next: Row[] = [];
         let addValue = 0;
+        const px = latestX.current;
 
         for (const row of prev) {
-          const prevY = row.y;
           const newY = row.y + ROW_SPEED * dt;
 
-          if (row.kind === "normal" && row.fadeOut && newY > PLAYER_Y + 0.12) {
-            continue;
-          }
+          // 화면 밖으로 나간 행 제거
+          if (newY > 1.3) continue;
 
-          const justCrossed =
-            !row.handled && prevY < PLAYER_Y && newY >= PLAYER_Y;
-
-          if (justCrossed) {
-            const laneHit = latestLane.current;
-
-            if (row.kind === "normal") {
-              const picked = row.values[laneHit];
-              addValue += picked;
-              next.push({
-                ...row,
-                y: newY,
-                handled: true,
-                hitLane: laneHit,
-                fadeOut: true,
-              });
-            } else if (row.kind === "goal") {
-              hitGoal = true;
-              const optionIndex = laneHit < LANE_COUNT / 2 ? 0 : 1;
-              const chosenGoalNumber = row.values[optionIndex];
-              const totalAfterHit = latestValue.current + addValue;
-              success = totalAfterHit === chosenGoalNumber;
-              next.push({
-                ...row,
-                y: newY,
-                handled: true,
-                hitLane: laneHit,
-              });
-            }
-            continue;
-          }
-
-          if (newY <= 1.3) {
+          // 이미 처리된 행은 Y만 갱신하고 그대로 진행
+          if (row.handled) {
             next.push({ ...row, y: newY });
+            continue;
           }
+
+          // 근접 판정: Y가 플레이어 근처에 있는지
+          const yClose = Math.abs(newY - PLAYER_Y) < HIT_RADIUS_Y;
+
+          if (yClose) {
+            if (row.kind === "normal") {
+              // 각 레인의 숫자와 플레이어 X 거리 비교 → 가장 가까운 것 선택
+              let bestLane = -1;
+              let bestDist = Infinity;
+              for (let li = 0; li < row.values.length; li++) {
+                const laneCenterX = li + 0.5; // 레인 중심 (단위 좌표)
+                const dist = Math.abs(px - laneCenterX);
+                if (dist < HIT_RADIUS_X && dist < bestDist) {
+                  bestDist = dist;
+                  bestLane = li;
+                }
+              }
+              if (bestLane >= 0) {
+                const picked = row.values[bestLane];
+                addValue += picked;
+                next.push({
+                  ...row,
+                  y: newY,
+                  handled: true,
+                  hitLane: bestLane,
+                });
+                continue;
+              }
+            } else if (row.kind === "goal") {
+              // goal: 왼쪽/오른쪽 영역에 닿으면 판정
+              const goalHitRadiusX = LANE_COUNT * 0.35;
+              const leftCenter = LANE_COUNT * 0.25;
+              const rightCenter = LANE_COUNT * 0.75;
+              const distL = Math.abs(px - leftCenter);
+              const distR = Math.abs(px - rightCenter);
+
+              if (distL < goalHitRadiusX || distR < goalHitRadiusX) {
+                hitGoal = true;
+                const optionIndex = distL <= distR ? 0 : 1;
+                const chosenGoalNumber = row.values[optionIndex];
+                const totalAfterHit = latestValue.current + addValue;
+                success = totalAfterHit === chosenGoalNumber;
+                next.push({
+                  ...row,
+                  y: newY,
+                  handled: true,
+                  hitLane: optionIndex,
+                });
+                continue;
+              }
+            }
+          }
+
+          next.push({ ...row, y: newY });
         }
 
         if (addValue > 0) {
@@ -422,6 +445,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   }, [failBoardOpen]);
 
   const laneWidth = WIDTH / LANE_COUNT;
+  const xUnitsToPx = (xUnits: number) => (xUnits / LANE_COUNT) * WIDTH;
 
   const handleRetry = () => {
     setFailBoardOpen(false);
@@ -835,11 +859,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           const baseX = laneIndex * laneWidth + laneWidth / 2;
           const x = centerX + (baseX - centerX) * spread;
 
-          const cellOpacity = row.fadeOut
-            ? 0
-            : row.hitLane === laneIndex
-              ? 0
-              : 1;
+          const cellOpacity = row.hitLane === laneIndex ? 0 : 1;
 
           // 깊이에 따른 알파 (멀수록 약간 투명)
           const depthT = clamp01(
@@ -878,7 +898,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
       {/* ===== Player ===== */}
       {(() => {
-        const x = player.lane * laneWidth + laneWidth / 2;
+        const x = xUnitsToPx(player.x);
         const y = PLAYER_Y * HEIGHT;
 
         return (

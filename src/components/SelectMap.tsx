@@ -301,22 +301,6 @@ function PixelTitle() {
         </linearGradient>
       </defs>
       <g filter="url(#pxGlow)">{blocks}</g>
-      <rect
-        x={-PAD}
-        y={-PAD}
-        width={70}
-        height={SVG_H + PAD * 2}
-        fill="url(#pxSweep)"
-        opacity={0.7}
-      >
-        <animate
-          attributeName="x"
-          from={-70 - PAD}
-          to={SVG_W + PAD}
-          dur="2.8s"
-          repeatCount="indefinite"
-        />
-      </rect>
     </svg>
   );
 }
