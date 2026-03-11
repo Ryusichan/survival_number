@@ -1458,6 +1458,18 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  /* ---- render-only loop for non-playing modes (so touch/keyboard still moves player) ---- */
+  useEffect(() => {
+    if (mode === "playing") return;
+    let raf: number;
+    const renderLoop = () => {
+      forceRender((t) => t + 1);
+      raf = requestAnimationFrame(renderLoop);
+    };
+    raf = requestAnimationFrame(renderLoop);
+    return () => cancelAnimationFrame(raf);
+  }, [mode]);
+
   /* ---- handlers ---- */
   const handleRetrySameStage = () => {
     g.current = initGameState();
