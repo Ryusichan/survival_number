@@ -1127,6 +1127,17 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const xToPx = (xu: number) => (xu / LANE_COUNT) * WIDTH;
   const yToPx = (yu: number) => yu * HEIGHT;
 
+  const togglePause = () => {
+    setMode((m) => {
+      if (m === "playing") return "paused";
+      if (m === "paused") {
+        lastTimeRef.current = null;
+        return "playing";
+      }
+      return m;
+    });
+  };
+
   /* =========================================================
      GAME LOOP (all mutations on g.current, then forceRender)
      ========================================================= */
@@ -1564,16 +1575,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         );
       })()}
 
-      <BackButton onExit={onExit} />
+      <BackButton onExit={onExit} onPause={togglePause} isPaused={mode === "paused"} />
 
       {/* ===== HUD ===== */}
       <div
         style={{
           position: "absolute",
-          top: "max(8px, env(safe-area-inset-top))",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 6px)",
           left: "50%",
           transform: "translateX(-50%)",
-          fontSize: "clamp(20px, 5vw, 28px)",
+          fontSize: "clamp(22px, 5vw, 28px)",
           fontFamily: "Fredoka",
           fontWeight: 600,
           color: "#fff",
@@ -1595,11 +1606,13 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       <div
         style={{
           position: "absolute",
-          top: "calc(max(8px, env(safe-area-inset-top)) + 34px)",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
           left: 12,
           fontSize: "clamp(11px, 3vw, 13px)",
-          color: "#aaa",
+          color: "rgba(255,255,255,0.85)",
           fontWeight: 700,
+          fontFamily: "Fredoka",
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
       >
@@ -1608,11 +1621,13 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       <div
         style={{
           position: "absolute",
-          top: "calc(max(8px, env(safe-area-inset-top)) + 34px)",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
           right: 12,
           fontSize: "clamp(11px, 3vw, 13px)",
-          color: "#aaa",
+          color: "rgba(255,255,255,0.85)",
           fontWeight: 700,
+          fontFamily: "Fredoka",
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
       >
@@ -2036,6 +2051,90 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         );
       })}
 
+      {/* ===== Pause overlay ===== */}
+      {mode === "paused" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            padding: 24,
+            gap: 10,
+            zIndex: 300,
+          }}
+        >
+          <div style={{ fontSize: 48, marginBottom: 8 }}>⏸️</div>
+          <div
+            style={{
+              fontSize: "clamp(20px, 5vw, 24px)",
+              fontWeight: 900,
+              fontFamily: "Fredoka",
+            }}
+          >
+            PAUSED
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(12px, 3vw, 14px)",
+              opacity: 0.9,
+              fontFamily: "Fredoka",
+            }}
+          >
+            STAGE {stage} · TOTAL: {totalScore}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              justifyContent: "center",
+              marginTop: 6,
+            }}
+          >
+            <button
+              onClick={togglePause}
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #34d399, #059669)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+              }}
+            >
+              계속하기
+            </button>
+            <button
+              onClick={handleRetrySameStage}
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #60a5fa, #2563eb)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+              }}
+            >
+              다시 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ===== Chapter Banner (start of stage) ===== */}
       {mode === "chapter" && (
         <div
@@ -2047,8 +2146,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             zIndex: 200,
             pointerEvents: "none",
             background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
             borderRadius: 16,
-            padding: "16px 32px",
+            padding: "18px 36px",
             textAlign: "center",
             color: "#fff",
           }}
@@ -2059,6 +2159,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               letterSpacing: 4,
               opacity: 0.7,
               marginBottom: 4,
+              fontFamily: "Fredoka",
               color: getChapterInfo(stage).color,
             }}
           >
@@ -2070,6 +2171,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                 fontSize: "clamp(9px, 2vw, 11px)",
                 opacity: 0.5,
                 marginBottom: 6,
+                fontFamily: "Fredoka",
               }}
             >
               {getChapterInfo(stage).subtitle}
@@ -2095,6 +2197,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               marginTop: 8,
               fontSize: "clamp(10px, 2.5vw, 12px)",
               opacity: 0.5,
+              fontFamily: "Fredoka",
             }}
           >
             {isBossStage(stage)
@@ -2115,6 +2218,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             zIndex: 200,
             pointerEvents: "none",
             background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(4px)",
             borderRadius: 16,
             padding: "14px 28px",
             textAlign: "center",
@@ -2141,6 +2245,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             position: "absolute",
             inset: 0,
             background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -2151,19 +2256,32 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             zIndex: 300,
           }}
         >
-          <div style={{ fontSize: 44, marginBottom: 6 }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>
             {mode === "gameover" ? "💀" : "🏆"}
           </div>
-          <div style={{ fontSize: "clamp(18px, 5vw, 22px)", fontWeight: 1000 }}>
+          <div
+            style={{
+              fontSize: "clamp(20px, 5vw, 24px)",
+              fontWeight: 900,
+              fontFamily: "Fredoka",
+            }}
+          >
             {mode === "gameover" ? "GAME OVER" : "ALL CLEAR!"}
-          </div>
-          <div style={{ fontSize: "clamp(12px, 3vw, 14px)", opacity: 0.92 }}>
-            STAGE {stage} · SCORE {score} / {target}
           </div>
           <div
             style={{
               fontSize: "clamp(12px, 3vw, 14px)",
-              opacity: 0.92,
+              opacity: 0.9,
+              fontFamily: "Fredoka",
+            }}
+          >
+            STAGE {stage} · {score} / {target}
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(12px, 3vw, 14px)",
+              opacity: 0.9,
+              fontFamily: "Fredoka",
               marginBottom: 10,
             }}
           >
@@ -2180,15 +2298,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             <button
               onClick={handleRetrySameStage}
               style={{
-                padding: "12px 18px",
+                padding: "12px 20px",
                 borderRadius: 12,
                 border: "none",
                 fontWeight: 900,
                 fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
                 background: "linear-gradient(180deg, #60a5fa, #2563eb)",
                 color: "#fff",
                 cursor: "pointer",
-                boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
               }}
             >
               다시하기
@@ -2196,15 +2315,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             <button
               onClick={onExit}
               style={{
-                padding: "12px 18px",
+                padding: "12px 20px",
                 borderRadius: 12,
                 border: "none",
                 fontWeight: 900,
                 fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
                 background: "linear-gradient(180deg, #6b7280, #374151)",
                 color: "#fff",
                 cursor: "pointer",
-                boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
               }}
             >
               나가기

@@ -2724,23 +2724,24 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           pointer-events:none;
         }
       `}</style>
-      <BackButton onExit={onExit} />
+      <BackButton onExit={onExit} onPause={togglePause} isPaused={world.mode === "paused"} />
       <div className={`${stageBg}`} />
       <div className="vignette" />
       {/* HUD */}
       <div
         style={{
           position: "absolute",
-          top: 10,
+          top: "calc(max(8px, env(safe-area-inset-top)) + 6px)",
           left: "50%",
           transform: "translateX(-50%)",
+          fontSize: "clamp(22px, 5vw, 28px)",
+          fontFamily: "Fredoka",
+          fontWeight: 600,
           color: "#fff",
-          fontWeight: 900,
-          fontSize: 28,
-          textShadow: "0 2px 6px rgba(0,0,0,0.55)",
+          textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+          zIndex: 10,
         }}
         onClick={() => {
-          // 테스트용: 다음 스테이지로 이동
           handleNextStage();
         }}
       >
@@ -2749,46 +2750,32 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       <div
         style={{
           position: "absolute",
-          top: 10,
-          right: 12,
-          color: "#35c6ffff",
-          fontWeight: 900,
-          fontSize: 18,
-          textShadow: "0 2px 6px rgba(0,0,0,0.55)",
-          textAlign: "right",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
+          left: 12,
+          fontSize: "clamp(11px, 3vw, 13px)",
+          color: "rgba(255,255,255,0.85)",
+          fontWeight: 700,
+          fontFamily: "Fredoka",
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          zIndex: 10,
         }}
       >
-        총점수 {world.totalScore}
-        <button
-          onClick={togglePause}
-          style={{
-            zIndex: 200,
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.35)",
-            background: "rgba(0,0,0,0.35)",
-            color: "#fff",
-            fontWeight: 900,
-            cursor: "pointer",
-            backdropFilter: "blur(6px)",
-            marginLeft: 8,
-          }}
-        >
-          {world.mode === "paused" ? "▶ 시작" : "⏸"}
-        </button>
+        {world.stageScore} / {target}
       </div>
       <div
         style={{
           position: "absolute",
-          top: 38,
-          right: 60,
-          color: "rgba(255,255,255,0.9)",
-          fontWeight: 900,
-          fontSize: 12,
-          textAlign: "right",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
+          right: 12,
+          fontSize: "clamp(11px, 3vw, 13px)",
+          color: "rgba(255,255,255,0.85)",
+          fontWeight: 700,
+          fontFamily: "Fredoka",
+          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          zIndex: 10,
         }}
       >
-        목표: {world.stageScore} / {target}
+        TOTAL: {world.totalScore}
       </div>
       {/* currentBullet */}
       <div
@@ -3003,7 +2990,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(0,0,0,0.72)",
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -3014,8 +3002,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             zIndex: 300,
           }}
         >
-          {/* ✅ 아이콘 */}
-          <div style={{ fontSize: 44, marginBottom: 6 }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>
             {world.mode === "gameover"
               ? "💀"
               : world.mode === "cleared"
@@ -3023,8 +3010,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 : "⏸️"}
           </div>
 
-          {/* ✅ 타이틀 */}
-          <div style={{ fontSize: 22, fontWeight: 1000 }}>
+          <div
+            style={{
+              fontSize: "clamp(20px, 5vw, 24px)",
+              fontWeight: 900,
+              fontFamily: "Fredoka",
+            }}
+          >
             {world.mode === "gameover"
               ? "GAME OVER"
               : world.mode === "cleared"
@@ -3032,81 +3024,115 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 : "PAUSED"}
           </div>
 
-          {/* ✅ paused일 때는 점수줄 필요 없으면 숨김 */}
           {world.mode !== "paused" && (
             <>
-              <div style={{ fontSize: 14, opacity: 0.92 }}>
-                STAGE {world.stage} · STAGE SCORE {world.stageScore} / {target}
+              <div
+                style={{
+                  fontSize: "clamp(12px, 3vw, 14px)",
+                  opacity: 0.9,
+                  fontFamily: "Fredoka",
+                }}
+              >
+                STAGE {world.stage} · {world.stageScore} / {target}
               </div>
-              <div style={{ fontSize: 14, opacity: 0.92, marginBottom: 10 }}>
-                TOTAL SCORE: {world.totalScore}
+              <div
+                style={{
+                  fontSize: "clamp(12px, 3vw, 14px)",
+                  opacity: 0.9,
+                  fontFamily: "Fredoka",
+                  marginBottom: 10,
+                }}
+              >
+                TOTAL: {world.totalScore}
               </div>
             </>
           )}
 
-          <div style={{ display: "flex", gap: 10 }}>
-            {/* ✅ paused 전용 버튼: 재개 */}
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
             {world.mode === "paused" && (
               <button
                 onClick={resumeGame}
                 style={{
-                  padding: "12px 18px",
+                  padding: "12px 20px",
                   borderRadius: 12,
                   border: "none",
-                  fontWeight: 1000,
-                  fontSize: 16,
+                  fontWeight: 900,
+                  fontSize: "clamp(14px, 3.5vw, 16px)",
+                  fontFamily: "Fredoka",
                   background: "linear-gradient(180deg, #34d399, #059669)",
                   color: "#fff",
                   cursor: "pointer",
-                  boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                  boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
                 }}
               >
                 계속하기
               </button>
             )}
 
-            {/* ✅ 공통: 다시 시작 (paused에서도 가능하게 할지 선택 가능) */}
             <button
               onClick={handleRetry}
               style={{
-                padding: "12px 18px",
+                padding: "12px 20px",
                 borderRadius: 12,
                 border: "none",
                 fontWeight: 900,
-                fontSize: 16,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
                 background: "linear-gradient(180deg, #60a5fa, #2563eb)",
                 color: "#fff",
                 cursor: "pointer",
-                boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
               }}
             >
               다시 시작
             </button>
 
-            {/* ✅ cleared 전용: 다음 스테이지 */}
             {world.mode === "cleared" && world.stage < MAX_STAGE && (
               <button
                 onClick={handleNextStage}
                 style={{
-                  padding: "12px 18px",
+                  padding: "12px 20px",
                   borderRadius: 12,
                   border: "none",
-                  fontWeight: 1000,
-                  fontSize: 16,
+                  fontWeight: 900,
+                  fontSize: "clamp(14px, 3.5vw, 16px)",
+                  fontFamily: "Fredoka",
                   background: "linear-gradient(180deg, #34d399, #059669)",
                   color: "#fff",
                   cursor: "pointer",
-                  boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+                  boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
                 }}
               >
                 다음 STAGE
               </button>
             )}
 
-            {/* ✅ gameover에서만 보여주고 싶으면 (선택) */}
-            {/* {world.mode === "gameover" && (
-        <button ...>나가기</button>
-      )} */}
+            {world.mode === "gameover" && (
+              <button
+                onClick={onExit}
+                style={{
+                  padding: "12px 20px",
+                  borderRadius: 12,
+                  border: "none",
+                  fontWeight: 900,
+                  fontSize: "clamp(14px, 3.5vw, 16px)",
+                  fontFamily: "Fredoka",
+                  background: "linear-gradient(180deg, #6b7280, #374151)",
+                  color: "#fff",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+                }}
+              >
+                나가기
+              </button>
+            )}
           </div>
         </div>
       )}

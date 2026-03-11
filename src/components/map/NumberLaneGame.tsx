@@ -202,6 +202,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const HEIGHT = viewport.height || 780;
 
   const [failBoardOpen, setFailBoardOpen] = useState(false);
+  const [paused, setPaused] = useState(false);
   const lastTimeRef = useRef<number | null>(null);
   const latestX = useRef(player.x);
   const latestValue = useRef(player.value);
@@ -328,8 +329,16 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     movePlayerByTouchX(e.touches[0].clientX);
   const handleTouchEnd = () => {};
 
+  const togglePause = () => {
+    setPaused((p) => {
+      if (!p) return true;
+      lastTimeRef.current = null;
+      return false;
+    });
+  };
+
   useEffect(() => {
-    if (failBoardOpen) return;
+    if (failBoardOpen || paused) return;
     let frameId: number;
 
     const loop = (time: number) => {
@@ -442,7 +451,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
     frameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frameId);
-  }, [failBoardOpen]);
+  }, [failBoardOpen, paused]);
 
   const laneWidth = WIDTH / LANE_COUNT;
   const xUnitsToPx = (xUnits: number) => (xUnits / LANE_COUNT) * WIDTH;
@@ -739,21 +748,20 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
         }}
       />
 
-      <BackButton onExit={onExit} />
+      <BackButton onExit={onExit} onPause={togglePause} isPaused={paused} />
 
       {/* HUD */}
       <div
         style={{
           position: "absolute",
-          top: 8,
+          top: "calc(max(8px, env(safe-area-inset-top)) + 6px)",
           left: "50%",
           transform: "translateX(-50%)",
-          fontSize: 32,
+          fontSize: "clamp(22px, 5vw, 28px)",
           fontFamily: "Fredoka",
           fontWeight: 600,
           color: "#fff",
-          textShadow:
-            "-1px -1px 0 #2a6e9e, 1px -1px 0 #2a6e9e, -1px 1px 0 #2a6e9e, 1px 1px 0 #2a6e9e, 0 2px 8px rgba(0,0,0,0.3)",
+          textShadow: "0 2px 8px rgba(0,0,0,0.6)",
           zIndex: 10,
         }}
       >
@@ -762,11 +770,12 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       <div
         style={{
           position: "absolute",
-          top: 46,
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
           left: 12,
-          fontSize: 13,
-          color: "#fff",
+          fontSize: "clamp(11px, 3vw, 13px)",
+          color: "rgba(255,255,255,0.85)",
           fontWeight: 700,
+          fontFamily: "Fredoka",
           textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
@@ -776,11 +785,12 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       <div
         style={{
           position: "absolute",
-          top: 46,
+          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
           right: 12,
-          fontSize: 13,
-          color: "#fff",
+          fontSize: "clamp(11px, 3vw, 13px)",
+          color: "rgba(255,255,255,0.85)",
           fontWeight: 700,
+          fontFamily: "Fredoka",
           textShadow: "0 1px 4px rgba(0,0,0,0.4)",
           zIndex: 10,
         }}
@@ -992,88 +1002,152 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
         );
       })()}
 
+      {/* ===== Pause overlay ===== */}
+      {paused && !failBoardOpen && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            padding: 24,
+            gap: 10,
+            zIndex: 300,
+          }}
+        >
+          <div style={{ fontSize: 48, marginBottom: 8 }}>⏸️</div>
+          <div
+            style={{
+              fontSize: "clamp(20px, 5vw, 24px)",
+              fontWeight: 900,
+              fontFamily: "Fredoka",
+            }}
+          >
+            PAUSED
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <button
+              onClick={togglePause}
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #34d399, #059669)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+              }}
+            >
+              계속하기
+            </button>
+            <button
+              onClick={handleRetry}
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #60a5fa, #2563eb)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+              }}
+            >
+              다시 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ===== Fail overlay ===== */}
       {failBoardOpen && (
         <div
           style={{
             position: "absolute",
             inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(4px)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             color: "#fff",
-            zIndex: 100,
+            padding: 24,
+            gap: 10,
+            zIndex: 300,
           }}
         >
+          <div style={{ fontSize: 48, marginBottom: 8 }}>💀</div>
           <div
             style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.72)",
-              backdropFilter: "blur(4px)",
-              zIndex: 3,
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "rgb(100,100,100)",
-              background: "#fff",
-              zIndex: 4,
-              width: "100%",
-              maxWidth: "320px",
-              boxSizing: "border-box",
-              padding: 36,
-              borderRadius: 36,
-              textAlign: "center",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+              fontSize: "clamp(20px, 5vw, 24px)",
+              fontWeight: 900,
+              fontFamily: "Fredoka",
             }}
           >
-            <div
-              style={{
-                fontSize: 80,
-                marginBottom: 12,
-                backgroundColor: "#c5c5c5",
-                padding: 12,
-                borderRadius: "50%",
-              }}
-            >
-              💀
-            </div>
-            <div style={{ fontSize: 36, marginBottom: 12, fontWeight: 700 }}>
-              실패
-            </div>
-            <div>
-              <div style={{ fontSize: 16, marginBottom: 12 }}>기록</div>
-              <div
-                style={{
-                  fontSize: 24,
-                  fontFamily: "Fredoka",
-                  marginBottom: 24,
-                }}
-              >
-                STAGE{stage + 1}
-              </div>
-            </div>
+            GAME OVER
+          </div>
+          <div
+            style={{
+              fontSize: "clamp(12px, 3vw, 14px)",
+              opacity: 0.9,
+              fontFamily: "Fredoka",
+              marginBottom: 10,
+            }}
+          >
+            STAGE {stage + 1}
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
             <button
               onClick={handleRetry}
               style={{
-                padding: "12px 24px",
-                fontSize: 16,
+                padding: "12px 20px",
                 borderRadius: 12,
                 border: "none",
-                background: "linear-gradient(180deg, #e6952e, #c47520)",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #60a5fa, #2563eb)",
                 color: "#fff",
                 cursor: "pointer",
-                fontWeight: 700,
-                boxShadow: "0 8px 20px rgba(230,149,46,0.35)",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
               }}
             >
               다시 도전
+            </button>
+            <button
+              onClick={onExit}
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 3.5vw, 16px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #6b7280, #374151)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
+              }}
+            >
+              나가기
             </button>
           </div>
         </div>
