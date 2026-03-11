@@ -272,21 +272,7 @@ code {
 }
 
 .select_container {
-  background-image: url("/public//bg/select_mainbg.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-}
-
-.zoombie_box {
-  background-image: url("/public//bg/zoombie_bg.png");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-}
-
-.count_box {
-  background-image: url("/public//bg/count_bg.png");
+  background-image: url("/public//bg/select_mainbg.webp");
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;

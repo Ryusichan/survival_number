@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(CI=true npx react-scripts build:*)",
+      "Bash(npx tsc --noEmit)"
+    ]
+  }
+}
