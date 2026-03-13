@@ -5,7 +5,8 @@
       "Bash(npx tsc --noEmit)",
       "Bash(xargs wc -l)",
       "Bash(ls -la /d/ryu/portfolio/mini_game/src/*.css)",
-      "Bash(npx tsc --noEmit --pretty)"
+      "Bash(npx tsc --noEmit --pretty)",
+      "Bash(npx react-scripts:*)"
     ]
   }
 }

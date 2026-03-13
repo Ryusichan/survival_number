@@ -26,7 +26,6 @@ import {
   ItemShotgunSvg,
   ItemLaserSvg,
   ItemPierceSvg,
-  ItemCloneSvg,
   ItemHealPillSvg,
 } from "./spaceSvgAssets";
 
@@ -49,8 +48,24 @@ type CombatState = {
 };
 type Item =
   | { id: number; x: number; y: number; kind: "weapon"; weaponId: WeaponId }
-  | { id: number; x: number; y: number; kind: "addClone"; count: 1 | 2 | 3 }
-  | { id: number; x: number; y: number; kind: "heal" };
+  | { id: number; x: number; y: number; kind: "heal" }
+  | { id: number; x: number; y: number; kind: "bomb" };
+
+type BombProjectile = {
+  x: number;
+  y: number;
+  speed: number;
+  targetY: number;
+};
+type ActiveNuke = {
+  x: number;
+  y: number;
+  t: number;
+  duration: number;
+  dps: number;
+  radiusUnits: number;
+  dmgAcc: number;
+};
 
 type Mode = "playing" | "paused" | "cleared" | "gameover" | "chapter";
 
@@ -135,8 +150,6 @@ type Player = {
   hp: number;
   maxHp: number;
 };
-type CloneUnit = { id: number; dx: number; dy: number };
-
 type Star = {
   x: number;
   y: number;
@@ -160,7 +173,6 @@ const PLAYER_Y_MAX = 0.92;
 const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 3;
 const MAX_STAGE = 30;
-const MAX_CLONES = 12;
 const ENEMY_DROP_CHANCE = 0.1;
 const ITEM_SPEED = 0.18;
 
@@ -871,18 +883,17 @@ function spawnExplosion(s: GameState, x: number, y: number, size: number) {
 function maybeDropItem(x: number, y: number): Item | null {
   if (Math.random() > ENEMY_DROP_CHANCE) return null;
   const r = Math.random();
-  // 10% heal pill
-  // 30% heal
-  if (r < 0.3) return { id: _iid++, x, y, kind: "heal" };
-  // 60% weapon
-  if (r < 0.9) {
+  // 25% heal
+  if (r < 0.25) return { id: _iid++, x, y, kind: "heal" };
+  // 55% weapon
+  if (r < 0.8) {
     const w: WeaponId = (["laser", "pierce", "shotgun"] as WeaponId[])[
       randInt(0, 2)
     ];
     return { id: _iid++, x, y, kind: "weapon", weaponId: w };
   }
-  // 10% clone
-  return { id: _iid++, x, y, kind: "addClone", count: 1 };
+  // 20% bomb
+  return { id: _iid++, x, y, kind: "bomb" };
 }
 
 function generateStars(): Star[] {
@@ -915,24 +926,6 @@ function generateStars(): Star[] {
 }
 
 /* =========================================================
-   Clone Slots
-   ========================================================= */
-const CLONE_SLOTS: { dx: number; dy: number }[] = [
-  { dx: -0.35, dy: 0.04 },
-  { dx: 0.35, dy: 0.04 },
-  { dx: -0.35, dy: -0.04 },
-  { dx: 0.35, dy: -0.04 },
-  { dx: -0.7, dy: 0 },
-  { dx: 0.7, dy: 0 },
-  { dx: -0.7, dy: 0.06 },
-  { dx: 0.7, dy: 0.06 },
-  { dx: -1.05, dy: 0.02 },
-  { dx: 1.05, dy: 0.02 },
-  { dx: -1.05, dy: -0.04 },
-  { dx: 1.05, dy: -0.04 },
-];
-
-/* =========================================================
    Component
    ========================================================= */
 interface Props {
@@ -946,7 +939,6 @@ type GameState = {
   enemyBullets: EnemyBullet[];
   items: Item[];
   combat: CombatState;
-  clones: CloneUnit[];
   score: number;
   totalScore: number;
   fireAcc: number;
@@ -958,6 +950,10 @@ type GameState = {
   laserHitY: number;
   laserHitEnemyId: number | null;
   explosions: Explosion[];
+  bombCount: number;
+  bombProjectile: BombProjectile | null;
+  activeNuke: ActiveNuke | null;
+  bombShieldT: number; // seconds remaining of invincibility
 };
 
 function initGameState(): GameState {
@@ -977,7 +973,6 @@ function initGameState(): GameState {
       weaponId: "pistol",
       weaponLevel: 1,
     },
-    clones: [],
     score: 0,
     totalScore: 0,
     fireAcc: 0,
@@ -989,6 +984,10 @@ function initGameState(): GameState {
     laserHitY: 0,
     laserHitEnemyId: null,
     explosions: [],
+    bombCount: 2,
+    bombProjectile: null,
+    activeNuke: null,
+    bombShieldT: 0,
   };
 }
 
@@ -1096,6 +1095,18 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   };
   const onTouchEnd = () => {
     touchRef.current = null;
+  };
+
+  const fireBomb = () => {
+    const s = g.current;
+    if (s.bombCount <= 0 || s.bombProjectile || s.activeNuke) return;
+    s.bombCount--;
+    s.bombProjectile = {
+      x: s.player.x,
+      y: s.player.y,
+      speed: 0.8,
+      targetY: s.player.y - 0.3,
+    };
   };
 
   /* ---- coordinate helpers ---- */
@@ -1209,14 +1220,6 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         if (s.fireAcc >= weapon.fireIntervalSec) {
           s.fireAcc = 0;
           const shooters = [{ x: p.x, y: p.y }];
-          for (let i = 0; i < s.clones.length; i++) {
-            const slot = CLONE_SLOTS[i];
-            if (slot)
-              shooters.push({
-                x: clamp(p.x + slot.dx, 0, LANE_COUNT),
-                y: clamp(p.y + slot.dy, PLAYER_Y_MIN, PLAYER_Y_MAX),
-              });
-          }
           for (const sh of shooters) {
             if (weapon.pellets === 1) {
               s.bullets.push({
@@ -1396,10 +1399,64 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       for (const ex of s.explosions) ex.t += dt;
       s.explosions = s.explosions.filter((ex) => ex.t < ex.duration);
 
+      /* -- bomb projectile -- */
+      if (s.bombProjectile) {
+        const bp = s.bombProjectile;
+        bp.y -= bp.speed * dt;
+        if (bp.y <= bp.targetY) {
+          // detonate nuke
+          const halfScreenUnits = LANE_COUNT * 0.5;
+          s.activeNuke = {
+            x: bp.x,
+            y: bp.targetY,
+            t: 0,
+            duration: 3,
+            dps: 10,
+            radiusUnits: halfScreenUnits,
+            dmgAcc: 0,
+          };
+          s.bombShieldT = 3;
+          s.bombProjectile = null;
+        }
+      }
+
+      /* -- active nuke -- */
+      if (s.activeNuke) {
+        const nk = s.activeNuke;
+        nk.t += dt;
+        nk.dmgAcc += dt;
+        const dmgInterval = 0.1; // damage every 0.1s
+        while (nk.dmgAcc >= dmgInterval) {
+          nk.dmgAcc -= dmgInterval;
+          const dmgPerTick = nk.dps * dmgInterval;
+          for (const e of s.enemies) {
+            if (e.hp <= 0) continue;
+            const dx = e.x - nk.x;
+            const dy = (e.y - nk.y) * LANE_COUNT; // scale y to match x units
+            if (dx * dx + dy * dy < nk.radiusUnits * nk.radiusUnits) {
+              e.hp -= dmgPerTick;
+              e.hitFx = 0.06;
+              if (e.hp <= 0) {
+                s.score++;
+                s.totalScore++;
+                spawnExplosion(s, e.x, e.y, e.widthUnits);
+                const drop = maybeDropItem(e.x, e.y);
+                if (drop) s.items.push(drop);
+              }
+            }
+          }
+        }
+        if (nk.t >= nk.duration) s.activeNuke = null;
+      }
+
+      /* -- bomb shield tick -- */
+      if (s.bombShieldT > 0) s.bombShieldT -= dt;
+
       /* -- collision: enemy bullets vs player -- */
+      const shielded = s.bombShieldT > 0;
       if (s.hurtCd > 0) {
         s.hurtCd -= dt;
-      } else {
+      } else if (!shielded) {
         const aliveEB: EnemyBullet[] = [];
         let dmg = 0;
         for (const b of s.enemyBullets) {
@@ -1432,7 +1489,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       }
 
       /* -- collision: enemy body vs player -- */
-      if (s.hurtCd <= 0) {
+      if (s.hurtCd <= 0 && !shielded) {
         for (const e of s.enemies) {
           const dist = (e.widthUnits + p.widthUnits) * 0.3;
           if (
@@ -1456,12 +1513,10 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       const remainItems: Item[] = [];
       for (const it of s.items) {
         if (Math.abs(it.x - p.x) < 0.6 && Math.abs(it.y - p.y) < 0.08) {
-          if (it.kind === "heal") {
+          if (it.kind === "bomb") {
+            s.bombCount = Math.min(5, s.bombCount + 1);
+          } else if (it.kind === "heal") {
             p.hp = p.maxHp;
-          } else if (it.kind === "addClone") {
-            for (let i = 0; i < it.count && s.clones.length < MAX_CLONES; i++) {
-              s.clones.push({ id: Date.now() + i, dx: 0, dy: 0 });
-            }
           } else {
             s.combat = applyItem(s.combat, it);
           }
@@ -1521,12 +1576,15 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
     items,
     score,
     totalScore,
-    clones,
     hurtCd,
     stageBannerT,
     laserOn,
     laserHitY,
     explosions,
+    bombCount,
+    bombProjectile,
+    activeNuke,
+    bombShieldT,
   } = g.current;
   const target = stageTarget(stage);
   const playerHpPct = player.hp / player.maxHp;
@@ -1687,7 +1745,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         TOTAL: {totalScore}
       </div>
 
-      {/* ===== Weapon Slot (bottom-left circular) ===== */}
+      {/* ===== Bottom-left HUD (bomb + weapon) ===== */}
       {(() => {
         const wid = combat.weaponId;
         const lv = combat.weaponLevel;
@@ -1707,6 +1765,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               : wid !== "pistol"
                 ? `0 0 6px ${borderColor}40`
                 : "none";
+        const hasBomb = bombCount > 0 && !bombProjectile && !activeNuke;
         return (
           <div
             style={{
@@ -1714,13 +1773,68 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               bottom: "max(28px, calc(env(safe-area-inset-bottom) + 16px))",
               left: 10,
               zIndex: 30,
-              pointerEvents: "none",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 3,
+              gap: 6,
+              pointerEvents: "none",
             }}
           >
+            {/* ---- Bomb Slot ---- */}
+            <button
+              onClick={fireBomb}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: `2.5px solid ${hasBomb ? "#00aaff" : "rgba(255,255,255,0.15)"}`,
+                background: hasBomb ? "rgba(0,140,255,0.12)" : "rgba(0,0,0,0.4)",
+                backdropFilter: "blur(4px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: hasBomb ? "0 0 10px rgba(0,140,255,0.4)" : "none",
+                position: "relative",
+                cursor: hasBomb ? "pointer" : "default",
+                pointerEvents: "auto",
+                padding: 0,
+              }}
+            >
+              {/* Bomb icon SVG */}
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+                <circle cx={12} cy={14} r={8} fill={hasBomb ? "#00aaff" : "#555"} opacity={0.8} />
+                <circle cx={12} cy={14} r={5.5} fill={hasBomb ? "#0088dd" : "#444"} />
+                <circle cx={12} cy={14} r={2.5} fill={hasBomb ? "#aaddff" : "#666"} />
+                <line x1={12} y1={6} x2={12} y2={2} stroke={hasBomb ? "#66ccff" : "#555"} strokeWidth={2} strokeLinecap="round" />
+                {hasBomb && <circle cx={12} cy={2} r={2} fill="#66ccff" opacity={0.9}>
+                  <animate attributeName="opacity" values="0.9;0.3;0.9" dur="0.6s" repeatCount="indefinite" />
+                </circle>}
+              </svg>
+              {/* Count badge */}
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: -2,
+                  right: -2,
+                  fontSize: 9,
+                  fontWeight: 900,
+                  fontFamily: "Fredoka",
+                  color: "#fff",
+                  background: hasBomb ? "#0077cc" : "#333",
+                  borderRadius: "50%",
+                  width: 16,
+                  height: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1.5px solid rgba(0,0,0,0.4)",
+                }}
+              >
+                {bombCount}
+              </span>
+            </button>
+
+            {/* ---- Weapon Slot ---- */}
             <div
               style={{
                 width: 44,
@@ -1852,7 +1966,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             filter:
               it.kind === "heal"
                 ? "drop-shadow(0 0 6px rgba(255,80,80,0.7))"
-                : "drop-shadow(0 0 4px rgba(255,255,255,0.4))",
+                : it.kind === "bomb"
+                  ? "drop-shadow(0 0 6px rgba(0,140,255,0.7))"
+                  : "drop-shadow(0 0 4px rgba(255,255,255,0.4))",
           }}
         >
           {it.kind === "weapon" && it.weaponId === "laser" && (
@@ -1867,8 +1983,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           {it.kind === "weapon" && it.weaponId === "pistol" && (
             <ItemWeaponSvg size={26} />
           )}
-          {it.kind === "addClone" && <ItemCloneSvg size={26} />}
           {it.kind === "heal" && <ItemHealPillSvg size={30} />}
+          {it.kind === "bomb" && (
+            <svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+              <circle cx={12} cy={14} r={8} fill="#00aaff" opacity={0.7} />
+              <circle cx={12} cy={14} r={5} fill="#0088dd" />
+              <circle cx={12} cy={14} r={2} fill="#aaddff" />
+              <line x1={12} y1={6} x2={12} y2={2} stroke="#66ccff" strokeWidth={2} strokeLinecap="round" />
+              <circle cx={12} cy={2} r={2} fill="#66ccff" opacity={0.9} />
+            </svg>
+          )}
         </div>
       ))}
 
@@ -2088,6 +2212,211 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           </div>
         );
       })}
+
+      {/* ===== Bomb Projectile ===== */}
+      {bombProjectile && (() => {
+        const bpx = xToPx(bombProjectile.x);
+        const bpy = yToPx(bombProjectile.y);
+        return (
+          <div style={{ position: "absolute", left: bpx, top: bpy, transform: "translate(-50%, -50%)", zIndex: 32, pointerEvents: "none" }}>
+            <svg width={20} height={20} viewBox="0 0 24 24" style={{ overflow: "visible" }}>
+              <circle cx={12} cy={12} r={8} fill="#00aaff" opacity={0.9} />
+              <circle cx={12} cy={12} r={5} fill="#0088dd" />
+              <circle cx={12} cy={12} r={2} fill="#fff" opacity={0.8} />
+              <circle cx={12} cy={12} r={10} fill="none" stroke="#00aaff" strokeWidth={1} opacity={0.5}>
+                <animate attributeName="r" values="10;14;10" dur="0.3s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.5;0.1;0.5" dur="0.3s" repeatCount="indefinite" />
+              </circle>
+            </svg>
+          </div>
+        );
+      })()}
+
+      {/* ===== Active Nuke (blue atomic storm + lightning) ===== */}
+      {activeNuke && (() => {
+        const nk = activeNuke;
+        const nx = xToPx(nk.x);
+        const ny = yToPx(nk.y);
+        const radiusPx = (nk.radiusUnits / LANE_COUNT) * WIDTH;
+        const p = nk.t / nk.duration;
+        const expand = p < 0.08 ? p / 0.08 : 1;
+        const fade = p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1;
+        const pulse = 1 + Math.sin(nk.t * 12) * 0.03;
+        const sz = radiusPx * 2 * expand * pulse;
+        // pseudo-random lightning seed from time
+        const lt = Math.floor(nk.t * 12);
+        return (
+          <div
+            style={{
+              position: "absolute",
+              left: nx,
+              top: ny,
+              transform: `translate(-50%, -50%)`,
+              width: sz,
+              height: sz,
+              opacity: fade,
+              zIndex: 28,
+              pointerEvents: "none",
+            }}
+          >
+            <svg viewBox="0 0 200 200" width={sz} height={sz} style={{ overflow: "visible" }}>
+              <defs>
+                <radialGradient id="nuke-core">
+                  <stop offset="0%" stopColor="#fff" />
+                  <stop offset="12%" stopColor="#bbddff" />
+                  <stop offset="30%" stopColor="#4499ff" />
+                  <stop offset="50%" stopColor="#2266dd" />
+                  <stop offset="70%" stopColor="#1133aa" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="#050520" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="nuke-field">
+                  <stop offset="0%" stopColor="#00aaff" stopOpacity={0} />
+                  <stop offset="55%" stopColor="#0088ff" stopOpacity={0} />
+                  <stop offset="75%" stopColor="#0099ff" stopOpacity={0.12} />
+                  <stop offset="88%" stopColor="#00bbff" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#00ddff" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#00eeff" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id="nuke-plasma">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
+                  <stop offset="35%" stopColor="#aaddff" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#0066cc" stopOpacity={0} />
+                </radialGradient>
+              </defs>
+              {/* outer energy field */}
+              <circle cx={100} cy={100} r={98} fill="url(#nuke-field)" />
+              <circle cx={100} cy={100} r={96} fill="none" stroke="#00ccff" strokeWidth={1.5} opacity={0.35 + Math.sin(nk.t * 20) * 0.15} />
+              <circle cx={100} cy={100} r={92} fill="none" stroke="#0088ff" strokeWidth={0.8} opacity={0.25 + Math.sin(nk.t * 15 + 1) * 0.1} />
+              {/* blue atomic core */}
+              <circle cx={100} cy={100} r={55} fill="url(#nuke-core)" />
+              {/* plasma center */}
+              <circle cx={100} cy={100} r={22} fill="url(#nuke-plasma)" />
+              {/* swirling storm clouds */}
+              {[0, 50, 100, 150, 200, 250, 300, 350].map((deg, i) => {
+                const rad = ((deg + nk.t * 50) * Math.PI) / 180;
+                const dist = 30 + Math.sin(nk.t * 6 + i * 1.7) * 14;
+                const bx = 100 + Math.cos(rad) * dist;
+                const by = 100 + Math.sin(rad) * dist;
+                const colors = ["#2277ff", "#3399ff", "#1155dd", "#44aaff", "#2266cc", "#55bbff", "#1144bb", "#3388ee"];
+                return (
+                  <ellipse key={i} cx={bx} cy={by}
+                    rx={10 + Math.sin(nk.t * 10 + i) * 4}
+                    ry={7 + Math.cos(nk.t * 8 + i) * 3}
+                    fill={colors[i]} opacity={0.5 + Math.sin(nk.t * 12 + i) * 0.15}
+                  />
+                );
+              })}
+              {/* lightning bolts — zigzag paths from center outward */}
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                const baseAngle = ((lt * 47 + i * 137) % 360) * Math.PI / 180;
+                const segments = 5;
+                let pts = `${100 + Math.cos(baseAngle) * 8},${100 + Math.sin(baseAngle) * 8}`;
+                for (let s = 1; s <= segments; s++) {
+                  const r = 8 + s * 16;
+                  const jitter = ((lt * 13 + i * 7 + s * 31) % 40 - 20) * Math.PI / 180;
+                  const a = baseAngle + jitter;
+                  pts += ` ${100 + Math.cos(a) * r},${100 + Math.sin(a) * r}`;
+                }
+                const visible = ((lt + i * 3) % 4) < 2;
+                return visible ? (
+                  <polyline key={i} points={pts} fill="none"
+                    stroke="#aaddff" strokeWidth={2.5} opacity={0.8}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    style={{ filter: "drop-shadow(0 0 4px #00ccff)" }}
+                  />
+                ) : null;
+              })}
+              {/* bright flash lightning forks (thinner, more branches) */}
+              {[0, 1, 2, 3].map((i) => {
+                const baseAngle = ((lt * 29 + i * 89 + 45) % 360) * Math.PI / 180;
+                let pts = `${100},${100}`;
+                for (let s = 1; s <= 4; s++) {
+                  const r = s * 22;
+                  const jitter = ((lt * 17 + i * 11 + s * 23) % 30 - 15) * Math.PI / 180;
+                  pts += ` ${100 + Math.cos(baseAngle + jitter) * r},${100 + Math.sin(baseAngle + jitter) * r}`;
+                }
+                const visible = ((lt + i * 2 + 1) % 3) < 1;
+                return visible ? (
+                  <polyline key={`f${i}`} points={pts} fill="none"
+                    stroke="#fff" strokeWidth={1.5} opacity={0.9}
+                    strokeLinecap="round" strokeLinejoin="round"
+                    style={{ filter: "drop-shadow(0 0 6px #66ccff)" }}
+                  />
+                ) : null;
+              })}
+              {/* electric sparks at field edge */}
+              {[30, 85, 140, 200, 260, 320].map((deg, i) => {
+                const rad = (deg * Math.PI) / 180;
+                const dist = 80 + Math.sin(nk.t * 18 + i * 3) * 12;
+                return (
+                  <circle key={i}
+                    cx={100 + Math.cos(rad) * dist}
+                    cy={100 + Math.sin(rad) * dist}
+                    r={Math.max(0.5, 3 - p * 2)}
+                    fill="#aaeeff" opacity={((lt + i) % 3) < 2 ? 0.9 : 0.2}
+                    style={{ filter: "drop-shadow(0 0 3px #00ccff)" }}
+                  />
+                );
+              })}
+              {/* white flash at start */}
+              {p < 0.12 && (
+                <circle cx={100} cy={100} r={45 - p * 300} fill="#fff" opacity={1 - p * 8} />
+              )}
+            </svg>
+          </div>
+        );
+      })()}
+
+      {/* ===== Bomb Shield (blue energy field around player) ===== */}
+      {bombShieldT > 0 && (() => {
+        const shieldPx = xToPx(player.x);
+        const shieldPy = yToPx(player.y);
+        const shieldR = laneWidth * 0.8;
+        const pulse = 1 + Math.sin(Date.now() * 0.015) * 0.06;
+        const fade = bombShieldT < 0.5 ? bombShieldT / 0.5 : 1;
+        const slt = Math.floor(Date.now() * 0.008);
+        return (
+          <div style={{
+            position: "absolute",
+            left: shieldPx,
+            top: shieldPy,
+            transform: "translate(-50%, -50%)",
+            zIndex: 25,
+            pointerEvents: "none",
+            opacity: fade * 0.75,
+          }}>
+            <svg width={shieldR * 2 * pulse} height={shieldR * 2 * pulse} viewBox="0 0 100 100" style={{ overflow: "visible" }}>
+              <defs>
+                <radialGradient id="shield-grd">
+                  <stop offset="0%" stopColor="#0088ff" stopOpacity={0} />
+                  <stop offset="65%" stopColor="#0088ff" stopOpacity={0.04} />
+                  <stop offset="85%" stopColor="#00aaff" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="#00ccff" stopOpacity={0} />
+                </radialGradient>
+              </defs>
+              <circle cx={50} cy={50} r={46} fill="url(#shield-grd)" />
+              <circle cx={50} cy={50} r={46} fill="none" stroke="#00bbff" strokeWidth={2} opacity={0.5} />
+              <circle cx={50} cy={50} r={42} fill="none" stroke="#0099ff" strokeWidth={0.8} opacity={0.3} strokeDasharray="6 4" />
+              {/* mini lightning arcs on shield */}
+              {[0, 1, 2, 3].map((i) => {
+                const a = ((slt * 37 + i * 90) % 360) * Math.PI / 180;
+                const r1 = 38;
+                const r2 = 46;
+                const mx = 50 + Math.cos(a + 0.15) * (r1 + r2) * 0.5;
+                const my = 50 + Math.sin(a + 0.15) * (r1 + r2) * 0.5;
+                const visible = ((slt + i) % 3) < 2;
+                return visible ? (
+                  <polyline key={i}
+                    points={`${50 + Math.cos(a) * r1},${50 + Math.sin(a) * r1} ${mx},${my} ${50 + Math.cos(a + 0.3) * r2},${50 + Math.sin(a + 0.3) * r2}`}
+                    fill="none" stroke="#aaddff" strokeWidth={1.5} opacity={0.7}
+                    strokeLinecap="round" strokeLinejoin="round"
+                  />
+                ) : null;
+              })}
+            </svg>
+          </div>
+        );
+      })()}
 
       {/* ===== Laser Beam ===== */}
       {laserOn &&
@@ -2554,60 +2883,6 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           <JetpackFlameSvg size={44} />
         </div>
       </div>
-
-      {/* ===== Clones ===== */}
-      {clones.map((c, i) => {
-        const slot = CLONE_SLOTS[i];
-        if (!slot) return null;
-        const cx = clamp(player.x + slot.dx, 0, LANE_COUNT);
-        const cy = clamp(player.y + slot.dy, PLAYER_Y_MIN, PLAYER_Y_MAX);
-        return (
-          <div
-            key={c.id}
-            style={{
-              position: "absolute",
-              left: xToPx(cx),
-              top: yToPx(cy),
-              transform: "translate(-50%, -50%)",
-              zIndex: 19,
-              opacity: 0.7,
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "18%",
-                transform: "translate(-50%, 0%)",
-                zIndex: 0,
-                opacity: 0.75,
-              }}
-            >
-              <JetpackSvg size={32} />
-            </div>
-            <div
-              className="game_player player_pistol"
-              style={{
-                position: "relative",
-                zIndex: 1,
-                transform: "scale(0.8)",
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                bottom: 0,
-                transform: "translate(-50%, 80%)",
-                zIndex: 0,
-                opacity: 0.7,
-              }}
-            >
-              <JetpackFlameSvg size={36} />
-            </div>
-          </div>
-        );
-      })}
 
       {/* ===== Pause overlay ===== */}
       {mode === "paused" && (
