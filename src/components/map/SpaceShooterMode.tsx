@@ -1051,7 +1051,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const laneWidth = WIDTH / LANE_COUNT;
 
   /* ---- stage & mode (React state for lifecycle) ---- */
-  const [stage, setStage] = useState(10);
+  const [stage, setStage] = useState(1);
   const [mode, setMode] = useState<Mode>("chapter");
   const stageRef = useRef(stage);
   useEffect(() => {
@@ -1794,6 +1794,69 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
 
       {/* ===== HP bar (above player head) ===== */}
 
+      {/* ===== Boss HP bar (fixed top) ===== */}
+      {(() => {
+        const boss = enemies.find((e) => isBossKind(e.kind));
+        if (!boss) return null;
+        const ratio = boss.hp / boss.maxHp;
+        const gradient =
+          boss.kind === "fireBoss"
+            ? "linear-gradient(90deg, #ef4444, #f97316)"
+            : boss.kind === "darkBoss"
+              ? "linear-gradient(90deg, #7c3aed, #a855f7)"
+              : "linear-gradient(90deg, #ef4444, #f59e0b)";
+        return (
+          <div
+            style={{
+              position: "absolute",
+              top: 32,
+              left: 0,
+              right: 0,
+              zIndex: 50,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "4px 16px",
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 800,
+                fontFamily: "Fredoka",
+                color: "#fff",
+                textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+                marginBottom: 2,
+              }}
+            >
+              BOSS
+            </span>
+            <div
+              style={{
+                width: "80%",
+                maxWidth: 260,
+                height: 8,
+                borderRadius: 4,
+                background: "rgba(255,255,255,0.15)",
+                overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.2)",
+              }}
+            >
+              <div
+                style={{
+                  width: `${ratio * 100}%`,
+                  height: "100%",
+                  borderRadius: 4,
+                  background: gradient,
+                  transition: "width 0.1s",
+                }}
+              />
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ===== Items ===== */}
       {items.map((it) => (
         <div
@@ -1913,36 +1976,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                 />
               </div>
             )}
-            {/* Boss HP bar */}
-            {boss && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: -16,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: w * 0.8,
-                  height: 6,
-                  borderRadius: 3,
-                  background: "rgba(255,255,255,0.15)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${(e.hp / e.maxHp) * 100}%`,
-                    height: "100%",
-                    borderRadius: 3,
-                    background:
-                      e.kind === "fireBoss"
-                        ? "linear-gradient(90deg, #ef4444, #f97316)"
-                        : e.kind === "darkBoss"
-                          ? "linear-gradient(90deg, #7c3aed, #a855f7)"
-                          : "linear-gradient(90deg, #ef4444, #f59e0b)",
-                  }}
-                />
-              </div>
-            )}
+            {/* Boss HP bar moved to fixed top bar */}
           </div>
         );
       })}
