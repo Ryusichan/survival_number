@@ -96,6 +96,15 @@ type SpaceEnemy = {
   bossPatternIdx?: number;
 };
 
+type Explosion = {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  t: number; // elapsed time
+  duration: number; // total lifetime
+};
+
 type Bullet = {
   id: number;
   x: number;
@@ -170,7 +179,7 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     bulletSpeed: 0,
     pierce: false,
     pellets: 0,
-    damage: 3,
+    damage: 2,
   },
   pierce: {
     id: "pierce",
@@ -854,6 +863,11 @@ function makeEnemy(
   };
 }
 
+let _explId = 0;
+function spawnExplosion(s: GameState, x: number, y: number, size: number) {
+  s.explosions.push({ id: _explId++, x, y, size, t: 0, duration: 0.35 });
+}
+
 function maybeDropItem(x: number, y: number): Item | null {
   if (Math.random() > ENEMY_DROP_CHANCE) return null;
   const r = Math.random();
@@ -943,6 +957,7 @@ type GameState = {
   laserOn: boolean;
   laserHitY: number;
   laserHitEnemyId: number | null;
+  explosions: Explosion[];
 };
 
 function initGameState(): GameState {
@@ -973,6 +988,7 @@ function initGameState(): GameState {
     laserOn: false,
     laserHitY: 0,
     laserHitEnemyId: null,
+    explosions: [],
   };
 }
 
@@ -1181,6 +1197,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             if (closestE.hp <= 0) {
               s.score++;
               s.totalScore++;
+              spawnExplosion(s, closestE.x, closestE.y, closestE.widthUnits);
               const drop = maybeDropItem(closestE.x, closestE.y);
               if (drop) s.items.push(drop);
             }
@@ -1357,6 +1374,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             if (e.hp <= 0) {
               s.score++;
               s.totalScore++;
+              spawnExplosion(s, e.x, e.y, e.widthUnits);
               const drop = maybeDropItem(e.x, e.y);
               if (drop) s.items.push(drop);
             } else if (isBossKind(e.kind) && Math.random() < 0.1) {
@@ -1373,6 +1391,10 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       }
       s.bullets = survivingBullets;
       s.enemies = s.enemies.filter((e) => e.hp > 0);
+
+      /* -- tick explosions -- */
+      for (const ex of s.explosions) ex.t += dt;
+      s.explosions = s.explosions.filter((ex) => ex.t < ex.duration);
 
       /* -- collision: enemy bullets vs player -- */
       if (s.hurtCd > 0) {
@@ -1504,6 +1526,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
     stageBannerT,
     laserOn,
     laserHitY,
+    explosions,
   } = g.current;
   const target = stageTarget(stage);
   const playerHpPct = player.hp / player.maxHp;
@@ -1944,6 +1967,124 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               </div>
             )}
             {/* Boss HP bar moved to fixed top bar */}
+          </div>
+        );
+      })}
+
+      {/* ===== Explosions ===== */}
+      {explosions.map((ex) => {
+        const px = xToPx(ex.x);
+        const py = yToPx(ex.y);
+        const p = ex.t / ex.duration; // 0→1
+        const baseSize = ex.size * laneWidth * 0.8;
+        // fast expand then hold
+        const scale = p < 0.25 ? 0.3 + p * 2.8 : 1.0 + p * 0.15;
+        const opacity = p < 0.15 ? 1 : Math.max(0, 1 - (p - 0.15) * 1.3);
+        return (
+          <div
+            key={ex.id}
+            style={{
+              position: "absolute",
+              left: px,
+              top: py,
+              transform: `translate(-50%, -50%) scale(${scale})`,
+              width: baseSize,
+              height: baseSize,
+              opacity,
+              zIndex: 30,
+              pointerEvents: "none",
+            }}
+          >
+            <svg
+              viewBox="0 0 100 100"
+              width={baseSize}
+              height={baseSize}
+              style={{ overflow: "visible" }}
+            >
+              <defs>
+                <radialGradient id={`exCore-${ex.id}`}>
+                  <stop offset="0%" stopColor="#fff" />
+                  <stop offset="20%" stopColor="#ffe066" />
+                  <stop offset="50%" stopColor="#ff6600" />
+                  <stop offset="80%" stopColor="#cc2200" />
+                  <stop offset="100%" stopColor="#441100" stopOpacity={0} />
+                </radialGradient>
+                <radialGradient id={`exSmoke-${ex.id}`}>
+                  <stop offset="0%" stopColor="#664400" stopOpacity={0.6} />
+                  <stop offset="60%" stopColor="#332200" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#111" stopOpacity={0} />
+                </radialGradient>
+              </defs>
+              {/* dark smoke layer (expands & fades) */}
+              <circle
+                cx={50}
+                cy={50}
+                r={38 + p * 12}
+                fill={`url(#exSmoke-${ex.id})`}
+                opacity={0.6 * (1 - p)}
+              />
+              {/* main fireball */}
+              <circle
+                cx={50}
+                cy={50}
+                r={30 - p * 8}
+                fill={`url(#exCore-${ex.id})`}
+              />
+              {/* hot white flash (only at start) */}
+              {p < 0.2 && (
+                <circle
+                  cx={50}
+                  cy={50}
+                  r={14 - p * 50}
+                  fill="#fff"
+                  opacity={1 - p * 5}
+                />
+              )}
+              {/* flame tongues — irregular blobs expanding outward */}
+              {[0, 60, 130, 200, 280, 340].map((angle, i) => {
+                const rad = (angle * Math.PI) / 180;
+                const dist = 12 + p * 22;
+                const bx = 50 + Math.cos(rad) * dist;
+                const by = 50 + Math.sin(rad) * dist;
+                const r = 8 - p * 5;
+                const colors = [
+                  "#ff8800",
+                  "#ff5500",
+                  "#ff3300",
+                  "#ee6600",
+                  "#ff7700",
+                  "#dd4400",
+                ];
+                return (
+                  <ellipse
+                    key={i}
+                    cx={bx}
+                    cy={by}
+                    rx={Math.max(1, r * (1 + (i % 2) * 0.4))}
+                    ry={Math.max(1, r * (1 - (i % 2) * 0.2))}
+                    fill={colors[i]}
+                    opacity={Math.max(0, 0.9 - p * 1.1)}
+                  />
+                );
+              })}
+              {/* small ember sparks */}
+              {[20, 85, 150, 220, 310].map((angle, i) => {
+                const rad = (angle * Math.PI) / 180;
+                const dist = 18 + p * 30;
+                const sx = 50 + Math.cos(rad) * dist;
+                const sy = 50 + Math.sin(rad) * dist;
+                return (
+                  <circle
+                    key={i}
+                    cx={sx}
+                    cy={sy}
+                    r={Math.max(0.3, 2.5 - p * 2.5)}
+                    fill={i % 2 === 0 ? "#ffcc00" : "#ff6600"}
+                    opacity={Math.max(0, 1 - p * 1.5)}
+                  />
+                );
+              })}
+            </svg>
           </div>
         );
       })}
