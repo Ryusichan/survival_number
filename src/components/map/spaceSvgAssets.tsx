@@ -494,6 +494,53 @@ export const ItemWeaponSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   </svg>
 );
 
+/* ===== 아이템: 샷건 무기 — 오렌지 확산 ===== */
+export const ItemShotgunSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
+  <svg viewBox="0 0 28 28" width={size} height={size}>
+    <defs>
+      <linearGradient id="sgg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#f59e0b" />
+        <stop offset="100%" stopColor="#d97706" />
+      </linearGradient>
+    </defs>
+    {/* 배경 원 */}
+    <circle cx="14" cy="14" r="13" fill="url(#sgg)" stroke="#92400e" strokeWidth="1.2" />
+    {/* 확산 총알 3발 */}
+    <rect x="6" y="10" width="3" height="8" rx="1.5" fill="#fff" opacity="0.9" transform="rotate(-20 7.5 14)" />
+    <rect x="12.5" y="6" width="3" height="10" rx="1.5" fill="#fff" />
+    <rect x="19" y="10" width="3" height="8" rx="1.5" fill="#fff" opacity="0.9" transform="rotate(20 20.5 14)" />
+    {/* 발사 플래시 */}
+    <circle cx="14" cy="20" r="3" fill="#fde68a" opacity="0.6" />
+    <circle cx="14" cy="20" r="1.5" fill="#fff" opacity="0.7" />
+  </svg>
+);
+
+/* ===== 아이템: 레이저 무기 — 전기 에너지 블루 ===== */
+export const ItemLaserSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
+  <svg viewBox="0 0 28 28" width={size} height={size}>
+    <defs>
+      <radialGradient id="lzrg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#00e5ff" />
+        <stop offset="100%" stopColor="#0277bd" />
+      </radialGradient>
+    </defs>
+    {/* 배경 원 + 글로우 */}
+    <circle cx="14" cy="14" r="13" fill="url(#lzrg)" stroke="#01579b" strokeWidth="1.2" />
+    {/* 전기 스파크 외곽 */}
+    <path d="M7,10 L10,13 L7,16" fill="none" stroke="#b3e5fc" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+    <path d="M21,10 L18,13 L21,16" fill="none" stroke="#b3e5fc" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+    <path d="M12,5 L13,8 L11,8" fill="none" stroke="#b3e5fc" strokeWidth="1" strokeLinecap="round" opacity="0.5" />
+    <path d="M16,5 L15,8 L17,8" fill="none" stroke="#b3e5fc" strokeWidth="1" strokeLinecap="round" opacity="0.5" />
+    {/* 중앙 레이저 빔 */}
+    <rect x="12.5" y="7" width="3" height="14" rx="1.5" fill="#fff" opacity="0.9" />
+    {/* 중앙 코어 빛 */}
+    <circle cx="14" cy="14" r="4" fill="#fff" opacity="0.3" />
+    {/* 상하 스파크 */}
+    <path d="M14,3 L13,6 L15,6Z" fill="#e0f7fa" />
+    <path d="M14,25 L13,22 L15,22Z" fill="#e0f7fa" />
+  </svg>
+);
+
 /* ===== 아이템: 연사 부스트 (Fire rate) — 번개 ===== */
 export const ItemFireRateSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
@@ -512,14 +559,21 @@ export const ItemDamageUpSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   </svg>
 );
 
-/* ===== 아이템: 관통 — 다이아몬드 + 화살 ===== */
+/* ===== 아이템: 관통 — 보라 에너지 다이아몬드 ===== */
 export const ItemPierceSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <path d="M14,2 L26,14 L14,26 L2,14Z" fill="#db2777" stroke="#9d174d" strokeWidth="1.2" />
-    {/* 관통 화살 */}
-    <path d="M14,6 L14,22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-    <path d="M10,10 L14,5 L18,10" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M10,16 L14,11 L18,16" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+    <defs>
+      <linearGradient id="pcg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#c084fc" />
+        <stop offset="100%" stopColor="#7c3aed" />
+      </linearGradient>
+    </defs>
+    {/* 다이아몬드 배경 */}
+    <path d="M14,2 L26,14 L14,26 L2,14Z" fill="url(#pcg)" stroke="#5b21b6" strokeWidth="1.2" />
+    {/* 에너지 화살촉 */}
+    <path d="M14,5 L17.5,12 L15,11 L15,21 L14,23 L13,21 L13,11 L10.5,12Z" fill="#e9d5ff" />
+    {/* 중심 코어 */}
+    <path d="M14,7 L15,11 L14.5,10.5 L14.5,19 L14,21 L13.5,19 L13.5,10.5 L13,11Z" fill="#fff" opacity="0.8" />
   </svg>
 );
 

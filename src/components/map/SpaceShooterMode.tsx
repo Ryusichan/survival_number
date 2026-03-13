@@ -23,6 +23,8 @@ import {
   DarkBossSvg,
   EnemyBulletSvg,
   ItemWeaponSvg,
+  ItemShotgunSvg,
+  ItemLaserSvg,
   ItemFireRateSvg,
   ItemDamageUpSvg,
   ItemPierceSvg,
@@ -33,7 +35,7 @@ import {
 /* =========================================================
    Types
    ========================================================= */
-type WeaponId = "pistol" | "rapid" | "pierce" | "shotgun";
+type WeaponId = "pistol" | "laser" | "pierce" | "shotgun";
 type Weapon = {
   id: WeaponId;
   fireIntervalSec: number;
@@ -186,18 +188,18 @@ const WEAPONS: Record<WeaponId, Weapon> = {
     pellets: 1,
     damage: 1,
   },
-  rapid: {
-    id: "rapid",
-    fireIntervalSec: 0.22,
-    bulletSpeed: 1.4,
+  laser: {
+    id: "laser",
+    fireIntervalSec: 0.05,
+    bulletSpeed: 0,
     pierce: false,
-    pellets: 1,
-    damage: 1,
-    durationSec: 8,
+    pellets: 0,
+    damage: 3,
+    durationSec: 12,
   },
   pierce: {
     id: "pierce",
-    fireIntervalSec: 0.5,
+    fireIntervalSec: 0.6,
     bulletSpeed: 1.3,
     pierce: true,
     pellets: 1,
@@ -882,16 +884,18 @@ let _eid = 0;
 let _bid = 0;
 let _iid = 0;
 
-function makeEnemy(kind: SpaceEnemyKind, rule: StageRule): SpaceEnemy {
+function makeEnemy(kind: SpaceEnemyKind, rule: StageRule, stage = 1): SpaceEnemy {
   const spec = ENEMY_SPECS[kind];
   const hw = spec.widthUnits / 2;
+  const tierMul = stage >= 30 ? 4 : stage >= 20 ? 2 : 1;
+  const finalHp = Math.ceil(spec.hp * rule.hpMul * tierMul);
   return {
     id: _eid++,
     kind,
     x: randFloat(hw, LANE_COUNT - hw),
     y: isBossKind(kind) ? 0.12 : randFloat(-0.15, -0.05),
-    hp: Math.ceil(spec.hp * rule.hpMul),
-    maxHp: Math.ceil(spec.hp * rule.hpMul),
+    hp: finalHp,
+    maxHp: finalHp,
     speed: spec.speed * rule.speedMul,
     widthUnits: spec.widthUnits,
     damage: spec.damage,
@@ -914,7 +918,7 @@ function maybeDropItem(x: number, y: number): Item | null {
   if (r < 0.3) return { id: _iid++, x, y, kind: "heal" };
   // 35% weapon
   if (r < 0.45) {
-    const w: WeaponId = (["rapid", "pierce", "shotgun"] as WeaponId[])[
+    const w: WeaponId = (["laser", "pierce", "shotgun"] as WeaponId[])[
       randInt(0, 2)
     ];
     return { id: _iid++, x, y, kind: "weapon", weaponId: w };
@@ -995,6 +999,9 @@ type GameState = {
   hurtCd: number;
   bossSpawned: boolean;
   stageBannerT: number;
+  laserOn: boolean;
+  laserHitY: number;
+  laserHitEnemyId: number | null;
 };
 
 function initGameState(): GameState {
@@ -1024,6 +1031,9 @@ function initGameState(): GameState {
     hurtCd: 0,
     bossSpawned: false,
     stageBannerT: 0,
+    laserOn: false,
+    laserHitY: 0,
+    laserHitEnemyId: null,
   };
 }
 
@@ -1195,44 +1205,82 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       }
 
       /* -- auto fire -- */
-      s.fireAcc += dt;
-      if (s.fireAcc >= weapon.fireIntervalSec) {
-        s.fireAcc = 0;
-        const shooters = [{ x: p.x, y: p.y }];
-        for (let i = 0; i < s.clones.length; i++) {
-          const slot = CLONE_SLOTS[i];
-          if (slot)
-            shooters.push({
-              x: clamp(p.x + slot.dx, 0, LANE_COUNT),
-              y: clamp(p.y + slot.dy, PLAYER_Y_MIN, PLAYER_Y_MAX),
-            });
+      if (weapon.id === "laser") {
+        /* Laser: continuous DPS beam — hits first enemy in line */
+        s.laserOn = true;
+        s.laserHitY = 0;
+        s.laserHitEnemyId = null;
+        s.fireAcc += dt;
+
+        // find closest enemy directly above player (within beam width)
+        const BEAM_HALF_W = 0.15;
+        let closestE: SpaceEnemy | null = null;
+        let closestDist = Infinity;
+        for (const e of s.enemies) {
+          if (
+            e.y < p.y &&
+            e.y > 0 &&
+            Math.abs(e.x - p.x) < BEAM_HALF_W + e.widthUnits * 0.3
+          ) {
+            const d = p.y - e.y;
+            if (d < closestDist) {
+              closestDist = d;
+              closestE = e;
+            }
+          }
         }
-        for (const sh of shooters) {
-          if (weapon.pellets === 1) {
-            s.bullets.push({
-              id: _bid++,
-              x: sh.x,
-              y: sh.y,
-              vx: 0,
-              vy: -weapon.bulletSpeed,
-              damage: weapon.damage,
-              pierce: weapon.pierce,
-              weaponId: weapon.id,
-            });
-          } else {
-            for (let i = 0; i < weapon.pellets; i++) {
-              const spread = weapon.spreadUnits ?? 1;
-              const ox = (i / (weapon.pellets - 1) - 0.5) * spread;
+
+        if (closestE) {
+          s.laserHitY = closestE.y;
+          s.laserHitEnemyId = closestE.id;
+          // apply DPS
+          if (s.fireAcc >= weapon.fireIntervalSec) {
+            s.fireAcc = 0;
+            closestE.hp -= weapon.damage;
+            closestE.hitFx = 0.08;
+          }
+        }
+      } else {
+        s.laserOn = false;
+        s.fireAcc += dt;
+        if (s.fireAcc >= weapon.fireIntervalSec) {
+          s.fireAcc = 0;
+          const shooters = [{ x: p.x, y: p.y }];
+          for (let i = 0; i < s.clones.length; i++) {
+            const slot = CLONE_SLOTS[i];
+            if (slot)
+              shooters.push({
+                x: clamp(p.x + slot.dx, 0, LANE_COUNT),
+                y: clamp(p.y + slot.dy, PLAYER_Y_MIN, PLAYER_Y_MAX),
+              });
+          }
+          for (const sh of shooters) {
+            if (weapon.pellets === 1) {
               s.bullets.push({
                 id: _bid++,
-                x: sh.x + ox,
+                x: sh.x,
                 y: sh.y,
-                vx: ox * 0.3,
+                vx: 0,
                 vy: -weapon.bulletSpeed,
                 damage: weapon.damage,
                 pierce: weapon.pierce,
                 weaponId: weapon.id,
               });
+            } else {
+              for (let i = 0; i < weapon.pellets; i++) {
+                const spread = weapon.spreadUnits ?? 1;
+                const ox = (i / (weapon.pellets - 1) - 0.5) * spread;
+                s.bullets.push({
+                  id: _bid++,
+                  x: sh.x + ox,
+                  y: sh.y,
+                  vx: ox * 0.3,
+                  vy: -weapon.bulletSpeed,
+                  damage: weapon.damage,
+                  pierce: weapon.pierce,
+                  weaponId: weapon.id,
+                });
+              }
             }
           }
         }
@@ -1253,7 +1301,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                 ? (Object.keys(rule.kindWeights)[0] as SpaceEnemyKind)
                 : pickKind(rule.kindWeights);
             if (isBossKind(kind)) s.bossSpawned = true;
-            s.enemies.push(makeEnemy(kind, rule));
+            s.enemies.push(makeEnemy(kind, rule, curStage));
           }
         }
       }
@@ -1500,9 +1548,12 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
 
   /* ---- handlers ---- */
   const handleRetrySameStage = () => {
+    const prev = g.current.combat;
     g.current = initGameState();
+    // 데미지/스피드 업그레이드 유지
+    g.current.combat.permFireMul = prev.permFireMul;
+    g.current.combat.permDamageAdd = prev.permDamageAdd;
     lastTimeRef.current = null;
-    // keep current stage
     setMode("chapter");
   };
 
@@ -1518,6 +1569,8 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
     clones,
     hurtCd,
     stageBannerT,
+    laserOn,
+    laserHitY,
   } = g.current;
   const target = stageTarget(stage);
   const playerHpPct = player.hp / player.maxHp;
@@ -1693,8 +1746,8 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         const gunColor =
           activeWeapon.id === "shotgun"
             ? "#f59e0b"
-            : activeWeapon.id === "rapid"
-              ? "#34d399"
+            : activeWeapon.id === "laser"
+              ? "#00e5ff"
               : activeWeapon.id === "pierce"
                 ? "#c084fc"
                 : "#60a5fa";
@@ -1873,7 +1926,10 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
                 : "drop-shadow(0 0 4px rgba(255,255,255,0.4))",
           }}
         >
-          {it.kind === "weapon" && <ItemWeaponSvg size={26} />}
+          {it.kind === "weapon" && it.weaponId === "laser" && <ItemLaserSvg size={26} />}
+          {it.kind === "weapon" && it.weaponId === "pierce" && <ItemPierceSvg size={26} />}
+          {it.kind === "weapon" && it.weaponId === "shotgun" && <ItemShotgunSvg size={26} />}
+          {it.kind === "weapon" && it.weaponId === "pistol" && <ItemWeaponSvg size={26} />}
           {it.kind === "fireRateMul" && <ItemFireRateSvg size={26} />}
           {it.kind === "damageAdd" && <ItemDamageUpSvg size={26} />}
           {it.kind === "pierce" && <ItemPierceSvg size={26} />}
@@ -1981,27 +2037,338 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         );
       })}
 
+      {/* ===== Laser Beam ===== */}
+      {laserOn && (() => {
+        const beamX = xToPx(player.x);
+        const beamTopY = laserHitY > 0 ? yToPx(laserHitY) : 0;
+        const beamBottomY = yToPx(player.y) - 16;
+        const beamH = beamBottomY - beamTopY;
+        if (beamH <= 0) return null;
+        const t = Date.now();
+        const flicker = 0.85 + Math.sin(t * 0.03) * 0.15;
+        const coreW = 3 + Math.sin(t * 0.02) * 1;
+        return (
+          <>
+            {/* Widest ambient glow */}
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamTopY,
+                width: 40,
+                height: beamH,
+                transform: "translateX(-50%)",
+                background: `linear-gradient(180deg, rgba(0,229,255,${0.06 * flicker}), rgba(0,100,255,${0.03 * flicker}))`,
+                borderRadius: 20,
+                zIndex: 10,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Outer glow */}
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamTopY,
+                width: 18,
+                height: beamH,
+                transform: "translateX(-50%)",
+                background: `linear-gradient(180deg, rgba(0,229,255,${0.18 * flicker}), rgba(0,176,255,${0.1 * flicker}))`,
+                borderRadius: 8,
+                zIndex: 11,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Middle beam */}
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamTopY,
+                width: 8,
+                height: beamH,
+                transform: "translateX(-50%)",
+                background: `linear-gradient(180deg, rgba(100,230,255,${0.5 * flicker}), rgba(0,200,255,${0.35 * flicker}))`,
+                boxShadow: `0 0 12px 3px rgba(0,229,255,${0.4 * flicker})`,
+                zIndex: 12,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Core beam (bright white-cyan) */}
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamTopY,
+                width: coreW,
+                height: beamH,
+                transform: "translateX(-50%)",
+                background: "linear-gradient(180deg, #fff, #80deea, #00e5ff)",
+                boxShadow: "0 0 6px 2px rgba(255,255,255,0.5), 0 0 16px 4px rgba(0,229,255,0.6)",
+                zIndex: 13,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Electric arcs along beam */}
+            <svg
+              style={{
+                position: "absolute",
+                left: beamX - 16,
+                top: beamTopY,
+                width: 32,
+                height: beamH,
+                zIndex: 14,
+                pointerEvents: "none",
+                overflow: "visible",
+              }}
+            >
+              {[0, 1, 2].map((i) => {
+                const seed = t * 0.005 + i * 2.1;
+                const points = Array.from({ length: 6 }, (_, j) => {
+                  const py = (j / 5) * beamH;
+                  const px = 16 + Math.sin(seed + j * 1.7) * (6 + Math.sin(seed * 2 + j) * 4);
+                  return `${px},${py}`;
+                }).join(" ");
+                return (
+                  <polyline
+                    key={i}
+                    points={points}
+                    fill="none"
+                    stroke={`rgba(150,240,255,${0.3 + Math.sin(seed) * 0.2})`}
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </svg>
+            {/* Impact: spark burst at hit point */}
+            {laserHitY > 0 && (
+              <>
+                {/* Central flash */}
+                <div
+                  style={{
+                    position: "absolute",
+                    left: beamX,
+                    top: beamTopY,
+                    width: 32 * flicker,
+                    height: 32 * flicker,
+                    transform: "translate(-50%, -50%)",
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(0,229,255,0.6) 30%, rgba(0,229,255,0.15) 60%, transparent 80%)",
+                    zIndex: 15,
+                    pointerEvents: "none",
+                  }}
+                />
+                {/* Spark lines */}
+                <svg
+                  style={{
+                    position: "absolute",
+                    left: beamX - 24,
+                    top: beamTopY - 24,
+                    width: 48,
+                    height: 48,
+                    zIndex: 16,
+                    pointerEvents: "none",
+                    overflow: "visible",
+                  }}
+                >
+                  {Array.from({ length: 8 }, (_, i) => {
+                    const angle = (i / 8) * Math.PI * 2 + Math.sin(t * 0.01 + i) * 0.4;
+                    const len = 8 + Math.sin(t * 0.02 + i * 1.3) * 6;
+                    const x1 = 24 + Math.cos(angle) * 4;
+                    const y1 = 24 + Math.sin(angle) * 4;
+                    const x2 = 24 + Math.cos(angle) * len;
+                    const y2 = 24 + Math.sin(angle) * len;
+                    return (
+                      <line
+                        key={i}
+                        x1={x1} y1={y1} x2={x2} y2={y2}
+                        stroke="#fff"
+                        strokeWidth={1 + Math.sin(t * 0.03 + i) * 0.5}
+                        strokeLinecap="round"
+                        opacity={0.5 + Math.sin(t * 0.025 + i * 0.7) * 0.4}
+                      />
+                    );
+                  })}
+                  {/* Small spark dots */}
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const angle = (i / 5) * Math.PI * 2 + t * 0.008;
+                    const dist = 10 + Math.sin(t * 0.015 + i * 2) * 8;
+                    return (
+                      <circle
+                        key={`d${i}`}
+                        cx={24 + Math.cos(angle) * dist}
+                        cy={24 + Math.sin(angle) * dist}
+                        r={1.2}
+                        fill="#b3e5fc"
+                        opacity={0.4 + Math.sin(t * 0.02 + i) * 0.4}
+                      />
+                    );
+                  })}
+                </svg>
+              </>
+            )}
+            {/* Muzzle glow + ring at player */}
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamBottomY,
+                width: 28 * flicker,
+                height: 28 * flicker,
+                transform: "translate(-50%, -50%)",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(0,229,255,0.4) 35%, transparent 70%)",
+                zIndex: 14,
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: beamX,
+                top: beamBottomY,
+                width: 20,
+                height: 20,
+                transform: "translate(-50%, -50%)",
+                borderRadius: "50%",
+                border: `2px solid rgba(0,229,255,${0.3 * flicker})`,
+                zIndex: 14,
+                pointerEvents: "none",
+              }}
+            />
+          </>
+        );
+      })()}
+
       {/* ===== Player Bullets ===== */}
-      {bullets.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            position: "absolute",
-            left: xToPx(b.x),
-            top: yToPx(b.y),
-            transform: "translate(-50%, -50%)",
-            width: 6,
-            height: b.pierce ? 18 : 10,
-            borderRadius: 4,
-            background:
-              b.weaponId === "shotgun"
-                ? "linear-gradient(180deg, #b0d4ff, #60a5fa)"
-                : "linear-gradient(180deg, #facc15, #f97316)",
-            boxShadow: "0 0 6px rgba(255,200,50,0.4)",
-            zIndex: 11,
-          }}
-        />
-      ))}
+      {bullets.map((b) =>
+        b.pierce ? (
+          /* Pierce bullet — 보라색 에너지탄 */
+          <div
+            key={b.id}
+            style={{
+              position: "absolute",
+              left: xToPx(b.x),
+              top: yToPx(b.y),
+              transform: "translate(-50%, -50%)",
+              zIndex: 12,
+              pointerEvents: "none",
+            }}
+          >
+            {/* Outer glow trail */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: 16,
+                height: 32,
+                transform: "translate(-50%, -40%)",
+                background: "radial-gradient(ellipse at center, rgba(192,132,252,0.3) 0%, transparent 70%)",
+                borderRadius: "50%",
+              }}
+            />
+            {/* Core energy bolt */}
+            <svg width="12" height="24" viewBox="0 0 12 24" style={{ display: "block" }}>
+              <defs>
+                <linearGradient id={`pg${b.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#e9d5ff" />
+                  <stop offset="40%" stopColor="#c084fc" />
+                  <stop offset="100%" stopColor="#7c3aed" />
+                </linearGradient>
+                <filter id={`pgl${b.id}`}>
+                  <feGaussianBlur stdDeviation="1.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {/* Arrow-shaped bolt */}
+              <path
+                d="M6,0 L9,8 L7.5,7 L7.5,22 L6,24 L4.5,22 L4.5,7 L3,8Z"
+                fill={`url(#pg${b.id})`}
+                filter={`url(#pgl${b.id})`}
+              />
+              {/* Inner bright core */}
+              <path
+                d="M6,2 L7,7 L6.5,6.5 L6.5,20 L6,22 L5.5,20 L5.5,6.5 L5,7Z"
+                fill="#fff"
+                opacity="0.7"
+              />
+            </svg>
+            {/* Trail particles */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: -4,
+                width: 4,
+                height: 4,
+                transform: "translateX(-50%)",
+                borderRadius: "50%",
+                background: "#c084fc",
+                boxShadow: "0 0 6px 2px rgba(192,132,252,0.6), 0 4px 8px rgba(124,58,237,0.4)",
+              }}
+            />
+          </div>
+        ) : b.weaponId === "shotgun" ? (
+          /* Shotgun pellet — 오렌지 산탄 */
+          <div
+            key={b.id}
+            style={{
+              position: "absolute",
+              left: xToPx(b.x),
+              top: yToPx(b.y),
+              transform: "translate(-50%, -50%)",
+              zIndex: 12,
+              pointerEvents: "none",
+            }}
+          >
+            {/* Outer glow */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: 14,
+                height: 14,
+                transform: "translate(-50%, -50%)",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)",
+              }}
+            />
+            {/* Core pellet */}
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "radial-gradient(circle at 35% 35%, #fde68a, #f59e0b, #d97706)",
+                boxShadow: "0 0 4px 1px rgba(245,158,11,0.6), 0 0 8px rgba(251,191,36,0.3)",
+              }}
+            />
+          </div>
+        ) : (
+          /* Pistol bullet — 기본 */
+          <div
+            key={b.id}
+            style={{
+              position: "absolute",
+              left: xToPx(b.x),
+              top: yToPx(b.y),
+              transform: "translate(-50%, -50%)",
+              width: 5,
+              height: 10,
+              borderRadius: 3,
+              background: "linear-gradient(180deg, #facc15, #f97316)",
+              boxShadow: "0 0 6px rgba(255,200,50,0.4)",
+              zIndex: 11,
+            }}
+          />
+        ),
+      )}
 
       {/* ===== Player ===== */}
       <div
