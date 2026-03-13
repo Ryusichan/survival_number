@@ -954,6 +954,8 @@ type GameState = {
   bombProjectile: BombProjectile | null;
   activeNuke: ActiveNuke | null;
   bombShieldT: number; // seconds remaining of invincibility
+  playerTilt: number; // smoothed tilt angle in degrees
+  playerPrevX: number;
 };
 
 function initGameState(): GameState {
@@ -988,6 +990,8 @@ function initGameState(): GameState {
     bombProjectile: null,
     activeNuke: null,
     bombShieldT: 0,
+    playerTilt: 0,
+    playerPrevX: LANE_COUNT / 2,
   };
 }
 
@@ -1143,6 +1147,13 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       const ruleIdx = clamp(curStage - 1, 0, STAGE_RULES.length - 1);
       const rule = STAGE_RULES[ruleIdx];
       const target = stageTarget(curStage);
+
+      /* -- player tilt -- */
+      const dx = p.x - s.playerPrevX;
+      const targetTilt = clamp(dx * 80, -15, 15);
+      s.playerTilt += (targetTilt - s.playerTilt) * Math.min(1, dt * 12);
+      if (Math.abs(s.playerTilt) < 0.3) s.playerTilt = 0;
+      s.playerPrevX = p.x;
 
       /* -- stars scroll -- */
       for (const st of starsRef.current) st.y = (st.y + st.speed * dt) % 1.0;
@@ -1585,6 +1596,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
     bombProjectile,
     activeNuke,
     bombShieldT,
+    playerTilt,
   } = g.current;
   const target = stageTarget(stage);
   const playerHpPct = player.hp / player.maxHp;
@@ -2818,8 +2830,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           position: "absolute",
           left: xToPx(player.x),
           top: yToPx(player.y),
-          transform: "translate(-50%, -50%)",
+          transform: `translate(-50%, -50%) rotate(${playerTilt}deg)`,
           zIndex: 20,
+          transition: "transform 0.05s linear",
         }}
       >
         {/* Jetpack (on character's back, behind sprite) */}
