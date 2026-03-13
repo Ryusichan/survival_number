@@ -174,7 +174,7 @@ const FIRST_STAGE_TARGET = 20;
 const NEXT_STAGE_STEP = 3;
 const MAX_STAGE = 30;
 const MAX_CLONES = 12;
-const ENEMY_DROP_CHANCE = 0.3;
+const ENEMY_DROP_CHANCE = 0.15;
 const ITEM_SPEED = 0.18;
 
 const WEAPONS: Record<WeaponId, Weapon> = {
