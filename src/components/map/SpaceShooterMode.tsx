@@ -251,7 +251,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   spaceBoss: {
-    hp: 300,
+    hp: 500,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.2,
@@ -268,7 +268,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "straight",
   },
   fireFighter: {
-    hp: 4,
+    hp: 6,
     speed: 0.14,
     damage: 1,
     widthUnits: 1.0,
@@ -276,7 +276,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   fireBomber: {
-    hp: 8,
+    hp: 9,
     speed: 0.1,
     damage: 2,
     widthUnits: 1.4,
@@ -284,7 +284,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "straight",
   },
   fireCarrier: {
-    hp: 16,
+    hp: 18,
     speed: 0.07,
     damage: 1,
     widthUnits: 1.8,
@@ -300,7 +300,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   fireBoss: {
-    hp: 500,
+    hp: 800,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.4,
@@ -349,7 +349,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   darkBoss: {
-    hp: 1000,
+    hp: 1200,
     speed: 0.035,
     damage: 3,
     widthUnits: 3.6,
