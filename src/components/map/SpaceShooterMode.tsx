@@ -163,7 +163,11 @@ type Star = {
    ========================================================= */
 const LANE_COUNT = 5;
 const MAX_WIDTH = 480;
-const PLAYER_WIDTH = 1.0;
+const PLAYER_WIDTH = 0.9;
+/** 플레이어 피격 반지름 (총알 판정, 게임 유닛) */
+const PLAYER_HIT_R = 0.03;
+/** 플레이어 피격 범위 — 적 몸체 y축 거리 */
+const PLAYER_HIT_BODY_Y = 0.03;
 const PLAYER_Y_MIN = 0.25;
 const PLAYER_Y_MAX = 0.92;
 const FIRST_STAGE_TARGET = 20;
@@ -263,7 +267,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   spaceBoss: {
-    hp: 450,
+    hp: 1000,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.2,
@@ -312,7 +316,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   fireBoss: {
-    hp: 600,
+    hp: 1400,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.4,
@@ -361,7 +365,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   darkBoss: {
-    hp: 1000,
+    hp: 2000,
     speed: 0.035,
     damage: 3,
     widthUnits: 3.6,
@@ -885,7 +889,7 @@ function makeEnemy(kind: SpaceEnemyKind, rule: StageRule): SpaceEnemy {
     id: _eid++,
     kind,
     x: randFloat(hw, LANE_COUNT - hw),
-    y: isBossKind(kind) ? -0.3 : randFloat(-0.15, -0.05),
+    y: isBossKind(kind) ? 0.12 : randFloat(-0.15, -0.05),
     hp: Math.ceil(spec.hp * rule.hpMul),
     maxHp: Math.ceil(spec.hp * rule.hpMul),
     speed: spec.speed * rule.speedMul,
@@ -1047,7 +1051,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const laneWidth = WIDTH / LANE_COUNT;
 
   /* ---- stage & mode (React state for lifecycle) ---- */
-  const [stage, setStage] = useState(1);
+  const [stage, setStage] = useState(10);
   const [mode, setMode] = useState<Mode>("chapter");
   const stageRef = useRef(stage);
   useEffect(() => {
@@ -1066,7 +1070,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   /* ---- chapter banner auto-start ---- */
   useEffect(() => {
     if (mode !== "chapter") return;
-    const t = setTimeout(() => setMode("playing"), 2200);
+    const t = setTimeout(() => setMode("playing"), 1200);
     return () => clearTimeout(t);
   }, [mode]);
 
@@ -1258,15 +1262,22 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       for (const e of s.enemies) {
         e.patternPhase += dt;
         e.hitFx = Math.max(0, e.hitFx - dt);
-        e.y += e.speed * dt;
-
-        if (e.pattern === "zigzag") {
-          e.x +=
-            Math.sin(e.patternPhase * e.patternFreq) * e.patternAmp * dt * 2;
+        if (isBossKind(e.kind)) {
+          // Boss stays fixed at top, only sways horizontally
+          e.x += Math.sin(e.patternPhase * 1.2) * 0.3 * dt;
           e.x = clamp(e.x, e.widthUnits / 2, LANE_COUNT - e.widthUnits / 2);
-        }
-        if (e.pattern === "hover" && e.y > 0.2) {
-          e.y = Math.max(e.y - e.speed * dt * 0.9, 0.2);
+          e.y = 0.12;
+        } else {
+          e.y += e.speed * dt;
+
+          if (e.pattern === "zigzag") {
+            e.x +=
+              Math.sin(e.patternPhase * e.patternFreq) * e.patternAmp * dt * 2;
+            e.x = clamp(e.x, e.widthUnits / 2, LANE_COUNT - e.widthUnits / 2);
+          }
+          if (e.pattern === "hover" && e.y > 0.2) {
+            e.y = Math.max(e.y - e.speed * dt * 0.9, 0.2);
+          }
         }
 
         e.fireAcc += dt;
@@ -1377,7 +1388,15 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         let dmg = 0;
         for (const b of s.enemyBullets) {
           if (
-            segmentCircleHit(b.px, b.py, b.x, b.y, p.x, p.y, 0.03 + b.radius)
+            segmentCircleHit(
+              b.px,
+              b.py,
+              b.x,
+              b.y,
+              p.x,
+              p.y,
+              PLAYER_HIT_R + b.radius,
+            )
           ) {
             dmg += b.damage;
           } else {
@@ -1400,7 +1419,10 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       if (s.hurtCd <= 0) {
         for (const e of s.enemies) {
           const dist = (e.widthUnits + p.widthUnits) * 0.3;
-          if (Math.abs(e.x - p.x) < dist && Math.abs(e.y - p.y) < 0.07) {
+          if (
+            Math.abs(e.x - p.x) < dist &&
+            Math.abs(e.y - p.y) < PLAYER_HIT_BODY_Y
+          ) {
             p.hp = Math.max(0, p.hp - e.damage);
             s.hurtCd = 0.5;
             e.hitFx = 0.12;
@@ -1451,7 +1473,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           forceRender((t) => t + 1);
           return;
         } else {
-          s.stageBannerT = 1.5;
+          s.stageBannerT = 0.8;
         }
       }
 
@@ -1770,37 +1792,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         );
       })()}
 
-      {/* ===== HP bar (bottom, mobile-friendly) ===== */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "max(12px, env(safe-area-inset-bottom))",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "60%",
-          maxWidth: 200,
-          height: 10,
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.15)",
-          overflow: "hidden",
-          zIndex: 30,
-        }}
-      >
-        <div
-          style={{
-            width: `${playerHpPct * 100}%`,
-            height: "100%",
-            borderRadius: 999,
-            background:
-              playerHpPct > 0.5
-                ? "#57aeff"
-                : playerHpPct > 0.25
-                  ? "#f59e0b"
-                  : "#ef4444",
-            transition: "width 0.1s",
-          }}
-        />
-      </div>
+      {/* ===== HP bar (above player head) ===== */}
 
       {/* ===== Items ===== */}
       {items.map((it) => (
@@ -1999,6 +1991,36 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           }}
         >
           <JetpackSvg size={40} />
+        </div>
+        {/* HP bar above head */}
+        <div
+          style={{
+            position: "absolute",
+            top: -4,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.2)",
+            overflow: "hidden",
+            zIndex: 25,
+          }}
+        >
+          <div
+            style={{
+              width: `${playerHpPct * 100}%`,
+              height: "100%",
+              borderRadius: 2,
+              background:
+                playerHpPct > 0.5
+                  ? "#57aeff"
+                  : playerHpPct > 0.25
+                    ? "#f59e0b"
+                    : "#ef4444",
+              transition: "width 0.1s",
+            }}
+          />
         </div>
         {/* Character sprite */}
         <div

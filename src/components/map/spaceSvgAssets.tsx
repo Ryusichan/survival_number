@@ -484,116 +484,69 @@ export const JetpackFlameSvg: React.FC<{ size?: number }> = ({ size = 40 }) => (
 /* ===== 아이템: 무기 상자 (Weapon crate) ===== */
 export const ItemWeaponSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="wcg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#fbbf24" />
-        <stop offset="100%" stopColor="#d97706" />
-      </linearGradient>
-    </defs>
-    <rect x="2" y="6" width="24" height="18" rx="3" fill="url(#wcg)" stroke="#92400e" strokeWidth="1.2" />
-    <rect x="4" y="8" width="8" height="3" rx="1" fill="rgba(255,255,255,0.3)" />
-    <rect x="11" y="13" width="6" height="3" rx="1" fill="#92400e" />
-    <circle cx="14" cy="14.5" r="1.5" fill="#fde68a" />
-    <line x1="7" y1="6" x2="7" y2="3" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="14" y1="6" x2="14" y2="2" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="21" y1="6" x2="21" y2="3" stroke="#d97706" strokeWidth="1.5" strokeLinecap="round" />
+    {/* 배경 원 */}
+    <circle cx="14" cy="14" r="13" fill="#fbbf24" stroke="#92400e" strokeWidth="1.2" />
+    {/* 총 아이콘 */}
+    <rect x="6" y="11" width="14" height="6" rx="1.5" fill="#92400e" />
+    <rect x="18" y="9" width="4" height="10" rx="1" fill="#92400e" />
+    <rect x="9" y="14" width="3" height="5" rx="1" fill="#78350f" />
+    <circle cx="21" cy="14" r="1.2" fill="#fde68a" />
   </svg>
 );
 
-/* ===== 아이템: 연사 부스트 (Fire rate) ===== */
+/* ===== 아이템: 연사 부스트 (Fire rate) — 번개 ===== */
 export const ItemFireRateSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="frg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#60a5fa" />
-        <stop offset="100%" stopColor="#2563eb" />
-      </linearGradient>
-    </defs>
-    <polygon points="14,2 18,10 26,11 20,17 22,26 14,21 6,26 8,17 2,11 10,10" fill="url(#frg)" stroke="#1e40af" strokeWidth="0.8" />
-    <polygon points="14,7 16,12 21,12.5 17,16 18,21 14,18 10,21 11,16 7,12.5 12,12" fill="#93c5fd" opacity="0.5" />
-    <path d="M11,12 L14,8 L17,12" fill="none" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
-    <path d="M12,15 L14,11 L16,15" fill="none" stroke="#fff" strokeWidth="0.8" strokeLinecap="round" opacity="0.5" />
+    <circle cx="14" cy="14" r="13" fill="#2563eb" stroke="#1e40af" strokeWidth="1.2" />
+    {/* 번개 bolt */}
+    <path d="M16,3 L10,15 L14,15 L12,25 L20,12 L15,12 L18,3Z" fill="#facc15" stroke="#eab308" strokeWidth="0.5" />
   </svg>
 );
 
-/* ===== 아이템: 데미지 업 ===== */
+/* ===== 아이템: 데미지 업 — 위쪽 화살표 ===== */
 export const ItemDamageUpSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="dug" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#34d399" />
-        <stop offset="100%" stopColor="#059669" />
-      </linearGradient>
-    </defs>
-    <circle cx="14" cy="14" r="12" fill="url(#dug)" stroke="#065f46" strokeWidth="1" />
-    <circle cx="14" cy="14" r="8" fill="#065f46" opacity="0.3" />
-    <path d="M14,6 L16,12 L22,12 L17,16 L19,22 L14,18 L9,22 L11,16 L6,12 L12,12Z" fill="#a7f3d0" opacity="0.6" />
-    <path d="M14,8 L14,20" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
-    <path d="M8,14 L20,14" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="14" cy="14" r="13" fill="#ef4444" stroke="#b91c1c" strokeWidth="1.2" />
+    {/* 위쪽 화살표 */}
+    <path d="M14,5 L21,15 L17,15 L17,23 L11,23 L11,15 L7,15Z" fill="#fff" />
   </svg>
 );
 
-/* ===== 아이템: 관통 ===== */
+/* ===== 아이템: 관통 — 다이아몬드 + 화살 ===== */
 export const ItemPierceSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="pig" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#f472b6" />
-        <stop offset="100%" stopColor="#db2777" />
-      </linearGradient>
-    </defs>
-    <path d="M14,2 L26,14 L14,26 L2,14Z" fill="url(#pig)" stroke="#9d174d" strokeWidth="1" />
-    <path d="M14,7 L21,14 L14,21 L7,14Z" fill="#fce7f3" opacity="0.35" />
-    <path d="M14,4 L14,24" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-    <path d="M10,10 L14,4 L18,10" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-    <path d="M10,18 L14,12 L18,18" fill="none" stroke="#fff" strokeWidth="1" strokeLinecap="round" opacity="0.4" />
+    <path d="M14,2 L26,14 L14,26 L2,14Z" fill="#db2777" stroke="#9d174d" strokeWidth="1.2" />
+    {/* 관통 화살 */}
+    <path d="M14,6 L14,22" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M10,10 L14,5 L18,10" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10,16 L14,11 L18,16" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
   </svg>
 );
 
-/* ===== 아이템: 클론 추가 ===== */
+/* ===== 아이템: 클론 추가 — 사람x2 ===== */
 export const ItemCloneSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="clg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#c084fc" />
-        <stop offset="100%" stopColor="#7c3aed" />
-      </linearGradient>
-    </defs>
-    <circle cx="14" cy="14" r="12" fill="url(#clg)" stroke="#5b21b6" strokeWidth="1" />
-    <circle cx="10" cy="11" r="4" fill="#ede9fe" opacity="0.7" />
-    <rect x="7" y="16" width="6" height="7" rx="2" fill="#ede9fe" opacity="0.5" />
-    <circle cx="19" cy="11" r="3.5" fill="#ddd6fe" opacity="0.6" />
-    <rect x="16.5" y="15.5" width="5" height="6" rx="2" fill="#ddd6fe" opacity="0.4" />
-    <circle cx="14" cy="22" r="1" fill="#fff" opacity="0.6" />
+    <circle cx="14" cy="14" r="13" fill="#7c3aed" stroke="#5b21b6" strokeWidth="1.2" />
+    {/* 왼쪽 사람 */}
+    <circle cx="10" cy="10" r="3" fill="#ede9fe" />
+    <path d="M10,13 L10,20" stroke="#ede9fe" strokeWidth="2.5" strokeLinecap="round" />
+    {/* 오른쪽 사람 */}
+    <circle cx="18" cy="10" r="3" fill="#c4b5fd" />
+    <path d="M18,13 L18,20" stroke="#c4b5fd" strokeWidth="2.5" strokeLinecap="round" />
+    {/* x2 */}
+    <text x="14" y="26" textAnchor="middle" fontSize="5" fontWeight="900" fill="#fff">x2</text>
   </svg>
 );
 
-/* ===== 아이템: HP 회복 알약 (Heal pill) ===== */
+/* ===== 아이템: HP 회복 — 병원 십자가 (붉은계열) ===== */
 export const ItemHealPillSvg: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg viewBox="0 0 28 28" width={size} height={size}>
-    <defs>
-      <linearGradient id="hpg1" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#ff6b6b" />
-        <stop offset="50%" stopColor="#ff6b6b" />
-        <stop offset="50%" stopColor="#fff" />
-        <stop offset="100%" stopColor="#e8e8e8" />
-      </linearGradient>
-      <filter id="pillGlow">
-        <feGaussianBlur stdDeviation="1.5" result="blur" />
-        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-      </filter>
-    </defs>
-    {/* 글로우 */}
-    <ellipse cx="14" cy="14" rx="10" ry="12" fill="#ff6b6b" opacity="0.2" className="engine-flame" />
-    {/* 캡슐 본체 */}
-    <rect x="6" y="4" width="16" height="20" rx="8" fill="url(#hpg1)" stroke="#d44" strokeWidth="1" />
-    {/* 캡슐 분리선 */}
-    <line x1="6" y1="14" x2="22" y2="14" stroke="#d44" strokeWidth="0.8" opacity="0.6" />
-    {/* 십자 마크 */}
-    <rect x="12" y="6.5" width="4" height="10" rx="1" fill="#fff" opacity="0.85" />
-    <rect x="9" y="9" width="10" height="4" rx="1" fill="#fff" opacity="0.85" />
-    {/* 하이라이트 */}
-    <rect x="8.5" y="6" width="3" height="6" rx="1.5" fill="rgba(255,255,255,0.4)" />
+    {/* 붉은 배경 원 */}
+    <circle cx="14" cy="14" r="13" fill="#fff" stroke="#dc2626" strokeWidth="1.5" />
+    <circle cx="14" cy="14" r="11" fill="#dc2626" />
+    {/* 병원 십자가 (흰색) */}
+    <rect x="11" y="6" width="6" height="16" rx="1.5" fill="#fff" />
+    <rect x="6" y="11" width="16" height="6" rx="1.5" fill="#fff" />
   </svg>
 );
 
