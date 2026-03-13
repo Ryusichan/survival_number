@@ -263,7 +263,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   spaceBoss: {
-    hp: 100,
+    hp: 450,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.2,
@@ -312,7 +312,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   fireBoss: {
-    hp: 160,
+    hp: 600,
     speed: 0.04,
     damage: 2,
     widthUnits: 3.4,
@@ -361,7 +361,7 @@ const ENEMY_SPECS: Record<SpaceEnemyKind, SpaceEnemySpec> = {
     pattern: "zigzag",
   },
   darkBoss: {
-    hp: 240,
+    hp: 1000,
     speed: 0.035,
     damage: 3,
     widthUnits: 3.6,
@@ -810,11 +810,17 @@ function applyItem(combat: CombatState, item: Item): CombatState {
   if (item.kind === "fireRateMul") {
     return {
       ...combat,
-      permFireMul: Math.max(0.35, (combat.permFireMul ?? 1) * item.mul),
+      permFireMul: Math.max(
+        Math.pow(0.7, 5),
+        (combat.permFireMul ?? 1) * item.mul,
+      ),
     };
   }
   if (item.kind === "damageAdd") {
-    return { ...combat, permDamageAdd: (combat.permDamageAdd ?? 0) + item.add };
+    return {
+      ...combat,
+      permDamageAdd: Math.min(5, (combat.permDamageAdd ?? 0) + item.add),
+    };
   }
   if (item.kind === "pierce") {
     return {
@@ -1587,7 +1593,11 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         );
       })()}
 
-      <BackButton onExit={onExit} onPause={togglePause} isPaused={mode === "paused"} />
+      <BackButton
+        onExit={onExit}
+        onPause={togglePause}
+        isPaused={mode === "paused"}
+      />
 
       {/* ===== HUD ===== */}
       <div
