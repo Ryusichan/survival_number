@@ -45,10 +45,22 @@ const SoccerBall: React.FC<{ size: number }> = ({ size }) => (
       </radialGradient>
     </defs>
     <circle cx="50" cy="50" r="48" fill="url(#soccerBody)" />
-    <circle cx="50" cy="50" r="48" fill="none" stroke="#b0b0b0" strokeWidth="1.5" />
+    <circle
+      cx="50"
+      cy="50"
+      r="48"
+      fill="none"
+      stroke="#b0b0b0"
+      strokeWidth="1.5"
+    />
     <g style={{ clipPath: "circle(47.5% at 50% 50%)" }}>
       {/* Curved pentagons - center enlarged */}
-      <g fill="#2a2a2a" stroke="#1a1a1a" strokeWidth="0.8" strokeLinejoin="round">
+      <g
+        fill="#2a2a2a"
+        stroke="#1a1a1a"
+        strokeWidth="0.8"
+        strokeLinejoin="round"
+      >
         <path d="M50,27 Q65,30 72,41 Q73,55 64,66 Q50,73 36,66 Q27,55 28,41 Q35,30 50,27Z" />
         <path d="M35,3 Q39,10 50,10 Q61,10 65,3 L60,-8 L40,-8Z" />
         <path d="M82,18 Q82,26 88,38 Q91,50 95,55 L105,42 L100,22Z" />
@@ -129,55 +141,92 @@ const SparkleBurst: React.FC<{ size?: number }> = ({ size = 64 }) => (
     {SPARKLE_DIRS.map((d, i) => (
       <span
         key={i}
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          width: 7,
-          height: 7,
-          marginLeft: -3.5,
-          marginTop: -3.5,
-          background: i % 2 === 0 ? "#fff7c2" : "#ffd86b",
-          borderRadius: "50%",
-          boxShadow: "0 0 7px 2px rgba(255,220,120,0.9)",
-          ["--sx" as string]: `${d.dx * size * 0.75}px`,
-          ["--sy" as string]: `${d.dy * size * 0.75}px`,
-          animation: `sparkleFly 0.6s ease-out forwards`,
-        } as React.CSSProperties}
+        style={
+          {
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            width: 7,
+            height: 7,
+            marginLeft: -3.5,
+            marginTop: -3.5,
+            background: i % 2 === 0 ? "#fff7c2" : "#ffd86b",
+            borderRadius: "50%",
+            boxShadow: "0 0 7px 2px rgba(255,220,120,0.9)",
+            ["--sx" as string]: `${d.dx * size * 0.75}px`,
+            ["--sy" as string]: `${d.dy * size * 0.75}px`,
+            animation: `sparkleFly 0.6s ease-out forwards`,
+          } as React.CSSProperties
+        }
       />
     ))}
   </div>
 );
 
 const stageSettings: { values: number[]; rowCount: number }[] = [
+  // ===== 2개짜리 문제 (쉬움) =====
   { values: [1, 2], rowCount: 2 },
   { values: [2, 3], rowCount: 2 },
+  { values: [1, 3], rowCount: 2 },
   { values: [3, 4], rowCount: 2 },
+  { values: [2, 4], rowCount: 2 },
+  { values: [4, 5], rowCount: 2 },
+  { values: [3, 5], rowCount: 2 },
+  { values: [5, 6], rowCount: 2 },
+  { values: [1, 2], rowCount: 3 },
+  { values: [2, 3], rowCount: 3 },
+  { values: [1, 3], rowCount: 3 },
+  { values: [3, 4], rowCount: 3 },
   { values: [4, 5], rowCount: 3 },
+  { values: [2, 5], rowCount: 3 },
   { values: [5, 6], rowCount: 3 },
+  { values: [3, 6], rowCount: 3 },
   { values: [6, 7], rowCount: 3 },
+  { values: [4, 6], rowCount: 3 },
+  { values: [3, 6], rowCount: 4 },
+  { values: [4, 7], rowCount: 4 },
+  { values: [2, 5], rowCount: 4 },
+  { values: [5, 8], rowCount: 4 },
+  // ===== 3개짜리 문제 (보통 → 어려움) =====
+  { values: [1, 2, 3], rowCount: 3 },
+  { values: [2, 3, 4], rowCount: 3 },
+  { values: [1, 3, 5], rowCount: 3 },
+  { values: [2, 4, 6], rowCount: 3 },
+  { values: [1, 2, 4], rowCount: 3 },
   { values: [1, 2, 3], rowCount: 4 },
   { values: [1, 2, 4], rowCount: 4 },
   { values: [2, 3, 4], rowCount: 4 },
   { values: [3, 4, 5], rowCount: 4 },
+  { values: [2, 4, 6], rowCount: 4 },
+  { values: [4, 5, 6], rowCount: 4 },
+  { values: [1, 3, 5], rowCount: 4 },
+  { values: [3, 5, 7], rowCount: 4 },
   { values: [1, 2, 3], rowCount: 5 },
   { values: [2, 3, 4], rowCount: 5 },
   { values: [3, 4, 5], rowCount: 5 },
   { values: [4, 5, 6], rowCount: 5 },
+  { values: [1, 3, 5], rowCount: 5 },
+  { values: [2, 4, 6], rowCount: 5 },
+  { values: [2, 5, 8], rowCount: 5 },
   { values: [3, 7, 8], rowCount: 5 },
   { values: [4, 6, 7], rowCount: 5 },
   { values: [5, 8, 9], rowCount: 5 },
   { values: [6, 7, 8], rowCount: 5 },
   { values: [1, 2, 3], rowCount: 6 },
+  { values: [2, 4, 6], rowCount: 6 },
   { values: [3, 4, 5], rowCount: 6 },
   { values: [4, 5, 6], rowCount: 6 },
+  { values: [1, 3, 5], rowCount: 6 },
   { values: [5, 6, 7], rowCount: 6 },
+  { values: [4, 6, 8], rowCount: 6 },
   { values: [6, 7, 8], rowCount: 6 },
   { values: [7, 8, 9], rowCount: 6 },
   { values: [1, 2, 3], rowCount: 7 },
   { values: [2, 3, 4], rowCount: 7 },
   { values: [3, 4, 5], rowCount: 7 },
   { values: [4, 5, 6], rowCount: 7 },
+  { values: [2, 4, 6], rowCount: 7 },
+  { values: [5, 7, 9], rowCount: 7 },
 ];
 
 /** 실제 생성된 행들에서 달성 가능한 모든 합계를 계산 */
