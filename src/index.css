@@ -838,40 +838,62 @@ code {
 @keyframes ballDribble {
   0%,
   100% {
-    transform: translate(-50%, -80%) translateY(0) scaleX(1.04) scaleY(0.96);
-    animation-timing-function: ease-out;
-  }
-  15% {
-    transform: translate(-50%, -80%) translateY(-6px) scaleX(1) scaleY(1);
+    /* 지면에 닿는 순간: 살짝 눌리는 스쿼시 */
+    transform: translateX(-50%) translateY(0) scaleX(1.06) scaleY(0.94);
   }
   50% {
-    transform: translate(-50%, -80%) translateY(-16px) scaleX(0.98) scaleY(1.02);
-    animation-timing-function: ease-in;
-  }
-  85% {
-    transform: translate(-50%, -80%) translateY(-6px) scaleX(1) scaleY(1);
+    /* 튀어 오른 정점 */
+    transform: translateX(-50%) translateY(-60%) scaleX(0.98) scaleY(1.02);
   }
 }
 
 @keyframes ballSpin {
   0%,
   100% {
-    transform: rotate(-10deg);
+    transform: rotate(-12deg);
   }
   50% {
-    transform: rotate(10deg);
+    transform: rotate(12deg);
   }
 }
 
 @keyframes ballShadow {
   0%,
   100% {
-    transform: translateX(-50%) scaleX(1);
-    opacity: 0.25;
+    /* 공이 지면에 닿을 때: 그림자 크고 진하게 */
+    transform: translateX(-50%) scale(1);
+    opacity: 0.4;
   }
   50% {
-    transform: translateX(-50%) scaleX(0.55);
-    opacity: 0.1;
+    /* 공이 떠오를 때: 그림자 작고 옅게 */
+    transform: translateX(-50%) scale(0.5);
+    opacity: 0.14;
+  }
+}
+
+/* 숫자 먹었을 때 반짝임 */
+@keyframes sparkleFly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--sx), var(--sy)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkleFlash {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
   }
 }
 

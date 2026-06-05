@@ -26,15 +26,19 @@ const blink = keyframes`
 
 /* ===== layout ===== */
 const Wrap = styled.div`
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   background: #0a0a14;
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: clamp(16px, 4vh, 48px) 24px clamp(16px, 3vh, 24px);
+  padding: clamp(12px, 3vh, 40px) clamp(12px, 4vw, 24px)
+    clamp(12px, 2vh, 24px);
   box-sizing: border-box;
   position: relative;
 
@@ -71,12 +75,13 @@ const ScanBar = styled.div`
 
 const Header = styled.div`
   text-align: center;
-  margin-bottom: clamp(12px, 3vh, 28px);
+  margin-bottom: clamp(8px, 2vh, 20px);
   z-index: 2;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-width: 100%;
 `;
 
 /* pixel firework particle */
@@ -277,7 +282,8 @@ function PixelTitle() {
     <svg
       viewBox={`${-PAD} ${-PAD} ${SVG_W + PAD * 2} ${SVG_H + PAD * 2}`}
       style={{
-        width: "clamp(260px, 68vw, 360px)",
+        width: "clamp(180px, 52vw, 320px)",
+        maxWidth: "100%",
         height: "auto",
         display: "block",
       }}
@@ -345,8 +351,11 @@ const Card = styled.div<{ $accent: string }>`
   width: 100%;
   overflow: hidden;
   aspect-ratio: 16 / 7;
-  @media (max-height: 700px) {
+  @media (max-height: 760px) {
     aspect-ratio: 16 / 6;
+  }
+  @media (max-height: 640px) {
+    aspect-ratio: 16 / 5;
   }
   border: 2px solid ${(p) => p.$accent};
   background: #080814;

@@ -6,6 +6,8 @@ const LANE_COUNT = 5;
 const PLAYER_Y = 0.8;
 const ROW_SPEED = 0.2;
 const ROW_GAP = 0.2;
+// 스테이지 통과 시 다음 문제를 지평선 뒤쪽에서 흘러나오게 밀어주는 거리
+const STAGE_SPAWN_BACK = ROW_GAP * 2;
 
 type Player = { x: number; value: number };
 type RowKind = "normal" | "goal";
@@ -89,6 +91,63 @@ const SoccerBall: React.FC<{ size: number }> = ({ size }) => (
 );
 
 let rowIdSeed = 0;
+let sparkleIdSeed = 0;
+
+type SparkleFx = { id: number; xUnits: number; big?: boolean };
+
+// 숫자를 먹었을 때 터지는 반짝임 효과
+const SPARKLE_DIRS = [
+  { dx: 0, dy: -1 },
+  { dx: 0.7, dy: -0.7 },
+  { dx: 1, dy: 0 },
+  { dx: 0.7, dy: 0.7 },
+  { dx: 0, dy: 1 },
+  { dx: -0.7, dy: 0.7 },
+  { dx: -1, dy: 0 },
+  { dx: -0.7, dy: -0.7 },
+];
+
+const SparkleBurst: React.FC<{ size?: number }> = ({ size = 64 }) => (
+  <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    {/* 중심 플래시 */}
+    <div
+      style={{
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        width: size * 0.55,
+        height: size * 0.55,
+        marginLeft: -(size * 0.55) / 2,
+        marginTop: -(size * 0.55) / 2,
+        borderRadius: "50%",
+        background:
+          "radial-gradient(circle, rgba(255,255,210,0.95) 0%, rgba(255,210,90,0.5) 45%, rgba(255,200,80,0) 72%)",
+        animation: "sparkleFlash 0.5s ease-out forwards",
+      }}
+    />
+    {/* 사방으로 튀는 별가루 */}
+    {SPARKLE_DIRS.map((d, i) => (
+      <span
+        key={i}
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          width: 7,
+          height: 7,
+          marginLeft: -3.5,
+          marginTop: -3.5,
+          background: i % 2 === 0 ? "#fff7c2" : "#ffd86b",
+          borderRadius: "50%",
+          boxShadow: "0 0 7px 2px rgba(255,220,120,0.9)",
+          ["--sx" as string]: `${d.dx * size * 0.75}px`,
+          ["--sy" as string]: `${d.dy * size * 0.75}px`,
+          animation: `sparkleFly 0.6s ease-out forwards`,
+        } as React.CSSProperties}
+      />
+    ))}
+  </div>
+);
 
 const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [1, 2], rowCount: 2 },
@@ -203,7 +262,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
   const [failBoardOpen, setFailBoardOpen] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [sparkles, setSparkles] = useState<SparkleFx[]>([]);
   const lastTimeRef = useRef<number | null>(null);
+  const rowsRef = useRef<Row[]>([]);
   const latestX = useRef(player.x);
   const latestValue = useRef(player.value);
   const latestGoal = useRef(goalValues);
@@ -236,11 +297,16 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     latestStage.current = stage;
   }, [stage]);
 
-  const initStage = (stageIndex: number, isNewStage: boolean) => {
+  const initStage = (
+    stageIndex: number,
+    isNewStage: boolean,
+    continuous = false,
+  ) => {
     const index = stageIndex % stageSettings.length;
     const { values, rowCount } = stageSettings[index];
     farYRef.current = -(rowCount * ROW_GAP + ROW_GAP * 2);
-    lastTimeRef.current = null;
+    // 연속 진행 중에는 진행 중인 프레임 흐름을 끊지 않는다
+    if (!continuous) lastTimeRef.current = null;
 
     let normalValues: number[][];
     let goalA: number;
@@ -269,11 +335,13 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     setGoalValues([goalA, goalB]);
     latestGoal.current = [goalA, goalB];
 
+    // 연속 진행 시에는 지평선 뒤쪽에서 흘러나오도록 한 칸 더 밀어준다
+    const spawnBack = continuous ? STAGE_SPAWN_BACK : 0;
     const newRows: Row[] = [];
     for (let i = 0; i < rowCount; i++) {
       newRows.push({
         id: rowIdSeed++,
-        y: -i * ROW_GAP,
+        y: -i * ROW_GAP - spawnBack,
         values: [...normalValues[i]],
         kind: "normal",
         handled: false,
@@ -282,7 +350,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     }
     newRows.push({
       id: rowIdSeed++,
-      y: -rowCount * ROW_GAP,
+      y: -rowCount * ROW_GAP - spawnBack,
       values: [goalA, goalB],
       kind: "goal",
       handled: false,
@@ -290,8 +358,19 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       fadeOut: false,
     });
 
-    setRows(newRows);
-    setPlayer((prev) => ({ ...prev, value: 0, x: LANE_COUNT / 2 }));
+    if (continuous) {
+      // 기존 행은 그대로 흘려보내고 다음 문제를 뒤에 이어 붙인다 → 끊김 없이 계속 달리는 느낌
+      rowsRef.current = [...rowsRef.current, ...newRows];
+      setRows(rowsRef.current);
+      latestValue.current = 0;
+      setPlayer((prev) => ({ ...prev, value: 0 }));
+    } else {
+      rowsRef.current = newRows;
+      setRows(newRows);
+      latestValue.current = 0;
+      latestX.current = LANE_COUNT / 2;
+      setPlayer((prev) => ({ ...prev, value: 0, x: LANE_COUNT / 2 }));
+    }
   };
 
   useEffect(() => {
@@ -346,105 +425,138 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       const dt = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
 
-      let hitGoal = false;
-      let success = false;
-
       const HIT_RADIUS_Y = 0.06; // Y 근접 판정 범위
       const HIT_RADIUS_X = 0.65; // X 근접 판정 범위 (레인 단위)
 
-      setRows((prev) => {
-        const next: Row[] = [];
-        let addValue = 0;
-        const px = latestX.current;
+      // ⚠️ 부수효과(setPlayer/setStage/...)를 setRows 업데이터 안에서 호출하면
+      //    React StrictMode가 업데이터를 2번 실행하면서 값이 2배로 더해진다.
+      //    따라서 rows 계산은 ref로 순수하게 처리하고, 상태 변경은 아래에서 한 번만 적용한다.
+      const prev = rowsRef.current;
+      const next: Row[] = [];
+      const newSparkles: SparkleFx[] = [];
+      let addValue = 0;
+      let hitGoal = false;
+      let success = false;
+      const px = latestX.current;
 
-        for (const row of prev) {
-          const newY = row.y + ROW_SPEED * dt;
+      for (const row of prev) {
+        const newY = row.y + ROW_SPEED * dt;
 
-          // 화면 밖으로 나간 행 제거
-          if (newY > 1.3) continue;
+        // 화면 밖으로 나간 행 제거
+        if (newY > 1.3) continue;
 
-          // 이미 처리된 행은 Y만 갱신하고 그대로 진행
-          if (row.handled) {
-            next.push({ ...row, y: newY });
-            continue;
-          }
+        // 이미 처리된 행은 Y만 갱신하고 그대로 진행
+        if (row.handled) {
+          next.push({ ...row, y: newY });
+          continue;
+        }
 
-          // 근접 판정: Y가 플레이어 근처에 있는지
-          const yClose = Math.abs(newY - PLAYER_Y) < HIT_RADIUS_Y;
+        // 근접 판정: Y가 플레이어 근처에 있는지
+        const yClose = Math.abs(newY - PLAYER_Y) < HIT_RADIUS_Y;
 
-          if (yClose) {
-            if (row.kind === "normal") {
-              // 각 레인의 숫자와 플레이어 X 거리 비교 → 가장 가까운 것 선택
-              let bestLane = -1;
-              let bestDist = Infinity;
-              for (let li = 0; li < row.values.length; li++) {
-                const laneCenterX = li + 0.5; // 레인 중심 (단위 좌표)
-                const dist = Math.abs(px - laneCenterX);
-                if (dist < HIT_RADIUS_X && dist < bestDist) {
-                  bestDist = dist;
-                  bestLane = li;
-                }
-              }
-              if (bestLane >= 0) {
-                const picked = row.values[bestLane];
-                addValue += picked;
-                next.push({
-                  ...row,
-                  y: newY,
-                  handled: true,
-                  hitLane: bestLane,
-                });
-                continue;
-              }
-            } else if (row.kind === "goal") {
-              // goal: 왼쪽/오른쪽 영역에 닿으면 판정
-              const goalHitRadiusX = LANE_COUNT * 0.35;
-              const leftCenter = LANE_COUNT * 0.25;
-              const rightCenter = LANE_COUNT * 0.75;
-              const distL = Math.abs(px - leftCenter);
-              const distR = Math.abs(px - rightCenter);
-
-              if (distL < goalHitRadiusX || distR < goalHitRadiusX) {
-                hitGoal = true;
-                const optionIndex = distL <= distR ? 0 : 1;
-                const chosenGoalNumber = row.values[optionIndex];
-                const totalAfterHit = latestValue.current + addValue;
-                success = totalAfterHit === chosenGoalNumber;
-                next.push({
-                  ...row,
-                  y: newY,
-                  handled: true,
-                  hitLane: optionIndex,
-                });
-                continue;
+        if (yClose) {
+          if (row.kind === "normal") {
+            // 각 레인의 숫자와 플레이어 X 거리 비교 → 가장 가까운 것 선택
+            let bestLane = -1;
+            let bestDist = Infinity;
+            for (let li = 0; li < row.values.length; li++) {
+              const laneCenterX = li + 0.5; // 레인 중심 (단위 좌표)
+              const dist = Math.abs(px - laneCenterX);
+              if (dist < HIT_RADIUS_X && dist < bestDist) {
+                bestDist = dist;
+                bestLane = li;
               }
             }
+            if (bestLane >= 0) {
+              const picked = row.values[bestLane];
+              addValue += picked;
+              newSparkles.push({
+                id: sparkleIdSeed++,
+                xUnits: bestLane + 0.5,
+              });
+              next.push({
+                ...row,
+                y: newY,
+                handled: true,
+                hitLane: bestLane,
+              });
+              continue;
+            }
+          } else if (row.kind === "goal") {
+            // goal: 왼쪽/오른쪽 영역에 닿으면 판정
+            const goalHitRadiusX = LANE_COUNT * 0.35;
+            const leftCenter = LANE_COUNT * 0.25;
+            const rightCenter = LANE_COUNT * 0.75;
+            const distL = Math.abs(px - leftCenter);
+            const distR = Math.abs(px - rightCenter);
+
+            if (distL < goalHitRadiusX || distR < goalHitRadiusX) {
+              hitGoal = true;
+              const optionIndex = distL <= distR ? 0 : 1;
+              const chosenGoalNumber = row.values[optionIndex];
+              const totalAfterHit = latestValue.current + addValue;
+              success = totalAfterHit === chosenGoalNumber;
+              // 통과 지점에 큰 반짝임 (성공 시 양옆으로 한 번 더)
+              const goalXUnits = optionIndex === 0 ? leftCenter : rightCenter;
+              newSparkles.push({
+                id: sparkleIdSeed++,
+                xUnits: goalXUnits,
+                big: true,
+              });
+              if (totalAfterHit === chosenGoalNumber) {
+                newSparkles.push({
+                  id: sparkleIdSeed++,
+                  xUnits: goalXUnits - 0.9,
+                });
+                newSparkles.push({
+                  id: sparkleIdSeed++,
+                  xUnits: goalXUnits + 0.9,
+                });
+              }
+              next.push({
+                ...row,
+                y: newY,
+                handled: true,
+                hitLane: optionIndex,
+              });
+              continue;
+            }
           }
-
-          next.push({ ...row, y: newY });
         }
 
-        if (addValue > 0) {
-          setPlayer((prevPlayer) => ({
-            ...prevPlayer,
-            value: prevPlayer.value + addValue,
-          }));
-        }
+        next.push({ ...row, y: newY });
+      }
 
-        if (hitGoal) {
-          if (success) {
-            setStage((prevStage) => {
-              const nextStageIndex = (prevStage + 1) % stageSettings.length;
-              initStage(nextStageIndex, true);
-              return nextStageIndex;
-            });
-          } else {
-            setFailBoardOpen(true);
-          }
-        }
+      rowsRef.current = next;
+      setRows(next);
 
-        return next;
-      });
+      if (addValue > 0) {
+        latestValue.current += addValue;
+        setPlayer((prevPlayer) => ({
+          ...prevPlayer,
+          value: prevPlayer.value + addValue,
+        }));
+      }
+
+      if (newSparkles.length) {
+        setSparkles((prevFx) => [...prevFx, ...newSparkles]);
+        const ids = newSparkles.map((s) => s.id);
+        // 애니메이션이 끝나면 정리
+        setTimeout(() => {
+          setSparkles((prevFx) => prevFx.filter((s) => !ids.includes(s.id)));
+        }, 650);
+      }
+
+      if (hitGoal) {
+        if (success) {
+          const nextStageIndex =
+            (latestStage.current + 1) % stageSettings.length;
+          setStage(nextStageIndex);
+          initStage(nextStageIndex, true, true);
+        } else {
+          setFailBoardOpen(true);
+        }
+      }
 
       frameId = requestAnimationFrame(loop);
     };
@@ -461,7 +573,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     initStage(latestStage.current, false);
   };
 
-  const balloonSize = Math.min(68 + player.value * 2, 140);
+  const balloonSize = Math.min(52 + player.value * 1.6, 92);
 
   // ===== 3D Road Rendering =====
   const vanishY = projectRowYpx(farYRef.current, farYRef.current);
@@ -819,41 +931,51 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 transform: `translate(-50%, -50%) scale(${scale})`,
                 width: WIDTH * 0.88,
                 height: 90,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
                 opacity: depthAlpha,
                 zIndex: 10,
               }}
             >
-              {row.values.map((v, idx) => (
-                <div
-                  key={`${row.id}-goal-${idx}`}
-                  style={{
-                    width: "49%",
-                    height: "100%",
-                    background:
-                      "linear-gradient(0deg, rgba(255,72,0,0.4) 0%, rgba(255,72,0,0.2) 74%, rgba(255,72,0,0) 100%)",
-                    borderBottom: "3px solid rgba(255,100,50,0.6)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    boxShadow:
-                      "0 8px 24px rgba(255,72,0,0.2), inset 0 0 20px rgba(255,72,0,0.05)",
-                    color: "#fff",
-                    fontSize: "64px",
-                    fontWeight: 600,
-                    fontFamily: "Archivo Black",
-                    position: "relative",
-                    textShadow:
-                      "-1px 0px #1f1f1f, 0px 1px #1f1f1f, 1px 0px #1f1f1f, 0px -1px #1f1f1f, 0 0 20px rgba(255,100,50,0.3)",
-                  }}
-                >
-                  <div className="pillar_L" />
-                  <div className="pillar_R" />
-                  {v}
-                </div>
-              ))}
+              {/* 통과 시 goal 행 전체가 함께 사라진다 (움직임은 그대로) */}
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  opacity: row.handled ? 0 : 1,
+                  transition: "opacity 0.4s ease",
+                }}
+              >
+                {row.values.map((v, idx) => (
+                  <div
+                    key={`${row.id}-goal-${idx}`}
+                    style={{
+                      width: "49%",
+                      height: "100%",
+                      background:
+                        "linear-gradient(0deg, rgba(255,72,0,0.4) 0%, rgba(255,72,0,0.2) 74%, rgba(255,72,0,0) 100%)",
+                      borderBottom: "3px solid rgba(255,100,50,0.6)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow:
+                        "0 8px 24px rgba(255,72,0,0.2), inset 0 0 20px rgba(255,72,0,0.05)",
+                      color: "#fff",
+                      fontSize: "64px",
+                      fontWeight: 600,
+                      fontFamily: "Archivo Black",
+                      position: "relative",
+                      textShadow:
+                        "-1px 0px #1f1f1f, 0px 1px #1f1f1f, 1px 0px #1f1f1f, 0px -1px #1f1f1f, 0 0 20px rgba(255,100,50,0.3)",
+                    }}
+                  >
+                    <div className="pillar_L" />
+                    <div className="pillar_R" />
+                    {v}
+                  </div>
+                ))}
+              </div>
             </div>
           );
         }
@@ -869,7 +991,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           const baseX = laneIndex * laneWidth + laneWidth / 2;
           const x = centerX + (baseX - centerX) * spread;
 
-          const cellOpacity = row.hitLane === laneIndex ? 0 : 1;
+          // 한 칸이라도 먹으면 그 행 전체가 함께 사라진다
+          const eaten = row.handled === true;
 
           // 깊이에 따른 알파 (멀수록 약간 투명)
           const depthT = clamp01(
@@ -894,16 +1017,49 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: cellOpacity * depthAlpha,
-                transition: "opacity 0.3s ease",
+                // 깊이감만 담당 (매 프레임 갱신, transition 없음)
+                opacity: depthAlpha,
                 filter: `drop-shadow(0 4px 12px rgba(255,200,100,${glowAlpha}))`,
                 zIndex: 10,
               }}
             >
-              <DigitNumber value={v} size={56} />
+              {/* 먹힘 페이드는 별도 레이어에서 처리 → 행의 자리·크기·움직임은 그대로, 숫자만 사라짐 */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: eaten ? 0 : 1,
+                  transition: "opacity 0.4s ease",
+                }}
+              >
+                <DigitNumber value={v} size={56} />
+              </div>
             </div>
           );
         });
+      })}
+
+      {/* ===== Sparkle FX (숫자 / goal 통과) ===== */}
+      {sparkles.map((s) => {
+        const size = s.big ? 120 : 64;
+        return (
+          <div
+            key={s.id}
+            style={{
+              position: "absolute",
+              left: xUnitsToPx(s.xUnits),
+              top: playerLinePx,
+              width: size,
+              height: size,
+              transform: "translate(-50%, -50%)",
+              pointerEvents: "none",
+              zIndex: 25,
+            }}
+          >
+            <SparkleBurst size={size} />
+          </div>
+        );
       })}
 
       {/* ===== Player ===== */}
@@ -927,24 +1083,49 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               zIndex: 20,
             }}
           >
-            {/* Soccer Ball */}
+            {/* Dribble ground shadow (공보다 먼저 그려 지면에 깔리도록) */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: -balloonSize * 0.34 - 2,
+                width: balloonSize * 0.66,
+                height: 9,
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 70%)",
+                transform: "translateX(-50%)",
+                animation: "ballShadow 380ms ease-in-out infinite",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            />
+
+            {/* Soccer Ball (발 앞에서 드리블) */}
             <div
               key={player.value}
               style={{
                 position: "absolute",
-                top: 10,
                 left: "50%",
-                transform: "translate(-50%, -80%)",
+                bottom: -balloonSize * 0.34,
                 width: balloonSize,
                 height: balloonSize,
-                animation: "ballDribble 480ms ease-in-out infinite",
+                transformOrigin: "center bottom",
+                animation: "ballDribble 380ms ease-in-out infinite",
                 pointerEvents: "none",
                 userSelect: "none",
-                filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.3))",
+                filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.25))",
+                zIndex: 3,
               }}
               className="player-balloon"
             >
-              <div style={{ animation: "ballSpin 480ms ease-in-out infinite" }}>
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  animation: "ballSpin 380ms ease-in-out infinite",
+                }}
+              >
                 <SoccerBall size={balloonSize} />
               </div>
               <div
@@ -955,7 +1136,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#fff",
-                  fontSize: Math.max(28, balloonSize * 0.45),
+                  fontSize: Math.max(20, balloonSize * 0.5),
                   fontWeight: 900,
                   textShadow:
                     "-2px -2px 0 #222, 2px -2px 0 #222, -2px 2px 0 #222, 2px 2px 0 #222, 0 3px 8px rgba(0,0,0,0.4)",
@@ -964,21 +1145,6 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 {player.value}
               </div>
             </div>
-
-            {/* Ball bounce shadow */}
-            <div
-              style={{
-                position: "absolute",
-                top: -balloonSize * 0.55,
-                left: "50%",
-                width: balloonSize * 0.6,
-                height: 8,
-                borderRadius: "50%",
-                background: "rgba(0,0,0,0.2)",
-                animation: "ballShadow 480ms ease-in-out infinite",
-                pointerEvents: "none",
-              }}
-            />
 
             {/* Character */}
             <div className="charactor" style={{ zIndex: 1 }} />
