@@ -68,7 +68,12 @@ const SoccerBall: React.FC<{ size: number }> = ({ size }) => (
         <path d="M34.8,45.1 L5.3,35.5" />
       </g>
       {/* 검정 오각형 (정중앙 + 가장자리 5개) */}
-      <g fill="#232323" stroke="#141414" strokeWidth="0.9" strokeLinejoin="round">
+      <g
+        fill="#232323"
+        stroke="#141414"
+        strokeWidth="0.9"
+        strokeLinejoin="round"
+      >
         <path d="M50,34 L65.2,45.1 L59.4,62.9 L40.6,62.9 L34.8,45.1 Z" />
         <path d="M50,80 L63.3,89.7 L58.2,105.3 L41.8,105.3 L36.7,89.7 Z" />
         <path d="M78.5,59.3 L83.6,74.9 L100,74.9 L105.1,59.3 L91.8,49.6 Z" />
@@ -162,7 +167,15 @@ const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
     {/* ===== 뚜껑 ===== */}
     <rect x="15" y="35" width="48" height="14" rx="2" fill="#e85f48" />
     <rect x="61" y="35" width="24" height="14" rx="2" fill="#8a3433" />
-    <rect x="15" y="35" width="48" height="3" rx="1.5" fill="#ffffff" opacity="0.12" />
+    <rect
+      x="15"
+      y="35"
+      width="48"
+      height="3"
+      rx="1.5"
+      fill="#ffffff"
+      opacity="0.12"
+    />
 
     {/* ===== 세로 리본 ===== */}
     <rect x="37" y="35" width="9" height="53" fill="#f3c64e" />
@@ -178,7 +191,11 @@ const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
       strokeWidth="0.8"
       strokeLinejoin="round"
     />
-    <path d="M42,33 C34,32 28,26 28,20 C33,24 39,28 44,31 Z" fill="#e0a838" opacity="0.55" />
+    <path
+      d="M42,33 C34,32 28,26 28,20 C33,24 39,28 44,31 Z"
+      fill="#e0a838"
+      opacity="0.55"
+    />
     <path
       d="M48,33 C60,34 68,24 63,17 C58,12 49,18 46,31 Z"
       fill="#f6cf5e"
@@ -186,8 +203,21 @@ const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
       strokeWidth="0.8"
       strokeLinejoin="round"
     />
-    <path d="M48,33 C56,32 62,26 62,20 C57,24 51,28 46,31 Z" fill="#e0a838" opacity="0.55" />
-    <rect x="42" y="28" width="8" height="9" rx="2.5" fill="#f6cf5e" stroke="#e0a838" strokeWidth="0.8" />
+    <path
+      d="M48,33 C56,32 62,26 62,20 C57,24 51,28 46,31 Z"
+      fill="#e0a838"
+      opacity="0.55"
+    />
+    <rect
+      x="42"
+      y="28"
+      width="8"
+      height="9"
+      rx="2.5"
+      fill="#f6cf5e"
+      stroke="#e0a838"
+      strokeWidth="0.8"
+    />
 
     {/* ===== 반짝임 ===== */}
     {[
@@ -209,11 +239,21 @@ const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
 type RewardItem = { id: string; name: string; at: number; glow: string };
 
 const REWARD_ITEMS: RewardItem[] = [
-  { id: "jersey", name: "손흥민 유니폼 상의", at: 10, glow: "rgba(212,175,55,0.55)" },
+  {
+    id: "jersey",
+    name: "손흥민 유니폼 상의",
+    at: 10,
+    glow: "rgba(212,175,55,0.55)",
+  },
   { id: "shorts", name: "손흥민 하의", at: 20, glow: "rgba(212,175,55,0.5)" },
   { id: "boots", name: "손흥민 축구화", at: 30, glow: "rgba(255,205,70,0.55)" },
   { id: "socks", name: "손흥민 양말", at: 40, glow: "rgba(255,205,70,0.5)" },
-  { id: "hair", name: "손흥민 헤어스타일", at: 50, glow: "rgba(120,170,255,0.45)" },
+  {
+    id: "hair",
+    name: "손흥민 헤어스타일",
+    at: 50,
+    glow: "rgba(120,170,255,0.45)",
+  },
   { id: "flame", name: "열정의 오라", at: 60, glow: "rgba(255,190,70,0.6)" },
 ];
 
@@ -264,11 +304,40 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
           strokeLinejoin="round"
         />
         {/* 골드 깃/소매 트림 */}
-        <path d="M18,8 Q24,12 30,8" fill="none" stroke={`url(#${g})`} strokeWidth="1.8" />
-        <path d="M10,13 L14,18 M38,13 L34,18" stroke={`url(#${g})`} strokeWidth="1.4" />
+        <path
+          d="M18,8 Q24,12 30,8"
+          fill="none"
+          stroke={`url(#${g})`}
+          strokeWidth="1.8"
+        />
+        <path
+          d="M10,13 L14,18 M38,13 L34,18"
+          stroke={`url(#${g})`}
+          strokeWidth="1.4"
+        />
         {/* RYU + 등번호 12 */}
-        <text x="24" y="20" textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="Fredoka" fill={`url(#${g})`}>RYU</text>
-        <text x="24" y="36" textAnchor="middle" fontSize="15" fontWeight="900" fontFamily="'Archivo Black',sans-serif" fill={`url(#${g})`}>12</text>
+        <text
+          x="24"
+          y="20"
+          textAnchor="middle"
+          fontSize="4.6"
+          fontWeight="900"
+          fontFamily="Fredoka"
+          fill={`url(#${g})`}
+        >
+          RYU
+        </text>
+        <text
+          x="24"
+          y="36"
+          textAnchor="middle"
+          fontSize="15"
+          fontWeight="900"
+          fontFamily="'Archivo Black',sans-serif"
+          fill={`url(#${g})`}
+        >
+          12
+        </text>
       </svg>
     );
 
@@ -283,8 +352,20 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
           strokeWidth="0.6"
           strokeLinejoin="round"
         />
-        <rect x="10" y="12" width="28" height="3.4" rx="1.7" fill={`url(#${g})`} />
-        <path d="M14,17 L13,31 M34,17 L35,31" stroke={`url(#${g})`} strokeWidth="1.2" opacity="0.85" />
+        <rect
+          x="10"
+          y="12"
+          width="28"
+          height="3.4"
+          rx="1.7"
+          fill={`url(#${g})`}
+        />
+        <path
+          d="M14,17 L13,31 M34,17 L35,31"
+          stroke={`url(#${g})`}
+          strokeWidth="1.2"
+          opacity="0.85"
+        />
       </svg>
     );
 
@@ -301,11 +382,21 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
           strokeLinejoin="round"
         />
         {/* 발목/힐 음영 */}
-        <path d="M6,30 C6,26 9,24 14,24 L16,24 L16,33 L6,33 Z" fill="#caa23c" opacity="0.45" />
+        <path
+          d="M6,30 C6,26 9,24 14,24 L16,24 L16,33 L6,33 Z"
+          fill="#caa23c"
+          opacity="0.45"
+        />
         {/* 발등 하이라이트 */}
         <ellipse cx="13" cy="27" rx="4" ry="1.6" fill="#fff" opacity="0.4" />
         {/* 검정 스트라이프 */}
-        <path d="M10,31 C18,33 30,33 42,32" stroke="#161616" strokeWidth="2.2" fill="none" opacity="0.8" />
+        <path
+          d="M10,31 C18,33 30,33 42,32"
+          stroke="#161616"
+          strokeWidth="2.2"
+          fill="none"
+          opacity="0.8"
+        />
         {/* 끈 */}
         <g stroke="#161616" strokeWidth="0.9" opacity="0.6">
           <path d="M17,26 L21,29" />
@@ -313,7 +404,10 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
           <path d="M23,26.5 L27,29.5" />
         </g>
         {/* 밑창 + 스터드 */}
-        <path d="M6,37 L45,37 L45,39 C45,40.5 43,41 41,41 L9,41 C7,41 6,40 6,38.5 Z" fill="#fff" />
+        <path
+          d="M6,37 L45,37 L45,39 C45,40.5 43,41 41,41 L9,41 C7,41 6,40 6,38.5 Z"
+          fill="#fff"
+        />
         <rect x="9" y="40.5" width="3" height="3" rx="1" fill="#dfe6ee" />
         <rect x="18" y="41" width="3" height="3" rx="1" fill="#dfe6ee" />
         <rect x="28" y="41" width="3" height="3" rx="1" fill="#dfe6ee" />
@@ -332,8 +426,21 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
           strokeWidth="0.8"
         />
         <rect x="17" y="7" width="14" height="4" rx="2" fill="#1a1a1a" />
-        <rect x="17" y="13" width="14" height="1.6" fill="#1a1a1a" opacity="0.55" />
-        <path d="M18,30 Q24,33 30,30" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.5" />
+        <rect
+          x="17"
+          y="13"
+          width="14"
+          height="1.6"
+          fill="#1a1a1a"
+          opacity="0.55"
+        />
+        <path
+          d="M18,30 Q24,33 30,30"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="0.8"
+          opacity="0.5"
+        />
       </svg>
     );
 
@@ -380,8 +487,14 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
         fill="#ffd66a"
       />
       {/* 작은 스파클 */}
-      <path d="M38,9 L40,13.5 L44.5,15.5 L40,17.5 L38,22 L36,17.5 L31.5,15.5 L36,13.5 Z" fill="#fff0b0" />
-      <path d="M11,30 L12.4,33.2 L15.6,34.6 L12.4,36 L11,39.2 L9.6,36 L6.4,34.6 L9.6,33.2 Z" fill="#fff0b0" />
+      <path
+        d="M38,9 L40,13.5 L44.5,15.5 L40,17.5 L38,22 L36,17.5 L31.5,15.5 L36,13.5 Z"
+        fill="#fff0b0"
+      />
+      <path
+        d="M11,30 L12.4,33.2 L15.6,34.6 L12.4,36 L11,39.2 L9.6,36 L6.4,34.6 L9.6,33.2 Z"
+        fill="#fff0b0"
+      />
     </svg>
   );
 };
@@ -421,9 +534,20 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
       {/* 발등 하이라이트 */}
       <ellipse cx="31" cy="96" rx="3" ry="1.3" fill="#ffffff" opacity="0.45" />
       {/* 검정 사이드 스트라이프 */}
-      <path d="M28.6,98.4 Q34,100.2 40.4,98.8" stroke="#161616" strokeWidth="1.4" fill="none" opacity="0.75" />
+      <path
+        d="M28.6,98.4 Q34,100.2 40.4,98.8"
+        stroke="#161616"
+        strokeWidth="1.4"
+        fill="none"
+        opacity="0.75"
+      />
       {/* 끈 */}
-      <path d="M31.5,95.2 L34,97.2 M33.5,95.2 L36,97.2" stroke="#161616" strokeWidth="0.5" opacity="0.5" />
+      <path
+        d="M31.5,95.2 L34,97.2 M33.5,95.2 L36,97.2"
+        stroke="#161616"
+        strokeWidth="0.5"
+        opacity="0.5"
+      />
       {/* 밑창 */}
       <path
         d="M27.5,100.6 L40.8,100.6 L40.8,102 C40.8,103 39.8,103.6 38.4,103.6 L29,103.6 C27.8,103.6 27.4,102.8 27.4,101.5 Z"
@@ -431,8 +555,22 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
       />
       {/* 스터드 */}
       <rect x="29" y="103.2" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
-      <rect x="33.2" y="103.4" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
-      <rect x="37.4" y="103.2" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
+      <rect
+        x="33.2"
+        y="103.4"
+        width="1.8"
+        height="1.7"
+        rx="0.7"
+        fill="#dfe6ee"
+      />
+      <rect
+        x="37.4"
+        y="103.2"
+        width="1.8"
+        height="1.7"
+        rx="0.7"
+        fill="#dfe6ee"
+      />
     </>
   );
 
@@ -482,20 +620,63 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
       </defs>
 
       <g className="runner-body">
-
         {/* ===== 다리 (양말/축구화 슬롯) ===== */}
         <g className="runner-legL">
           <rect x="30" y="80" width="8" height="20" rx="4" fill={skin} />
-          <rect x="30" y="80" width="2.6" height="20" rx="1.3" fill="#000" opacity="0.08" />
+          <rect
+            x="30"
+            y="80"
+            width="2.6"
+            height="20"
+            rx="1.3"
+            fill="#000"
+            opacity="0.08"
+          />
           {hasSocks ? (
             <>
-              <rect x="29.4" y="86" width="9.2" height="13" rx="2.6" fill={u("gold")} />
-              <rect x="29.4" y="86" width="9.2" height="2.6" rx="1.3" fill="#161616" />
-              <rect x="29.4" y="90.5" width="9.2" height="1.1" fill="#161616" opacity="0.5" />
-              <rect x="29.4" y="86" width="2.4" height="13" rx="1.2" fill="#000" opacity="0.12" />
+              <rect
+                x="29.4"
+                y="86"
+                width="9.2"
+                height="13"
+                rx="2.6"
+                fill={u("gold")}
+              />
+              <rect
+                x="29.4"
+                y="86"
+                width="9.2"
+                height="2.6"
+                rx="1.3"
+                fill="#161616"
+              />
+              <rect
+                x="29.4"
+                y="90.5"
+                width="9.2"
+                height="1.1"
+                fill="#161616"
+                opacity="0.5"
+              />
+              <rect
+                x="29.4"
+                y="86"
+                width="2.4"
+                height="13"
+                rx="1.2"
+                fill="#000"
+                opacity="0.12"
+              />
             </>
           ) : (
-            <rect x="30" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+            <rect
+              x="30"
+              y="95"
+              width="8"
+              height="3.6"
+              rx="1.6"
+              fill="#f4f7fb"
+            />
           )}
           {hasBoots ? (
             goldBoot
@@ -503,22 +684,73 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
             <>
               <ellipse cx="34" cy="100.4" rx="6.6" ry="4.2" fill={u("shoe")} />
               <ellipse cx="34" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
-              <ellipse cx="31.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+              <ellipse
+                cx="31.6"
+                cy="99"
+                rx="2"
+                ry="1.1"
+                fill="#ffffff"
+                opacity="0.5"
+              />
             </>
           )}
         </g>
         <g className="runner-legR">
           <rect x="42" y="80" width="8" height="20" rx="4" fill={skin} />
-          <rect x="42" y="80" width="2.6" height="20" rx="1.3" fill="#000" opacity="0.08" />
+          <rect
+            x="42"
+            y="80"
+            width="2.6"
+            height="20"
+            rx="1.3"
+            fill="#000"
+            opacity="0.08"
+          />
           {hasSocks ? (
             <>
-              <rect x="41.4" y="86" width="9.2" height="13" rx="2.6" fill={u("gold")} />
-              <rect x="41.4" y="86" width="9.2" height="2.6" rx="1.3" fill="#161616" />
-              <rect x="41.4" y="90.5" width="9.2" height="1.1" fill="#161616" opacity="0.5" />
-              <rect x="41.4" y="86" width="2.4" height="13" rx="1.2" fill="#000" opacity="0.12" />
+              <rect
+                x="41.4"
+                y="86"
+                width="9.2"
+                height="13"
+                rx="2.6"
+                fill={u("gold")}
+              />
+              <rect
+                x="41.4"
+                y="86"
+                width="9.2"
+                height="2.6"
+                rx="1.3"
+                fill="#161616"
+              />
+              <rect
+                x="41.4"
+                y="90.5"
+                width="9.2"
+                height="1.1"
+                fill="#161616"
+                opacity="0.5"
+              />
+              <rect
+                x="41.4"
+                y="86"
+                width="2.4"
+                height="13"
+                rx="1.2"
+                fill="#000"
+                opacity="0.12"
+              />
             </>
           ) : (
-            <rect x="42" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+            <rect
+              x="42"
+              y="95"
+              width="8"
+              height="3.6"
+              rx="1.6"
+              fill="#f4f7fb"
+            />
           )}
           {hasBoots ? (
             <g transform="translate(12,0)">{goldBoot}</g>
@@ -526,7 +758,14 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
             <>
               <ellipse cx="46" cy="100.4" rx="6.6" ry="4.2" fill={u("shoe")} />
               <ellipse cx="46" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
-              <ellipse cx="43.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+              <ellipse
+                cx="43.6"
+                cy="99"
+                rx="2"
+                ry="1.1"
+                fill="#ffffff"
+                opacity="0.5"
+              />
             </>
           )}
         </g>
@@ -536,26 +775,56 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
           {/* 반소매 (유니폼이면 블랙+골드 커프) */}
           <rect x="21" y="45" width="8" height="9" rx="4" fill={shirtFill} />
           {hasJersey && (
-            <rect x="21" y="51.6" width="8" height="1.6" fill={u("gold")} opacity="0.9" />
+            <rect
+              x="21"
+              y="51.6"
+              width="8"
+              height="1.6"
+              fill={u("gold")}
+              opacity="0.9"
+            />
           )}
           {/* 윗팔 (어깨→팔꿈치) */}
           <rect x="22" y="50" width="6" height="11" rx="3" fill={skin} />
           {/* 아래팔 (팔꿈치에서 앞쪽/안쪽으로 굽힘) */}
           <g transform="rotate(-52 25 60)">
             <rect x="22" y="58" width="6" height="9" rx="3" fill={skin} />
-            <rect x="22" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
+            <rect
+              x="22"
+              y="58"
+              width="2"
+              height="9"
+              rx="1"
+              fill="#000"
+              opacity="0.08"
+            />
             <circle cx="25" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
         <g className="runner-armR">
           <rect x="51" y="45" width="8" height="9" rx="4" fill={shirtFill} />
           {hasJersey && (
-            <rect x="51" y="51.6" width="8" height="1.6" fill={u("gold")} opacity="0.9" />
+            <rect
+              x="51"
+              y="51.6"
+              width="8"
+              height="1.6"
+              fill={u("gold")}
+              opacity="0.9"
+            />
           )}
           <rect x="52" y="50" width="6" height="11" rx="3" fill={skin} />
           <g transform="rotate(52 55 60)">
             <rect x="52" y="58" width="6" height="9" rx="3" fill={skin} />
-            <rect x="56" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
+            <rect
+              x="56"
+              y="58"
+              width="2"
+              height="9"
+              rx="1"
+              fill="#000"
+              opacity="0.08"
+            />
             <circle cx="55" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
@@ -568,12 +837,30 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
               fill={u("black")}
             />
             {/* 골드 허리밴드 */}
-            <path d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.8 26.6,71 Z" fill={u("gold")} />
+            <path
+              d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.8 26.6,71 Z"
+              fill={u("gold")}
+            />
             {/* 골드 사이드 라인 */}
-            <path d="M29.5,71.5 L29.5,80.5" stroke={u("gold")} strokeWidth="1.1" opacity="0.85" />
-            <path d="M50.5,71.5 L50.5,80.5" stroke={u("gold")} strokeWidth="1.1" opacity="0.85" />
+            <path
+              d="M29.5,71.5 L29.5,80.5"
+              stroke={u("gold")}
+              strokeWidth="1.1"
+              opacity="0.85"
+            />
+            <path
+              d="M50.5,71.5 L50.5,80.5"
+              stroke={u("gold")}
+              strokeWidth="1.1"
+              opacity="0.85"
+            />
             {/* 밑단 음영 */}
-            <path d="M26,79.5 L38,79.5 M42,79.5 L54,79.5" stroke="#000" strokeWidth="1" opacity="0.16" />
+            <path
+              d="M26,79.5 L38,79.5 M42,79.5 L54,79.5"
+              stroke="#000"
+              strokeWidth="1"
+              opacity="0.16"
+            />
           </>
         ) : (
           <>
@@ -581,8 +868,17 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
               d="M26,68 Q40,71 54,68 L54,81 L42,81 L41,77 Q40,76.3 39,77 L38,81 L26,81 Z"
               fill={u("shorts")}
             />
-            <path d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.6 26.6,71 Z" fill="#ffffff" opacity="0.25" />
-            <path d="M40,73 L40,77" stroke="#a8946a" strokeWidth="1" opacity="0.5" />
+            <path
+              d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.6 26.6,71 Z"
+              fill="#ffffff"
+              opacity="0.25"
+            />
+            <path
+              d="M40,73 L40,77"
+              stroke="#a8946a"
+              strokeWidth="1"
+              opacity="0.5"
+            />
           </>
         )}
 
@@ -594,15 +890,64 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
               fill={u("black")}
             />
             {/* 어깨 골드 트림 */}
-            <path d="M28,46 C34,42 46,42 52,46" fill="none" stroke={u("gold")} strokeWidth="1.2" opacity="0.85" />
+            <path
+              d="M28,46 C34,42 46,42 52,46"
+              fill="none"
+              stroke={u("gold")}
+              strokeWidth="1.2"
+              opacity="0.85"
+            />
             {/* 골드 핀스트라이프 */}
-            <line x1="34" y1="47.5" x2="33.4" y2="71" stroke={u("gold")} strokeWidth="0.4" opacity="0.4" />
-            <line x1="46" y1="47.5" x2="46.6" y2="71" stroke={u("gold")} strokeWidth="0.4" opacity="0.4" />
+            <line
+              x1="34"
+              y1="47.5"
+              x2="33.4"
+              y2="71"
+              stroke={u("gold")}
+              strokeWidth="0.4"
+              opacity="0.4"
+            />
+            <line
+              x1="46"
+              y1="47.5"
+              x2="46.6"
+              y2="71"
+              stroke={u("gold")}
+              strokeWidth="0.4"
+              opacity="0.4"
+            />
             {/* RYU + 등번호 12 */}
-            <text x="40" y="52.5" textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="Fredoka" letterSpacing="0.4" fill={u("gold")}>RYU</text>
-            <text x="40" y="67.5" textAnchor="middle" fontSize="13" fontWeight="900" fontFamily="'Archivo Black',sans-serif" fill={u("gold")}>12</text>
+            <text
+              x="40"
+              y="52.5"
+              textAnchor="middle"
+              fontSize="4"
+              fontWeight="900"
+              fontFamily="Fredoka"
+              letterSpacing="0.4"
+              fill={u("gold")}
+            >
+              RYU
+            </text>
+            <text
+              x="40"
+              y="67.5"
+              textAnchor="middle"
+              fontSize="13"
+              fontWeight="900"
+              fontFamily="'Archivo Black',sans-serif"
+              fill={u("gold")}
+            >
+              12
+            </text>
             {/* 밑단 골드 */}
-            <path d="M29,71.5 C40,75.5 40,75.5 51,71.5" fill="none" stroke={u("gold")} strokeWidth="0.7" opacity="0.6" />
+            <path
+              d="M29,71.5 C40,75.5 40,75.5 51,71.5"
+              fill="none"
+              stroke={u("gold")}
+              strokeWidth="0.7"
+              opacity="0.6"
+            />
           </>
         ) : (
           <>
@@ -615,15 +960,35 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
               fill="#ffffff"
               opacity="0.16"
             />
-            <path d="M27,46 C29,45 30,45 30.5,47 L29,71 L27.4,71 Z" fill="#000" opacity="0.1" />
-            <path d="M53,46 C51,45 50,45 49.5,47 L51,71 L52.6,71 Z" fill="#000" opacity="0.1" />
-            <path d="M29,71 C40,75 40,75 51,71 L50.6,73.4 C40,77 40,77 29.4,73.4 Z" fill="#000" opacity="0.1" />
+            <path
+              d="M27,46 C29,45 30,45 30.5,47 L29,71 L27.4,71 Z"
+              fill="#000"
+              opacity="0.1"
+            />
+            <path
+              d="M53,46 C51,45 50,45 49.5,47 L51,71 L52.6,71 Z"
+              fill="#000"
+              opacity="0.1"
+            />
+            <path
+              d="M29,71 C40,75 40,75 51,71 L50.6,73.4 C40,77 40,77 29.4,73.4 Z"
+              fill="#000"
+              opacity="0.1"
+            />
           </>
         )}
 
         {/* ===== 목 ===== */}
         <rect x="35" y="39" width="10" height="8" rx="3" fill={skin} />
-        <rect x="35" y="39" width="10" height="2.6" rx="1.3" fill="#000" opacity="0.18" />
+        <rect
+          x="35"
+          y="39"
+          width="10"
+          height="2.6"
+          rx="1.3"
+          fill="#000"
+          opacity="0.18"
+        />
         {/* 뒷목 넥라인 (유니폼이면 골드) */}
         <path
           d="M33,45.5 Q40,48.5 47,45.5"
@@ -675,7 +1040,14 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
         {hasFlame && (
           <g>
             {/* 따뜻한 오라 글로우 */}
-            <ellipse cx="40" cy="60" rx="33" ry="40" fill={u("auraGlow")} className="aura-glow" />
+            <ellipse
+              cx="40"
+              cy="60"
+              rx="33"
+              ry="40"
+              fill={u("auraGlow")}
+              className="aura-glow"
+            />
             {/* 상승하는 스파클 */}
             {[
               { x: 22, y: 90, s: 2.6, d: "0s" },
@@ -710,21 +1082,32 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [2, 4], rowCount: 2 },
   { values: [4, 5], rowCount: 2 },
   { values: [3, 5], rowCount: 2 },
+  { values: [4, 6], rowCount: 2 },
   { values: [5, 6], rowCount: 2 },
+  { values: [5, 7], rowCount: 2 },
+  { values: [6, 8], rowCount: 2 },
+  { values: [8, 9], rowCount: 2 },
   { values: [1, 2], rowCount: 3 },
   { values: [2, 3], rowCount: 3 },
   { values: [1, 3], rowCount: 3 },
   { values: [3, 4], rowCount: 3 },
   { values: [4, 5], rowCount: 3 },
   { values: [2, 5], rowCount: 3 },
-  { values: [5, 6], rowCount: 3 },
+  { values: [3, 5], rowCount: 3 },
   { values: [3, 6], rowCount: 3 },
-  { values: [6, 7], rowCount: 3 },
+  { values: [3, 7], rowCount: 3 },
   { values: [4, 6], rowCount: 3 },
-  { values: [3, 6], rowCount: 4 },
-  { values: [4, 7], rowCount: 4 },
-  { values: [2, 5], rowCount: 4 },
-  { values: [5, 8], rowCount: 4 },
+  { values: [4, 7], rowCount: 3 },
+  { values: [4, 8], rowCount: 3 },
+  { values: [5, 6], rowCount: 3 },
+  { values: [5, 7], rowCount: 3 },
+  { values: [5, 8], rowCount: 3 },
+  { values: [5, 9], rowCount: 3 },
+  { values: [6, 7], rowCount: 3 },
+  { values: [6, 8], rowCount: 3 },
+  { values: [6, 9], rowCount: 3 },
+  { values: [7, 8], rowCount: 3 },
+  { values: [7, 9], rowCount: 3 },
   // ===== 3개짜리 문제 (보통 → 어려움) =====
   { values: [1, 2, 3], rowCount: 3 },
   { values: [2, 3, 4], rowCount: 3 },
