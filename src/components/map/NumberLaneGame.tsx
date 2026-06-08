@@ -855,7 +855,6 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     open: false,
     count: 0,
   });
-  const [clearCount, setClearCount] = useState(0);
   // 선물상자를 클릭해서 열었는지 (모달 흐름)
   const [giftOpened, setGiftOpened] = useState(false);
   // 실제 캐릭터에 장착된 클리어 수 (선물을 열어야 반영)
@@ -1157,7 +1156,6 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           // 클리어 카운트 → 10클리어마다 축하 모달 + 유니폼 업그레이드
           clearCountRef.current += 1;
           const cleared = clearCountRef.current;
-          setClearCount(cleared);
           if (cleared % 10 === 0) {
             setGiftOpened(false);
             setCongrats({ open: true, count: cleared });
@@ -1187,15 +1185,6 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     lastTimeRef.current = null;
     setGiftOpened(false);
     setCongrats((c) => ({ ...c, open: false }));
-  };
-
-  // 🔧 [임시/테스트] 한 번에 10클리어씩 점프 — 코스튬 확인용 (배포 전 삭제)
-  const handleTestSkip = () => {
-    const next = clearCountRef.current + 10;
-    clearCountRef.current = next;
-    setClearCount(next);
-    setGiftOpened(false);
-    setCongrats({ open: true, count: next });
   };
 
   // 드리블 공 크기 (숫자는 머리 위 뱃지로 표시하므로 작은 고정 크기)
@@ -1487,29 +1476,6 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       />
 
       <BackButton onExit={onExit} onPause={togglePause} isPaused={paused} />
-
-      {/* 🔧 [임시] 코스튬 미리보기용 +10 버튼 (배포 전 제거) */}
-      <button
-        onClick={handleTestSkip}
-        style={{
-          position: "absolute",
-          bottom: "max(12px, env(safe-area-inset-bottom))",
-          left: 12,
-          zIndex: 60,
-          padding: "8px 12px",
-          borderRadius: 10,
-          border: "1px dashed rgba(255,255,255,0.7)",
-          background: "rgba(0,0,0,0.45)",
-          color: "#fff",
-          fontFamily: "Fredoka",
-          fontWeight: 800,
-          fontSize: 12,
-          cursor: "pointer",
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        DEV +10 (클리어 {clearCount})
-      </button>
 
       {/* HUD - STAGE 배지 */}
       <div
