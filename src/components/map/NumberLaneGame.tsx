@@ -406,14 +406,15 @@ const ITEM_PLACEMENT: Record<
     sway?: boolean;
   }
 > = {
-  // 코스튬은 캐릭터 스프라이트(z-index 1)보다 앞(z 2)에 그려 잘 보이게 한다
-  aura: { size: 102, top: "50%", z: 2, center: true },
-  wings: { size: 86, top: 20, z: 2 },
-  cape: { size: 60, top: 26, z: 2, sway: true },
-  halo: { size: 46, top: -6, z: 2 },
-  crown: { size: 24, top: 0, z: 2 },
-  boots: { size: 28, top: 72, z: 2 },
-  star: { size: 22, top: -10, z: 2 },
+  // 코스튬은 캐릭터(z-index 1)보다 앞(z 2)에 그려 잘 보이게 한다
+  // (SVG 캐릭터 size 78, bottom 정렬 기준 — DEV 버튼으로 보며 미세조정 가능)
+  aura: { size: 100, top: "50%", z: 2, center: true },
+  wings: { size: 86, top: 12, z: 2 },
+  cape: { size: 60, top: 34, z: 2, sway: true },
+  halo: { size: 46, top: -14, z: 2 },
+  crown: { size: 24, top: 2, z: 2 },
+  boots: { size: 28, top: 80, z: 2 },
+  star: { size: 22, top: -8, z: 2 },
 };
 
 const CharacterItems: React.FC<{ clearCount: number }> = ({ clearCount }) => {
@@ -450,6 +451,211 @@ const CharacterItems: React.FC<{ clearCount: number }> = ({ clearCount }) => {
         );
       })}
     </>
+  );
+};
+
+// ===== SVG 캐릭터 (뒷모습 달리기) =====
+const RunnerCharacter: React.FC<{ size?: number }> = ({ size = 78 }) => {
+  const uid = useId().replace(/:/g, "");
+  const id = (n: string) => `${n}${uid}`;
+  return (
+    <svg
+      width={size}
+      height={(size * 104) / 80}
+      viewBox="0 0 80 104"
+      style={{ display: "block", overflow: "visible" }}
+    >
+      <defs>
+        <linearGradient id={id("hair")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7d5236" />
+          <stop offset="100%" stopColor="#5c3820" />
+        </linearGradient>
+        <linearGradient id={id("shirt")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5491e0" />
+          <stop offset="100%" stopColor="#356fc4" />
+        </linearGradient>
+        <linearGradient id={id("skin")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f4bd9c" />
+          <stop offset="100%" stopColor="#e3a078" />
+        </linearGradient>
+        <linearGradient id={id("shorts")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#36426c" />
+          <stop offset="100%" stopColor="#242e4f" />
+        </linearGradient>
+        <linearGradient id={id("shoe")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#37c8b6" />
+          <stop offset="100%" stopColor="#1f9286" />
+        </linearGradient>
+      </defs>
+
+      <g className="runner-body">
+        {/* ===== 다리 (앞으로 나가면 어두워짐 = brightness 애니) ===== */}
+        <g className="runner-legL">
+          <rect
+            x="30"
+            y="80"
+            width="8"
+            height="20"
+            rx="4"
+            fill={`url(#${id("skin")})`}
+          />
+          <rect
+            x="30"
+            y="80"
+            width="2.6"
+            height="20"
+            rx="1.3"
+            fill="#000"
+            opacity="0.08"
+          />
+          {/* 양말 */}
+          <rect x="30" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+          {/* 신발 */}
+          <ellipse cx="34" cy="100.4" rx="6.6" ry="4.2" fill={`url(#${id("shoe")})`} />
+          <ellipse cx="34" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
+          <ellipse cx="31.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+        </g>
+        <g className="runner-legR">
+          <rect
+            x="42"
+            y="80"
+            width="8"
+            height="20"
+            rx="4"
+            fill={`url(#${id("skin")})`}
+          />
+          <rect
+            x="42"
+            y="80"
+            width="2.6"
+            height="20"
+            rx="1.3"
+            fill="#000"
+            opacity="0.08"
+          />
+          <rect x="42" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+          <ellipse cx="46" cy="100.4" rx="6.6" ry="4.2" fill={`url(#${id("shoe")})`} />
+          <ellipse cx="46" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
+          <ellipse cx="43.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+        </g>
+
+        {/* ===== 팔 (직각으로 굽힘 — 아래팔은 앞쪽/안쪽으로 들어가 몸통 뒤로 가려짐) ===== */}
+        <g className="runner-armL">
+          {/* 반소매 */}
+          <rect x="21" y="45" width="8" height="9" rx="4" fill={`url(#${id("shirt")})`} />
+          {/* 윗팔 (어깨→팔꿈치) */}
+          <rect x="22" y="50" width="6" height="11" rx="3" fill={`url(#${id("skin")})`} />
+          {/* 아래팔 (팔꿈치에서 앞쪽/안쪽으로 굽힘) */}
+          <g transform="rotate(-52 25 60)">
+            <rect x="22" y="58" width="6" height="9" rx="3" fill={`url(#${id("skin")})`} />
+            <rect x="22" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
+            <circle cx="25" cy="66" r="3.2" fill={`url(#${id("skin")})`} />
+          </g>
+        </g>
+        <g className="runner-armR">
+          <rect x="51" y="45" width="8" height="9" rx="4" fill={`url(#${id("shirt")})`} />
+          <rect x="52" y="50" width="6" height="11" rx="3" fill={`url(#${id("skin")})`} />
+          <g transform="rotate(52 55 60)">
+            <rect x="52" y="58" width="6" height="9" rx="3" fill={`url(#${id("skin")})`} />
+            <rect x="56" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
+            <circle cx="55" cy="66" r="3.2" fill={`url(#${id("skin")})`} />
+          </g>
+        </g>
+
+        {/* ===== 반바지 ===== */}
+        <path
+          d="M28,68 Q40,72 52,68 L51,83 Q46,86 43,83 L40,79 L37,83 Q34,86 29,83 Z"
+          fill={`url(#${id("shorts")})`}
+        />
+        <path
+          d="M28,68 Q40,72 52,68 L51.5,71 Q40,74.5 28.5,71 Z"
+          fill="#ffffff"
+          opacity="0.12"
+        />
+        <path d="M40,72 L40,80" stroke="#1c2440" strokeWidth="1" opacity="0.5" />
+
+        {/* ===== 상의 ===== */}
+        <path
+          d="M27,46 C33,41 47,41 53,46 L51,72 C40,76 40,76 29,72 Z"
+          fill={`url(#${id("shirt")})`}
+        />
+        {/* 어깨 하이라이트 */}
+        <path
+          d="M28,46 C34,42 46,42 52,46 L50.5,49 C45,45.6 35,45.6 29.5,49 Z"
+          fill="#ffffff"
+          opacity="0.16"
+        />
+        {/* 좌우 측면 음영 */}
+        <path d="M27,46 C29,45 30,45 30.5,47 L29,71 L27.4,71 Z" fill="#000" opacity="0.1" />
+        <path d="M53,46 C51,45 50,45 49.5,47 L51,71 L52.6,71 Z" fill="#000" opacity="0.1" />
+        {/* 등 라인 */}
+        <line x1="40" y1="47" x2="40" y2="71" stroke="#2b5aa8" strokeWidth="1" opacity="0.45" />
+        {/* 밑단 음영 */}
+        <path d="M29,71 C40,75 40,75 51,71 L50.6,73.4 C40,77 40,77 29.4,73.4 Z" fill="#000" opacity="0.1" />
+
+        {/* ===== 목 ===== */}
+        <rect x="35" y="39" width="10" height="8" rx="3" fill={`url(#${id("skin")})`} />
+        <rect x="35" y="39" width="10" height="2.6" rx="1.3" fill="#000" opacity="0.18" />
+        {/* 뒷목 넥라인(백 칼라) — 앞모습처럼 안 보이게 */}
+        <path
+          d="M33,45.5 Q40,48.5 47,45.5"
+          fill="none"
+          stroke="#2c5fa8"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+
+        {/* ===== 두상 베이스 ===== */}
+        <ellipse cx="40" cy="26" rx="14.5" ry="15" fill={`url(#${id("skin")})`} />
+
+        {/* ===== 귀 (머리카락 아래로 살짝) ===== */}
+        <ellipse cx="24" cy="33" rx="2.6" ry="3.7" fill={`url(#${id("skin")})`} />
+        <ellipse cx="56" cy="33" rx="2.6" ry="3.7" fill={`url(#${id("skin")})`} />
+        <ellipse cx="24.2" cy="33.5" rx="1.1" ry="2" fill="#000" opacity="0.12" />
+        <ellipse cx="55.8" cy="33.5" rx="1.1" ry="2" fill="#000" opacity="0.12" />
+
+        {/* ===== 머리카락 (풍성한 뒤통수) ===== */}
+        <path
+          d="M40,5.5 C23,5.5 18,15 18,26 C18,31 20,35 23.5,36.5 Q32,38.5 40,37 Q48,38.5 56.5,36.5 C60,35 62,31 62,26 C62,15 57,5.5 40,5.5 Z"
+          fill={`url(#${id("hair")})`}
+        />
+        {/* 정수리 하이라이트 (넓게) */}
+        <ellipse cx="37" cy="14" rx="11" ry="6.5" fill="#9a6740" opacity="0.3" />
+        {/* 결 텍스처 — 가마에서 사방으로 흐름 (어두운 결) */}
+        <g
+          stroke="#462914"
+          strokeWidth="0.9"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.22"
+        >
+          <path d="M44,12 C37,17 30,24 26,34" />
+          <path d="M44,12 C42,20 40,28 39,37" />
+          <path d="M44,12 C49,17 53,23 55,33" />
+          <path d="M40,8 C30,12 23,20 20,30" />
+          <path d="M46,9 C54,13 59,21 60,30" />
+          <path d="M44,12 C46,21 49,28 51,35" />
+        </g>
+        {/* 밝은 결 하이라이트 */}
+        <g
+          stroke="#a06d45"
+          strokeWidth="0.9"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.4"
+        >
+          <path d="M43,13 C38,18 33,25 30,34" />
+          <path d="M45,13 C48,19 51,25 52,33" />
+          <path d="M41,10 C34,14 28,21 26,30" />
+        </g>
+        {/* 가마(swirl) */}
+        <path
+          d="M44.5,12.5 C48,12.5 48,16 45,16.7 C42.5,17.1 41.8,14 44.5,12.5 Z"
+          fill="#9a6740"
+          opacity="0.5"
+        />
+      </g>
+    </svg>
   );
 };
 
@@ -1682,9 +1888,16 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               }}
             >
               <div
-                className="charactor"
-                style={{ position: "relative", zIndex: 1 }}
-              />
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  bottom: 0,
+                  transform: "translateX(-50%)",
+                  zIndex: 1,
+                }}
+              >
+                <RunnerCharacter size={78} />
+              </div>
               <CharacterItems clearCount={clearCount} />
             </div>
 

@@ -919,6 +919,73 @@ code {
   }
 }
 
+/* ===== SVG 캐릭터 달리기 (뒤에서 본 모습) ===== */
+/* 몸통: 한 걸음마다 통통 바운스 (다리 주기의 2배 빠르기) */
+.runner-body {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: runnerBob 0.25s ease-in-out infinite;
+}
+@keyframes runnerBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.runner-legL,
+.runner-legR,
+.runner-armL,
+.runner-armR {
+  transform-box: fill-box;
+  transform-origin: 50% 0%; /* 엉덩이 / 어깨를 축으로 */
+}
+
+/* 다리: 발이 번갈아 땅에서 들렸다 디딤 (들리면 위로 + 무릎 접힘 foreshorten) */
+.runner-legL {
+  animation: runLeg 0.5s ease-in-out infinite;
+}
+.runner-legR {
+  animation: runLeg 0.5s ease-in-out infinite;
+  animation-delay: -0.25s;
+}
+@keyframes runLeg {
+  /* 디딤(아래·가까움)=밝게 → 들림(앞으로·멀어짐)=어둡게 */
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+    filter: brightness(1.06);
+  }
+  50% {
+    transform: translateY(-5px) scaleY(0.7);
+    filter: brightness(0.8);
+  }
+}
+
+/* 팔: 다리와 반대로 번갈아 펌프 (위로 들림 = 뒤로 스윙) */
+.runner-armL {
+  animation: runArm 0.5s ease-in-out infinite;
+  animation-delay: -0.25s;
+}
+.runner-armR {
+  animation: runArm 0.5s ease-in-out infinite;
+}
+@keyframes runArm {
+  /* 어깨(축=윗부분)는 고정, 아래팔만 줄었다 펴짐 → 어깨가 솟지 않음 */
+  0%,
+  100% {
+    transform: scaleY(1);
+    filter: brightness(1.05);
+  }
+  50% {
+    transform: scaleY(0.8);
+    filter: brightness(0.86);
+  }
+}
+
 /* 유니폼 망토 흩날림 (은은하게) */
 @keyframes capeSway {
   0%,
