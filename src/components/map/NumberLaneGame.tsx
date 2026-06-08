@@ -9,6 +9,119 @@ const ROW_GAP = 0.2;
 // 스테이지 통과 시 다음 문제를 지평선 뒤쪽에서 흘러나오게 밀어주는 거리
 const STAGE_SPAWN_BACK = ROW_GAP * 2;
 
+// ===== 배경 분위기 8단계 (10클리어마다 전환, 하루 한 바퀴) =====
+type BgTheme = {
+  base: string;
+  sky: string;
+  orb: string;
+  orbGlow: string;
+  isMoon?: boolean;
+  cloudOpacity: number;
+  overlay: string;
+  stars: boolean;
+};
+
+const BG_THEMES: BgTheme[] = [
+  {
+    // 0 한낮
+    base: "#7ab0c8",
+    sky: "linear-gradient(180deg, #7ab0c8 0%, #5a98b0 45%, #4a88a0 100%)",
+    orb: "radial-gradient(circle, #f7ecae 20%, #e6d278 55%, #c8ad58 80%, transparent 100%)",
+    orbGlow: "0 0 24px rgba(240,225,120,0.45), 0 0 48px rgba(210,190,80,0.18)",
+    cloudOpacity: 1,
+    overlay: "rgba(0,0,0,0)",
+    stars: false,
+  },
+  {
+    // 1 오후
+    base: "#9ab3a0",
+    sky: "linear-gradient(180deg, #9cc0c2 0%, #c8c08c 55%, #e2c878 100%)",
+    orb: "radial-gradient(circle, #fff0b0 20%, #ffd878 55%, #e0a850 80%, transparent 100%)",
+    orbGlow: "0 0 28px rgba(255,210,110,0.5), 0 0 54px rgba(230,170,70,0.2)",
+    cloudOpacity: 0.92,
+    overlay: "rgba(255,190,90,0.1)",
+    stars: false,
+  },
+  {
+    // 2 노을
+    base: "#d98a6a",
+    sky: "linear-gradient(180deg, #ffa45c 0%, #ff7e6b 50%, #b9577e 100%)",
+    orb: "radial-gradient(circle, #fff2b0 18%, #ffcf6a 50%, #ff9a4a 78%, transparent 100%)",
+    orbGlow: "0 0 36px rgba(255,160,70,0.6), 0 0 70px rgba(255,120,50,0.3)",
+    cloudOpacity: 0.8,
+    overlay: "rgba(255,110,50,0.12)",
+    stars: false,
+  },
+  {
+    // 3 황혼
+    base: "#5a4a82",
+    sky: "linear-gradient(180deg, #7a5fa6 0%, #9a5a8e 50%, #46365f 100%)",
+    orb: "radial-gradient(circle, #ffd9b8 20%, #ffb088 55%, #d98a6a 80%, transparent 100%)",
+    orbGlow: "0 0 30px rgba(255,170,120,0.45), 0 0 60px rgba(200,120,160,0.25)",
+    cloudOpacity: 0.5,
+    overlay: "rgba(90,60,130,0.2)",
+    stars: true,
+  },
+  {
+    // 4 밤
+    base: "#16234d",
+    sky: "linear-gradient(180deg, #1d2f5e 0%, #243a66 50%, #16213f 100%)",
+    orb: "radial-gradient(circle, #f4f3e6 30%, #dcdcc8 70%, #b8b8a0 90%, transparent 100%)",
+    orbGlow: "0 0 26px rgba(240,240,220,0.5), 0 0 52px rgba(200,210,255,0.2)",
+    isMoon: true,
+    cloudOpacity: 0.3,
+    overlay: "rgba(18,28,72,0.28)",
+    stars: true,
+  },
+  {
+    // 5 심야
+    base: "#080f28",
+    sky: "linear-gradient(180deg, #0c1636 0%, #131c40 50%, #060a1e 100%)",
+    orb: "radial-gradient(circle, #ececf2 30%, #d2d2e0 70%, #aaaac0 90%, transparent 100%)",
+    orbGlow: "0 0 22px rgba(235,235,245,0.45), 0 0 48px rgba(180,190,240,0.2)",
+    isMoon: true,
+    cloudOpacity: 0.18,
+    overlay: "rgba(8,12,40,0.4)",
+    stars: true,
+  },
+  {
+    // 6 새벽
+    base: "#7a6e9a",
+    sky: "linear-gradient(180deg, #8a7fb0 0%, #c19ab0 55%, #f0cfb0 100%)",
+    orb: "radial-gradient(circle, #ffe8c0 20%, #ffc890 55%, #f0a070 80%, transparent 100%)",
+    orbGlow: "0 0 28px rgba(255,200,140,0.45), 0 0 56px rgba(220,150,180,0.2)",
+    cloudOpacity: 0.55,
+    overlay: "rgba(150,120,180,0.1)",
+    stars: false,
+  },
+  {
+    // 7 아침
+    base: "#88c0d8",
+    sky: "linear-gradient(180deg, #8ecae6 0%, #b8e2ee 55%, #dcf0e6 100%)",
+    orb: "radial-gradient(circle, #fff6cc 20%, #ffe890 55%, #f0c860 80%, transparent 100%)",
+    orbGlow: "0 0 30px rgba(255,235,140,0.5), 0 0 58px rgba(240,200,90,0.2)",
+    cloudOpacity: 1,
+    overlay: "rgba(0,0,0,0)",
+    stars: false,
+  },
+];
+
+// 밤하늘 별
+const NIGHT_STARS = [
+  { x: "12%", y: "8%", s: 2 },
+  { x: "22%", y: "15%", s: 1.5 },
+  { x: "35%", y: "6%", s: 2 },
+  { x: "48%", y: "12%", s: 1.5 },
+  { x: "62%", y: "7%", s: 2 },
+  { x: "74%", y: "14%", s: 1.5 },
+  { x: "86%", y: "9%", s: 2 },
+  { x: "18%", y: "22%", s: 1.5 },
+  { x: "55%", y: "19%", s: 1 },
+  { x: "80%", y: "21%", s: 1.5 },
+  { x: "40%", y: "17%", s: 1 },
+  { x: "68%", y: "23%", s: 1 },
+];
+
 type Player = { x: number; value: number };
 type RowKind = "normal" | "goal";
 type Row = {
@@ -1238,6 +1351,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     open: false,
     count: 0,
   });
+  // 총 클리어 수 (배경 분위기 전환용)
+  const [clearCount, setClearCount] = useState(0);
   // 선물상자를 클릭해서 열었는지 (모달 흐름)
   const [giftOpened, setGiftOpened] = useState(false);
   // 실제 캐릭터에 장착된 클리어 수 (선물을 열어야 반영)
@@ -1536,9 +1651,10 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           setStage(nextStageIndex);
           initStage(nextStageIndex, true, true);
 
-          // 클리어 카운트 → 10클리어마다 축하 모달 + 유니폼 업그레이드
+          // 클리어 카운트 → 배경 분위기 전환 + 10클리어마다 축하 모달
           clearCountRef.current += 1;
           const cleared = clearCountRef.current;
+          setClearCount(cleared);
           if (cleared % 10 === 0) {
             setGiftOpened(false);
             setCongrats({ open: true, count: cleared });
@@ -1572,6 +1688,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
   // 드리블 공 크기 (숫자는 머리 위 뱃지로 표시하므로 작은 고정 크기)
   const balloonSize = 30;
+
+  // 배경 분위기: 10클리어마다 다음 단계 (8단계 순환)
+  const theme = BG_THEMES[Math.floor(clearCount / 10) % BG_THEMES.length];
 
   // ===== 3D Road Rendering =====
   const vanishY = projectRowYpx(farYRef.current, farYRef.current);
@@ -1754,26 +1873,47 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
         margin: "0 auto",
         overflow: "hidden",
         touchAction: "none",
-        background: "#7ab0c8",
+        background: theme.base,
+        transition: "background 1.2s ease",
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {/* ===== 밝은 배경 ===== */}
+      {/* ===== 배경 (분위기 단계별) ===== */}
       {/* 하늘 */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "linear-gradient(180deg, #7ab0c8 0%, #5a98b0 40%, #4a88a0 100%)",
+          background: theme.sky,
+          transition: "background 1.2s ease",
           pointerEvents: "none",
         }}
       />
 
-      {/* 태양 */}
+      {/* 밤하늘 별 */}
+      {theme.stars &&
+        NIGHT_STARS.map((s, i) => (
+          <div
+            key={`star-${i}`}
+            style={{
+              position: "absolute",
+              left: s.x,
+              top: s.y,
+              width: s.s,
+              height: s.s,
+              borderRadius: "50%",
+              background: "#fffdf0",
+              boxShadow: "0 0 3px rgba(255,255,255,0.8)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          />
+        ))}
+
+      {/* 태양 / 달 */}
       <div
         style={{
           position: "absolute",
@@ -1782,15 +1922,25 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           width: 52,
           height: 52,
           borderRadius: "50%",
-          background:
-            "radial-gradient(circle, #e8d89a 20%, #d8c880 50%, #c0a860 80%, transparent 100%)",
-          boxShadow:
-            "0 0 24px rgba(210,195,100,0.4), 0 0 48px rgba(190,170,60,0.15)",
+          background: theme.orb,
+          boxShadow: theme.orbGlow,
+          transition: "background 1.2s ease, box-shadow 1.2s ease",
           pointerEvents: "none",
           zIndex: 0,
         }}
       />
 
+      {/* 구름 (분위기에 따라 투명도) */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: theme.cloudOpacity,
+          transition: "opacity 1.2s ease",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
       {/* 구름 1 */}
       <div
         style={{
@@ -1839,9 +1989,22 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           zIndex: 0,
         }}
       />
+      </div>
 
       {/* Road SVG (잔디 + 도로 + 나무/꽃) */}
       {roadSvg}
+
+      {/* 분위기 색 오버레이 (하늘+도로 전체에 무드 입힘) */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: theme.overlay,
+          transition: "background 1.2s ease",
+          pointerEvents: "none",
+          zIndex: 6,
+        }}
+      />
 
       {/* 플레이어 라인 */}
       <div
