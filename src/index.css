@@ -141,8 +141,8 @@ code {
   color: #ff6f6f;
   text-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
 
-  /* 🔥 오른쪽 → 왼쪽 이동 */
-  animation: bossMarquee 1.2s linear infinite;
+  /* 🔥 오른쪽 → 왼쪽 이동 (눈 피로 완화: 속도 완만하게) */
+  animation: bossMarquee 2.2s linear infinite;
   animation-iteration-count: infinite;
 }
 
@@ -325,7 +325,7 @@ code {
 }
 
 .weapon-blink {
-  animation: weaponBlink 0.3s infinite;
+  animation: weaponBlink 0.6s ease-in-out infinite;
 }
 
 /* 바닥 그림자 */
@@ -898,11 +898,12 @@ code {
 }
 
 @keyframes weaponBlink {
+  /* 눈 피로 완화: 강한 깜빡임(1↔0.2, 0.3s) 대신 부드러운 펄스 */
   0% {
     opacity: 1;
   }
   50% {
-    opacity: 0.2;
+    opacity: 0.55;
   }
   100% {
     opacity: 1;
@@ -910,62 +911,64 @@ code {
 }
 
 /* ===== Space Shooter Animations ===== */
+/* 눈 피로 완화: 화염은 고주파 깜빡임이 가장 피로하므로 속도를 늦추고
+   투명도 진폭을 줄여 부드럽게 흔들리도록 함 (모양/기능은 유지) */
 .engine-flame {
-  animation: engineFlame 0.3s ease-in-out infinite alternate;
+  animation: engineFlame 0.5s ease-in-out infinite alternate;
 }
 @keyframes engineFlame {
   0% {
-    opacity: 0.4;
-    transform: scaleY(0.85);
+    opacity: 0.6;
+    transform: scaleY(0.9);
   }
   100% {
-    opacity: 1;
-    transform: scaleY(1.15);
+    opacity: 0.95;
+    transform: scaleY(1.12);
   }
 }
 
 /* ---- Jetpack flame (player thruster) ---- */
 .jetpack-flame-outer {
-  animation: flameOuter 0.15s ease-in-out infinite alternate;
+  animation: flameOuter 0.3s ease-in-out infinite alternate;
   transform-origin: center top;
 }
 @keyframes flameOuter {
   0% {
-    transform: scaleY(0.8) scaleX(0.9);
-    opacity: 0.65;
+    transform: scaleY(0.85) scaleX(0.92);
+    opacity: 0.7;
   }
   100% {
-    transform: scaleY(1.15) scaleX(1.05);
+    transform: scaleY(1.12) scaleX(1.04);
     opacity: 0.9;
   }
 }
 
 .jetpack-flame-inner {
-  animation: flameInner 0.12s ease-in-out infinite alternate;
+  animation: flameInner 0.28s ease-in-out infinite alternate;
   transform-origin: center top;
 }
 @keyframes flameInner {
   0% {
-    transform: scaleY(0.75) scaleX(0.85);
-    opacity: 0.7;
+    transform: scaleY(0.82) scaleX(0.88);
+    opacity: 0.75;
   }
   100% {
-    transform: scaleY(1.2) scaleX(1.1);
+    transform: scaleY(1.16) scaleX(1.08);
     opacity: 1;
   }
 }
 
 .jetpack-flame-core {
-  animation: flameCore 0.1s ease-in-out infinite alternate;
+  animation: flameCore 0.26s ease-in-out infinite alternate;
   transform-origin: center top;
 }
 @keyframes flameCore {
   0% {
-    transform: scaleY(0.7);
-    opacity: 0.6;
+    transform: scaleY(0.78);
+    opacity: 0.7;
   }
   100% {
-    transform: scaleY(1.25);
+    transform: scaleY(1.2);
     opacity: 0.95;
   }
 }
@@ -1016,13 +1019,29 @@ code {
 }
 
 .player-hit {
-  animation: playerHit 0.15s ease-out;
+  animation: playerHit 0.18s ease-out;
 }
 @keyframes playerHit {
+  /* 눈 피로 완화: 새하얗게 번쩍(brightness 3, saturate 0) 대신 은은한 피격 표시 */
   0% {
-    filter: brightness(3) saturate(0);
+    filter: brightness(1.7) saturate(0.6);
   }
   100% {
     filter: brightness(1) saturate(1);
+  }
+}
+
+/* ===== 접근성: 모션 최소화 설정 시 고주파 깜빡임/흔들림 완화 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .weapon-blink,
+  .boss-banner-text,
+  .engine-flame,
+  .jetpack-flame-outer,
+  .jetpack-flame-inner,
+  .jetpack-flame-core {
+    animation-duration: 1.6s !important;
+  }
+  .player-hit {
+    animation: none !important;
   }
 }

@@ -10,8 +10,8 @@ const float = keyframes`
   50%     { transform: translateY(-4px); }
 `;
 const burstLoop = keyframes`
-  0%,8%  { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 1; }
-  28%    { opacity: 1; }
+  0%,8%  { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0.5; }
+  28%    { opacity: 0.5; }
   40%    { transform: translate(calc(var(--dx) * 3.5), calc(var(--dy) * 3.5)) scale(0); opacity: 0; }
   100%   { opacity: 0; }
 `;
@@ -21,7 +21,7 @@ const scanMove = keyframes`
 `;
 const blink = keyframes`
   0%,100% { opacity: 1; }
-  50%     { opacity: 0.3; }
+  50%     { opacity: 0.6; }
 `;
 
 /* ===== layout ===== */
@@ -51,8 +51,8 @@ const Wrap = styled.div`
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.08) 2px,
-      rgba(0, 0, 0, 0.08) 4px
+      rgba(0, 0, 0, 0.05) 2px,
+      rgba(0, 0, 0, 0.05) 4px
     );
     pointer-events: none;
     z-index: 100;
@@ -66,9 +66,10 @@ const ScanBar = styled.div`
   left: 0;
   right: 0;
   height: 3px;
-  background: rgba(34, 211, 238, 0.08);
-  box-shadow: 0 0 12px 4px rgba(34, 211, 238, 0.06);
-  animation: ${scanMove} 6s linear infinite;
+  /* 눈 피로 완화: 움직이는 스캔바를 더 옅고 느리게 */
+  background: rgba(34, 211, 238, 0.04);
+  box-shadow: 0 0 10px 3px rgba(34, 211, 238, 0.03);
+  animation: ${scanMove} 12s linear infinite;
   pointer-events: none;
   z-index: 99;
 `;
@@ -95,7 +96,7 @@ const Px = styled.div<{ $c: string; $dx: string; $dy: string; $del: string }>`
   --dy: ${(p) => p.$dy};
   left: 50%;
   top: 50%;
-  animation: ${burstLoop} 2.4s ${(p) => p.$del} ease-out infinite;
+  animation: ${burstLoop} 3.4s ${(p) => p.$del} ease-out infinite;
   pointer-events: none;
 `;
 
@@ -495,7 +496,7 @@ const Cursor = styled.div`
   color: #22d3ee;
   text-align: center;
   padding: 4px 0 2px;
-  animation: ${blink} 1s step-end infinite;
+  animation: ${blink} 1.6s ease-in-out infinite;
   letter-spacing: 1px;
 `;
 

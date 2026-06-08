@@ -1643,7 +1643,8 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             width: s.size,
             height: s.size,
             borderRadius: 999,
-            background: `rgba(255,255,255,${s.brightness})`,
+            // 눈 피로 완화: 순백 점광을 살짝 낮춤
+            background: `rgba(225,232,255,${s.brightness * 0.8})`,
             pointerEvents: "none",
           }}
         />

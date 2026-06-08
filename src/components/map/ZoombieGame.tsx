@@ -2686,10 +2686,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
   if (world.stage > 10) stageBg = "stagebg02";
 
   // ===== Screen shake transform =====
+  // 눈 피로 완화: 흔들림 진폭을 줄여 부드럽게 (×2 → ×1.2)
   const shakeT = shakeRef.current.t;
   const shakeI = shakeRef.current.intensity;
-  const shakeX = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 2 : 0;
-  const shakeY = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 2 : 0;
+  const shakeX = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 1.2 : 0;
+  const shakeY = shakeT > 0 ? (Math.random() - 0.5) * shakeI * 1.2 : 0;
 
   return (
     <div
@@ -2715,7 +2716,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           background-repeat:no-repeat;
           background-position: center center;
           background-size: cover;
-          filter: saturate(1.05) contrast(1.05);
+          /* 눈 피로 완화: 대비/채도 부스트 제거하고 살짝 낮춤 */
+          filter: saturate(0.95) contrast(0.96) brightness(0.96);
           transform: scale(1.02);
         }
         .vignette {
@@ -2944,7 +2946,8 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(255, 40, 40, 0.35)",
+            // 눈 피로 완화: 강한 빨강 전체화면 플래시 약화 (0.35 → 0.16)
+            background: "rgba(255, 60, 60, 0.16)",
             opacity: Math.min(1, bossFlashRef.current / 0.15),
             pointerEvents: "none",
             zIndex: 400,
