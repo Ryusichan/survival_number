@@ -1198,7 +1198,11 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [4, 6], rowCount: 2 },
   { values: [5, 6], rowCount: 2 },
   { values: [5, 7], rowCount: 2 },
+  { values: [6, 7], rowCount: 2 },
   { values: [6, 8], rowCount: 2 },
+  { values: [6, 9], rowCount: 2 },
+  { values: [7, 8], rowCount: 2 },
+  { values: [7, 9], rowCount: 2 },
   { values: [8, 9], rowCount: 2 },
   { values: [1, 2], rowCount: 3 },
   { values: [2, 3], rowCount: 3 },
@@ -1221,6 +1225,31 @@ const stageSettings: { values: number[]; rowCount: number }[] = [
   { values: [6, 9], rowCount: 3 },
   { values: [7, 8], rowCount: 3 },
   { values: [7, 9], rowCount: 3 },
+  { values: [2, 4], rowCount: 3 },
+  { values: [1, 4], rowCount: 3 },
+  { values: [8, 9], rowCount: 3 },
+  // ----- 2개짜리 (rowCount 4) -----
+  { values: [1, 2], rowCount: 4 },
+  { values: [2, 3], rowCount: 4 },
+  { values: [1, 3], rowCount: 4 },
+  { values: [3, 4], rowCount: 4 },
+  { values: [2, 4], rowCount: 4 },
+  { values: [4, 5], rowCount: 4 },
+  { values: [3, 5], rowCount: 4 },
+  { values: [1, 4], rowCount: 4 },
+  { values: [4, 6], rowCount: 4 },
+  { values: [5, 6], rowCount: 4 },
+  { values: [2, 5], rowCount: 4 },
+  { values: [5, 7], rowCount: 4 },
+  { values: [3, 6], rowCount: 4 },
+  { values: [6, 7], rowCount: 4 },
+  { values: [4, 7], rowCount: 4 },
+  { values: [6, 8], rowCount: 4 },
+  { values: [5, 8], rowCount: 4 },
+  { values: [7, 8], rowCount: 4 },
+  { values: [6, 9], rowCount: 4 },
+  { values: [7, 9], rowCount: 4 },
+  { values: [8, 9], rowCount: 4 },
   // ===== 3개짜리 문제 (보통 → 어려움) =====
   { values: [1, 2, 3], rowCount: 3 },
   { values: [2, 3, 4], rowCount: 3 },
@@ -1941,54 +1970,54 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           zIndex: 0,
         }}
       >
-      {/* 구름 1 */}
-      <div
-        style={{
-          position: "absolute",
-          left: "8%",
-          top: Math.max(10, vanishY * 0.18),
-          width: 64,
-          height: 26,
-          borderRadius: 20,
-          background: "rgba(255,255,255,1)",
-          boxShadow:
-            "20px 4px 0 -2px rgba(255,255,255,1), -14px 2px 0 -3px rgba(255,255,255,1), 9px -7px 0 2px rgba(255,255,255,1)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      {/* 구름 2 */}
-      <div
-        style={{
-          position: "absolute",
-          left: "52%",
-          top: Math.max(18, vanishY * 0.35),
-          width: 76,
-          height: 30,
-          borderRadius: 22,
-          background: "rgba(255,255,255,1)",
-          boxShadow:
-            "24px 5px 0 -2px rgba(255,255,255,1), -16px 3px 0 -4px rgba(255,255,255,1), 11px -8px 0 3px rgba(255,255,255,1)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      {/* 구름 3 */}
-      <div
-        style={{
-          position: "absolute",
-          left: "28%",
-          top: Math.max(30, vanishY * 1),
-          width: 52,
-          height: 22,
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.45)",
-          boxShadow:
-            "16px 3px 0 -2px rgba(255,255,255,0.4), -11px 2px 0 -3px rgba(255,255,255,0.35)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
+        {/* 구름 1 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "8%",
+            top: Math.max(10, vanishY * 0.18),
+            width: 64,
+            height: 26,
+            borderRadius: 20,
+            background: "rgba(255,255,255,1)",
+            boxShadow:
+              "20px 4px 0 -2px rgba(255,255,255,1), -14px 2px 0 -3px rgba(255,255,255,1), 9px -7px 0 2px rgba(255,255,255,1)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+        {/* 구름 2 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "52%",
+            top: Math.max(18, vanishY * 0.35),
+            width: 76,
+            height: 30,
+            borderRadius: 22,
+            background: "rgba(255,255,255,1)",
+            boxShadow:
+              "24px 5px 0 -2px rgba(255,255,255,1), -16px 3px 0 -4px rgba(255,255,255,1), 11px -8px 0 3px rgba(255,255,255,1)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+        {/* 구름 3 */}
+        <div
+          style={{
+            position: "absolute",
+            left: "28%",
+            top: Math.max(30, vanishY * 1),
+            width: 52,
+            height: 22,
+            borderRadius: 16,
+            background: "rgba(255,255,255,0.45)",
+            boxShadow:
+              "16px 3px 0 -2px rgba(255,255,255,0.4), -11px 2px 0 -3px rgba(255,255,255,0.35)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
       </div>
 
       {/* Road SVG (잔디 + 도로 + 나무/꽃) */}
