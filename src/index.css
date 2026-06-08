@@ -842,8 +842,8 @@ code {
     transform: translateX(-50%) translateY(0) scaleX(1.06) scaleY(0.94);
   }
   50% {
-    /* 튀어 오른 정점 */
-    transform: translateX(-50%) translateY(-60%) scaleX(0.98) scaleY(1.02);
+    /* 튀어 오른 정점 (낮게 통통 — 머리 위로 안 뜨게) */
+    transform: translateX(-50%) translateY(-30%) scaleX(0.98) scaleY(1.02);
   }
 }
 
@@ -894,6 +894,39 @@ code {
   100% {
     transform: scale(1.7);
     opacity: 0;
+  }
+}
+
+/* 10클리어 축하 모달 */
+@keyframes congratsPop {
+  0% {
+    transform: scale(0.7) translateY(16px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes trophyBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* 유니폼 망토 흩날림 (은은하게) */
+@keyframes capeSway {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(-2deg);
+  }
+  50% {
+    transform: translateX(-50%) rotate(2deg);
   }
 }
 

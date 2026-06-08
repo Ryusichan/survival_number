@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import DigitIcon from "./DigitIcon";
 import BackButton from "components/item/BackButton";
 
@@ -163,6 +163,296 @@ const SparkleBurst: React.FC<{ size?: number }> = ({ size = 64 }) => (
   </div>
 );
 
+// ===== 보상 아이템 (10클리어마다 하나씩 획득 → 캐릭터에 누적) =====
+type RewardItem = { id: string; name: string; at: number; glow: string };
+
+const REWARD_ITEMS: RewardItem[] = [
+  { id: "cape", name: "히어로 망토", at: 10, glow: "rgba(226,59,59,0.5)" },
+  { id: "crown", name: "챔피언 왕관", at: 20, glow: "rgba(255,200,60,0.5)" },
+  { id: "wings", name: "천사 날개", at: 30, glow: "rgba(180,210,250,0.5)" },
+  { id: "boots", name: "황금 축구화", at: 40, glow: "rgba(255,200,60,0.5)" },
+  { id: "aura", name: "에너지 오라", at: 50, glow: "rgba(60,210,255,0.5)" },
+  { id: "halo", name: "전설의 후광", at: 60, glow: "rgba(255,220,90,0.55)" },
+];
+
+const LAST_ITEM_AT = REWARD_ITEMS[REWARD_ITEMS.length - 1].at;
+
+// 이번 마일스톤(정확히 N의 배수)에 획득한 보상
+function getReward(count: number): RewardItem | null {
+  const item = REWARD_ITEMS.find((it) => it.at === count);
+  if (item) return item;
+  if (count > LAST_ITEM_AT)
+    return {
+      id: "star",
+      name: "레전드 마스터",
+      at: count,
+      glow: "rgba(255,220,90,0.55)",
+    };
+  return null;
+}
+
+// 현재까지 해금된 아이템 id 목록
+function getUnlockedItemIds(clearCount: number): string[] {
+  const ids = REWARD_ITEMS.filter((it) => clearCount >= it.at).map(
+    (it) => it.id,
+  );
+  if (clearCount > LAST_ITEM_AT) ids.push("star");
+  return ids;
+}
+
+// 아이템 SVG 아트 (캐릭터/모달 공용)
+const ItemIcon: React.FC<{ id: string; size?: number }> = ({
+  id,
+  size = 48,
+}) => {
+  const uid = useId().replace(/:/g, "");
+  const g = `g${uid}`;
+  const common = { width: size, height: size, viewBox: "0 0 48 48" } as const;
+
+  if (id === "cape")
+    return (
+      <svg {...common}>
+        <defs>
+          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ff6b6b" />
+            <stop offset="100%" stopColor="#c41e1e" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M14,8 L34,8 L41,42 Q35,46 31,40 Q27,46 24,40 Q21,46 17,40 Q13,46 7,42 Z"
+          fill={`url(#${g})`}
+          stroke="rgba(0,0,0,0.2)"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M24,8 L24,42"
+          stroke="rgba(255,255,255,0.3)"
+          strokeWidth="1.5"
+          fill="none"
+        />
+        <rect x="13" y="6" width="22" height="5" rx="2.5" fill="#ffd24a" />
+      </svg>
+    );
+
+  if (id === "crown")
+    return (
+      <svg {...common}>
+        <defs>
+          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffe486" />
+            <stop offset="100%" stopColor="#e6a91f" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M7,36 L9,15 L18,26 L24,10 L30,26 L39,15 L41,36 Z"
+          fill={`url(#${g})`}
+          stroke="#b9851a"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        <rect x="7" y="35" width="34" height="6" rx="2" fill="#d99a1f" />
+        <circle cx="24" cy="18" r="2.4" fill="#ff5a7a" />
+        <circle cx="13" cy="30" r="1.8" fill="#5ad1ff" />
+        <circle cx="35" cy="30" r="1.8" fill="#5ad1ff" />
+      </svg>
+    );
+
+  if (id === "wings")
+    return (
+      <svg {...common}>
+        <defs>
+          <linearGradient id={g} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#bcd4f2" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M24,16 C16,8 6,8 4,18 C10,16 14,18 24,24 Z"
+          fill={`url(#${g})`}
+          stroke="rgba(80,110,160,0.4)"
+          strokeWidth="0.8"
+        />
+        <path
+          d="M24,22 C16,16 6,18 5,28 C11,25 16,26 24,30 Z"
+          fill={`url(#${g})`}
+          stroke="rgba(80,110,160,0.4)"
+          strokeWidth="0.8"
+        />
+        <path
+          d="M24,16 C32,8 42,8 44,18 C38,16 34,18 24,24 Z"
+          fill={`url(#${g})`}
+          stroke="rgba(80,110,160,0.4)"
+          strokeWidth="0.8"
+        />
+        <path
+          d="M24,22 C32,16 42,18 43,28 C37,25 32,26 24,30 Z"
+          fill={`url(#${g})`}
+          stroke="rgba(80,110,160,0.4)"
+          strokeWidth="0.8"
+        />
+      </svg>
+    );
+
+  if (id === "boots")
+    return (
+      <svg {...common}>
+        <defs>
+          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffe486" />
+            <stop offset="100%" stopColor="#e0a51c" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M10,14 L22,14 L24,26 L40,30 Q44,31 44,35 L44,38 L8,38 Q6,38 6,34 L8,16 Q8,14 10,14 Z"
+          fill={`url(#${g})`}
+          stroke="#b9851a"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+        <circle cx="14" cy="35" r="1.4" fill="#7a5a10" />
+        <circle cx="22" cy="35" r="1.4" fill="#7a5a10" />
+        <circle cx="30" cy="35" r="1.4" fill="#7a5a10" />
+        <circle cx="38" cy="35" r="1.4" fill="#7a5a10" />
+      </svg>
+    );
+
+  if (id === "aura")
+    return (
+      <svg {...common}>
+        <defs>
+          <radialGradient id={g} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(120,240,255,0.9)" />
+            <stop offset="55%" stopColor="rgba(40,200,255,0.35)" />
+            <stop offset="100%" stopColor="rgba(40,200,255,0)" />
+          </radialGradient>
+        </defs>
+        <circle cx="24" cy="24" r="22" fill={`url(#${g})`} />
+        <circle
+          cx="24"
+          cy="24"
+          r="15"
+          fill="none"
+          stroke="rgba(150,245,255,0.6)"
+          strokeWidth="1.5"
+          strokeDasharray="4 5"
+        />
+        <circle cx="24" cy="6" r="2" fill="#bff6ff" />
+        <circle cx="42" cy="28" r="1.6" fill="#bff6ff" />
+        <circle cx="8" cy="30" r="1.6" fill="#bff6ff" />
+      </svg>
+    );
+
+  if (id === "halo")
+    return (
+      <svg {...common}>
+        <defs>
+          <linearGradient id={g} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#fff3b0" />
+            <stop offset="100%" stopColor="#ffcf3a" />
+          </linearGradient>
+        </defs>
+        <ellipse
+          cx="24"
+          cy="24"
+          rx="20"
+          ry="8"
+          fill="none"
+          stroke={`url(#${g})`}
+          strokeWidth="4"
+        />
+        <ellipse
+          cx="24"
+          cy="24"
+          rx="20"
+          ry="8"
+          fill="none"
+          stroke="rgba(255,255,255,0.5)"
+          strokeWidth="1"
+        />
+        <circle cx="24" cy="15" r="1.6" fill="#fff7c2" />
+        <circle cx="40" cy="26" r="1.3" fill="#fff7c2" />
+      </svg>
+    );
+
+  // star (마스터)
+  return (
+    <svg {...common}>
+      <defs>
+        <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff0a0" />
+          <stop offset="100%" stopColor="#ffc01e" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M24,4 L29.5,17 L43,18 L32.5,27 L36,41 L24,33 L12,41 L15.5,27 L5,18 L18.5,17 Z"
+        fill={`url(#${g})`}
+        stroke="#e0a51c"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
+// 캐릭터 위 아이템 배치 (스프라이트 100x100 기준)
+const ITEM_PLACEMENT: Record<
+  string,
+  {
+    size: number;
+    top: number | string;
+    z: number;
+    center?: boolean;
+    sway?: boolean;
+  }
+> = {
+  // 코스튬은 캐릭터 스프라이트(z-index 1)보다 앞(z 2)에 그려 잘 보이게 한다
+  aura: { size: 102, top: "50%", z: 2, center: true },
+  wings: { size: 86, top: 20, z: 2 },
+  cape: { size: 60, top: 26, z: 2, sway: true },
+  halo: { size: 46, top: -6, z: 2 },
+  crown: { size: 24, top: 0, z: 2 },
+  boots: { size: 28, top: 72, z: 2 },
+  star: { size: 22, top: -10, z: 2 },
+};
+
+const CharacterItems: React.FC<{ clearCount: number }> = ({ clearCount }) => {
+  const ids = getUnlockedItemIds(clearCount);
+  if (!ids.length) return null;
+  return (
+    <>
+      {ids.map((id) => {
+        const p = ITEM_PLACEMENT[id];
+        if (!p) return null;
+        return (
+          <div
+            key={id}
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: p.top,
+              width: p.size,
+              height: p.size,
+              transform: p.center
+                ? "translate(-50%, -50%)"
+                : "translateX(-50%)",
+              transformOrigin: p.sway ? "top center" : "center",
+              animation: p.sway
+                ? "capeSway 2.6s ease-in-out infinite"
+                : undefined,
+              zIndex: p.z,
+              pointerEvents: "none",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+            }}
+          >
+            <ItemIcon id={id} size={p.size} />
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
 const stageSettings: { values: number[]; rowCount: number }[] = [
   // ===== 2개짜리 문제 (쉬움) =====
   { values: [1, 2], rowCount: 2 },
@@ -312,6 +602,13 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   const [failBoardOpen, setFailBoardOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const [sparkles, setSparkles] = useState<SparkleFx[]>([]);
+  // 10클리어마다 축하 모달
+  const [congrats, setCongrats] = useState<{ open: boolean; count: number }>({
+    open: false,
+    count: 0,
+  });
+  const [clearCount, setClearCount] = useState(0);
+  const clearCountRef = useRef(0);
   const lastTimeRef = useRef<number | null>(null);
   const rowsRef = useRef<Row[]>([]);
   const latestX = useRef(player.x);
@@ -466,7 +763,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   };
 
   useEffect(() => {
-    if (failBoardOpen || paused) return;
+    if (failBoardOpen || paused || congrats.open) return;
     let frameId: number;
 
     const loop = (time: number) => {
@@ -602,6 +899,14 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
             (latestStage.current + 1) % stageSettings.length;
           setStage(nextStageIndex);
           initStage(nextStageIndex, true, true);
+
+          // 클리어 카운트 → 10클리어마다 축하 모달 + 유니폼 업그레이드
+          clearCountRef.current += 1;
+          const cleared = clearCountRef.current;
+          setClearCount(cleared);
+          if (cleared % 10 === 0) {
+            setCongrats({ open: true, count: cleared });
+          }
         } else {
           setFailBoardOpen(true);
         }
@@ -612,7 +917,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
     frameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frameId);
-  }, [failBoardOpen, paused]);
+  }, [failBoardOpen, paused, congrats.open]);
 
   const laneWidth = WIDTH / LANE_COUNT;
   const xUnitsToPx = (xUnits: number) => (xUnits / LANE_COUNT) * WIDTH;
@@ -622,7 +927,22 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     initStage(latestStage.current, false);
   };
 
-  const balloonSize = Math.min(52 + player.value * 1.6, 92);
+  // 축하 모달 "계속하기" → 끊김 없이 이어서 진행
+  const handleCongratsContinue = () => {
+    lastTimeRef.current = null;
+    setCongrats((c) => ({ ...c, open: false }));
+  };
+
+  // 🔧 [임시/테스트] 한 번에 10클리어씩 점프 — 코스튬 확인용 (배포 전 삭제)
+  const handleTestSkip = () => {
+    const next = clearCountRef.current + 10;
+    clearCountRef.current = next;
+    setClearCount(next);
+    setCongrats({ open: true, count: next });
+  };
+
+  // 드리블 공 크기 (숫자는 머리 위 뱃지로 표시하므로 작은 고정 크기)
+  const balloonSize = 30;
 
   // ===== 3D Road Rendering =====
   const vanishY = projectRowYpx(farYRef.current, farYRef.current);
@@ -911,52 +1231,177 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
       <BackButton onExit={onExit} onPause={togglePause} isPaused={paused} />
 
-      {/* HUD */}
+      {/* 🔧 [임시] 코스튬 미리보기용 +10 버튼 (배포 전 제거) */}
+      <button
+        onClick={handleTestSkip}
+        style={{
+          position: "absolute",
+          bottom: "max(12px, env(safe-area-inset-bottom))",
+          left: 12,
+          zIndex: 60,
+          padding: "8px 12px",
+          borderRadius: 10,
+          border: "1px dashed rgba(255,255,255,0.7)",
+          background: "rgba(0,0,0,0.45)",
+          color: "#fff",
+          fontFamily: "Fredoka",
+          fontWeight: 800,
+          fontSize: 12,
+          cursor: "pointer",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        DEV +10 (클리어 {clearCount})
+      </button>
+
+      {/* HUD - STAGE 배지 */}
       <div
         style={{
           position: "absolute",
-          top: "calc(max(8px, env(safe-area-inset-top)) + 6px)",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 4px)",
           left: "50%",
           transform: "translateX(-50%)",
-          fontSize: "clamp(22px, 5vw, 28px)",
-          fontFamily: "Fredoka",
-          fontWeight: 600,
-          color: "#fff",
-          textShadow: "0 2px 8px rgba(0,0,0,0.6)",
           zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "5px 16px",
+          borderRadius: 999,
+          background:
+            "linear-gradient(180deg, rgba(22,32,64,0.8), rgba(12,20,44,0.8))",
+          border: "2px solid rgba(255,210,74,0.85)",
+          boxShadow:
+            "0 4px 14px rgba(0,0,0,0.35), inset 0 0 12px rgba(255,210,74,0.12)",
+          backdropFilter: "blur(4px)",
         }}
       >
-        STAGE {stage + 1}
+        <span
+          style={{
+            fontFamily: "Fredoka",
+            fontWeight: 700,
+            fontSize: "clamp(9px, 2.4vw, 11px)",
+            letterSpacing: 1,
+            color: "#ffd24a",
+          }}
+        >
+          STAGE
+        </span>
+        <span
+          style={{
+            fontFamily: "Fredoka",
+            fontWeight: 900,
+            fontSize: "clamp(18px, 4.6vw, 24px)",
+            color: "#fff",
+            lineHeight: 1,
+          }}
+        >
+          {stage + 1}
+        </span>
       </div>
+
+      {/* HUD - 목표 */}
       <div
         style={{
           position: "absolute",
-          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
-          left: 12,
-          fontSize: "clamp(11px, 3vw, 13px)",
-          color: "rgba(255,255,255,0.85)",
-          fontWeight: 700,
-          fontFamily: "Fredoka",
-          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 48px)",
+          left: 10,
           zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          alignItems: "flex-start",
         }}
       >
-        목표: {goalValues.join(" / ")}
+        <div
+          style={{
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: "rgba(12,20,44,0.62)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            fontFamily: "Fredoka",
+            fontWeight: 700,
+            fontSize: "clamp(9px, 2.6vw, 11px)",
+            color: "rgba(255,255,255,0.92)",
+          }}
+        >
+          🎯 목표
+        </div>
+        <div style={{ display: "flex", gap: 5 }}>
+          {goalValues.map((g, i) => (
+            <div
+              key={i}
+              style={{
+                minWidth: 28,
+                height: 28,
+                padding: "0 6px",
+                borderRadius: 8,
+                background: "linear-gradient(180deg, #ff8a3d, #f4631e)",
+                border: "2px solid rgba(255,255,255,0.5)",
+                boxShadow: "0 3px 8px rgba(244,99,30,0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "Fredoka",
+                fontWeight: 900,
+                fontSize: "clamp(14px, 4vw, 17px)",
+                color: "#fff",
+                textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+              }}
+            >
+              {g}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* HUD - 현재 합계 */}
       <div
         style={{
           position: "absolute",
-          top: "calc(max(8px, env(safe-area-inset-top)) + 40px)",
-          right: 12,
-          fontSize: "clamp(11px, 3vw, 13px)",
-          color: "rgba(255,255,255,0.85)",
-          fontWeight: 700,
-          fontFamily: "Fredoka",
-          textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          top: "calc(max(8px, env(safe-area-inset-top)) + 48px)",
+          right: 10,
           zIndex: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+          alignItems: "flex-end",
         }}
       >
-        현재: {player.value}
+        <div
+          style={{
+            padding: "3px 9px",
+            borderRadius: 999,
+            background: "rgba(12,20,44,0.62)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            fontFamily: "Fredoka",
+            fontWeight: 700,
+            fontSize: "clamp(9px, 2.6vw, 11px)",
+            color: "rgba(255,255,255,0.92)",
+          }}
+        >
+          현재
+        </div>
+        <div
+          style={{
+            minWidth: 36,
+            height: 30,
+            padding: "0 10px",
+            borderRadius: 9,
+            background: "linear-gradient(180deg, #34d399, #059669)",
+            border: "2px solid rgba(255,255,255,0.55)",
+            boxShadow: "0 3px 10px rgba(5,150,105,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "Fredoka",
+            fontWeight: 900,
+            fontSize: "clamp(16px, 4.4vw, 20px)",
+            color: "#fff",
+            textShadow: "0 1px 2px rgba(0,0,0,0.35)",
+          }}
+        >
+          {player.value}
+        </div>
       </div>
 
       {/* ===== Rows ===== */}
@@ -1132,14 +1577,61 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               zIndex: 20,
             }}
           >
+            {/* 머리 위 숫자 뱃지 (현재 합계) */}
+            <div
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: -36,
+                transform: "translateX(-50%)",
+                zIndex: 6,
+                pointerEvents: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  minWidth: 34,
+                  height: 32,
+                  padding: "0 10px",
+                  borderRadius: 999,
+                  background: "linear-gradient(180deg, #ffffff, #e7edf5)",
+                  border: "3px solid #2b3a67",
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: "Fredoka",
+                  fontWeight: 900,
+                  fontSize: 18,
+                  color: "#1b2452",
+                  lineHeight: 1,
+                }}
+              >
+                {player.value}
+              </div>
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: "6px solid transparent",
+                  borderRight: "6px solid transparent",
+                  borderTop: "7px solid #2b3a67",
+                  marginTop: -1,
+                }}
+              />
+            </div>
+
             {/* Dribble ground shadow (공보다 먼저 그려 지면에 깔리도록) */}
             <div
               style={{
                 position: "absolute",
                 left: "50%",
-                bottom: -balloonSize * 0.34 - 2,
-                width: balloonSize * 0.66,
-                height: 9,
+                bottom: balloonSize * 0.2 - 2,
+                width: balloonSize * 0.7,
+                height: 8,
                 borderRadius: "50%",
                 background:
                   "radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 70%)",
@@ -1150,13 +1642,12 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               }}
             />
 
-            {/* Soccer Ball (발 앞에서 드리블) */}
+            {/* Soccer Ball (발 앞에서 드리블, 캐릭터보다 뒤) */}
             <div
-              key={player.value}
               style={{
                 position: "absolute",
                 left: "50%",
-                bottom: -balloonSize * 0.34,
+                bottom: balloonSize * 0.2,
                 width: balloonSize,
                 height: balloonSize,
                 transformOrigin: "center bottom",
@@ -1164,7 +1655,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 pointerEvents: "none",
                 userSelect: "none",
                 filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.25))",
-                zIndex: 3,
+                zIndex: 0,
               }}
               className="player-balloon"
             >
@@ -1177,26 +1668,25 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               >
                 <SoccerBall size={balloonSize} />
               </div>
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontSize: Math.max(20, balloonSize * 0.5),
-                  fontWeight: 900,
-                  textShadow:
-                    "-2px -2px 0 #222, 2px -2px 0 #222, -2px 2px 0 #222, 2px 2px 0 #222, 0 3px 8px rgba(0,0,0,0.4)",
-                }}
-              >
-                {player.value}
-              </div>
             </div>
 
-            {/* Character */}
-            <div className="charactor" style={{ zIndex: 1 }} />
+            {/* Character + 코스튬 아이템 (아이템이 캐릭터보다 앞에 보이도록) */}
+            <div
+              style={{
+                position: "relative",
+                width: 100,
+                height: 100,
+                display: "flex",
+                justifyContent: "center",
+                zIndex: 1,
+              }}
+            >
+              <div
+                className="charactor"
+                style={{ position: "relative", zIndex: 1 }}
+              />
+              <CharacterItems clearCount={clearCount} />
+            </div>
 
             {/* Player ground glow */}
             <div
@@ -1216,6 +1706,159 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           </div>
         );
       })()}
+
+      {/* ===== 10클리어 축하 모달 ===== */}
+      {congrats.open && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            zIndex: 350,
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "min(86%, 340px)",
+              padding: "30px 24px 26px",
+              borderRadius: 22,
+              textAlign: "center",
+              color: "#fff",
+              background: "linear-gradient(180deg, #1b2452 0%, #121a3a 100%)",
+              border: "3px solid #ffd24a",
+              boxShadow:
+                "0 18px 48px rgba(0,0,0,0.5), 0 0 0 6px rgba(255,210,74,0.12), inset 0 0 28px rgba(255,210,74,0.08)",
+              animation: "congratsPop 0.45s cubic-bezier(0.18,0.9,0.3,1.2)",
+            }}
+          >
+            {/* 반짝이는 장식 */}
+            <div
+              style={{
+                position: "absolute",
+                top: -14,
+                left: "50%",
+                transform: "translateX(-50%)",
+                fontSize: 30,
+              }}
+            >
+              🎉
+            </div>
+
+            <div
+              style={{
+                fontSize: 54,
+                lineHeight: 1,
+                marginBottom: 10,
+                animation: "trophyBounce 1.6s ease-in-out infinite",
+              }}
+            >
+              🏆
+            </div>
+
+            <div
+              style={{
+                fontFamily: "Fredoka",
+                fontWeight: 900,
+                fontSize: "clamp(22px, 6vw, 28px)",
+                color: "#ffd24a",
+                textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                marginBottom: 6,
+              }}
+            >
+              축하합니다!
+            </div>
+
+            <div
+              style={{
+                fontFamily: "Fredoka",
+                fontWeight: 700,
+                fontSize: "clamp(14px, 4vw, 17px)",
+                color: "rgba(255,255,255,0.92)",
+                marginBottom: 14,
+              }}
+            >
+              {congrats.count} 스테이지 클리어! 🔥
+            </div>
+
+            {/* 획득 아이템 안내 (디자인된 아이콘 표시) */}
+            {(() => {
+              const reward = getReward(congrats.count);
+              if (!reward) return null;
+              return (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 84,
+                      height: 84,
+                      borderRadius: 18,
+                      background:
+                        "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.14), rgba(255,255,255,0.04))",
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      boxShadow: `0 0 22px ${reward.glow}, inset 0 0 18px ${reward.glow}`,
+                      animation: "trophyBounce 1.8s ease-in-out infinite",
+                    }}
+                  >
+                    <ItemIcon id={reward.id} size={56} />
+                  </div>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 14px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.1)",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      fontFamily: "Fredoka",
+                      fontWeight: 900,
+                      fontSize: "clamp(13px, 3.6vw, 16px)",
+                      color: "#ffd24a",
+                    }}
+                  >
+                    🎁 {reward.name} 획득!
+                  </div>
+                </div>
+              );
+            })()}
+
+            <button
+              onClick={handleCongratsContinue}
+              style={{
+                width: "100%",
+                padding: "14px 20px",
+                borderRadius: 14,
+                border: "none",
+                fontWeight: 900,
+                fontSize: "clamp(15px, 4vw, 18px)",
+                fontFamily: "Fredoka",
+                background: "linear-gradient(180deg, #34d399, #059669)",
+                color: "#fff",
+                cursor: "pointer",
+                boxShadow: "0 8px 20px rgba(5,150,105,0.45)",
+              }}
+            >
+              계속하기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===== Pause overlay ===== */}
       {paused && !failBoardOpen && (
