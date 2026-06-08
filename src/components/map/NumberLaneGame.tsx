@@ -38,67 +38,47 @@ const DigitNumber: React.FC<{
 const SoccerBall: React.FC<{ size: number }> = ({ size }) => (
   <svg viewBox="0 0 100 100" width={size} height={size}>
     <defs>
-      <radialGradient id="soccerBody" cx="38%" cy="34%" r="58%">
+      <radialGradient id="soccerBody" cx="37%" cy="31%" r="64%">
         <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="50%" stopColor="#f2f2f2" />
-        <stop offset="100%" stopColor="#c4c4c4" />
+        <stop offset="62%" stopColor="#f1f1f1" />
+        <stop offset="100%" stopColor="#c9c9c9" />
       </radialGradient>
     </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#soccerBody)" />
+    {/* 공 본체 */}
     <circle
       cx="50"
       cy="50"
       r="48"
-      fill="none"
-      stroke="#b0b0b0"
+      fill="url(#soccerBody)"
+      stroke="#a6a6a6"
       strokeWidth="1.5"
     />
-    <g style={{ clipPath: "circle(47.5% at 50% 50%)" }}>
-      {/* Curved pentagons - center enlarged */}
-      <g
-        fill="#2a2a2a"
-        stroke="#1a1a1a"
-        strokeWidth="0.8"
-        strokeLinejoin="round"
-      >
-        <path d="M50,27 Q65,30 72,41 Q73,55 64,66 Q50,73 36,66 Q27,55 28,41 Q35,30 50,27Z" />
-        <path d="M35,3 Q39,10 50,10 Q61,10 65,3 L60,-8 L40,-8Z" />
-        <path d="M82,18 Q82,26 88,38 Q91,50 95,55 L105,42 L100,22Z" />
-        <path d="M88,72 Q81,73 74,82 Q65,88 65,95 L78,105 L95,90Z" />
-        <path d="M35,95 Q35,88 26,82 Q19,73 12,72 L5,90 L22,105Z" />
-        <path d="M5,55 Q9,50 12,38 Q18,25 18,18 L0,22 L-5,42Z" />
-      </g>
-      {/* Curved seam lines */}
+    <g style={{ clipPath: "circle(47% at 50% 50%)" }}>
+      {/* 솔기 (오각형을 잇는 선) */}
       <g
         fill="none"
-        stroke="rgba(0,0,0,0.15)"
-        strokeWidth="1.5"
+        stroke="rgba(20,20,20,0.16)"
+        strokeWidth="1.6"
         strokeLinecap="round"
       >
-        <path d="M50,27 Q53,19 50,10" />
-        <path d="M72,41 Q81,36 88,38" />
-        <path d="M64,66 Q70,73 74,82" />
-        <path d="M36,66 Q30,73 26,82" />
-        <path d="M28,41 Q19,36 12,38" />
-        <path d="M50,10 Q41,4 35,3" />
-        <path d="M50,10 Q59,4 65,3" />
-        <path d="M88,38 Q87,27 82,18" />
-        <path d="M88,38 Q94,47 95,55" />
-        <path d="M74,82 Q83,78 88,72" />
-        <path d="M74,82 Q68,91 65,95" />
-        <path d="M26,82 Q32,91 35,95" />
-        <path d="M26,82 Q17,78 12,72" />
-        <path d="M12,38 Q6,47 5,55" />
-        <path d="M12,38 Q13,27 18,18" />
-        <path d="M65,3 Q77,7 82,18" />
-        <path d="M95,55 Q95,64 88,72" />
-        <path d="M65,95 Q50,101 35,95" />
-        <path d="M12,72 Q5,64 5,55" />
-        <path d="M18,18 Q23,7 35,3" />
+        <path d="M50,34 L50,3" />
+        <path d="M65.2,45.1 L94.7,35.5" />
+        <path d="M59.4,62.9 L77.6,88" />
+        <path d="M40.6,62.9 L22.4,88" />
+        <path d="M34.8,45.1 L5.3,35.5" />
+      </g>
+      {/* 검정 오각형 (정중앙 + 가장자리 5개) */}
+      <g fill="#232323" stroke="#141414" strokeWidth="0.9" strokeLinejoin="round">
+        <path d="M50,34 L65.2,45.1 L59.4,62.9 L40.6,62.9 L34.8,45.1 Z" />
+        <path d="M50,80 L63.3,89.7 L58.2,105.3 L41.8,105.3 L36.7,89.7 Z" />
+        <path d="M78.5,59.3 L83.6,74.9 L100,74.9 L105.1,59.3 L91.8,49.6 Z" />
+        <path d="M67.7,25.7 L84.1,25.7 L89.2,10.1 L75.9,0.4 L62.6,10.1 Z" />
+        <path d="M32.3,25.7 L37.4,10.1 L24.1,0.4 L10.8,10.1 L15.9,25.7 Z" />
+        <path d="M21.5,59.3 L8.2,49.6 L-5.1,59.3 L0,74.9 L16.4,74.9 Z" />
       </g>
     </g>
-    {/* Specular highlight */}
-    <ellipse cx="38" cy="34" rx="11" ry="8" fill="rgba(255,255,255,0.4)" />
+    {/* 광택 하이라이트 */}
+    <ellipse cx="37" cy="33" rx="13" ry="9" fill="rgba(255,255,255,0.45)" />
   </svg>
 );
 
@@ -163,301 +143,299 @@ const SparkleBurst: React.FC<{ size?: number }> = ({ size = 64 }) => (
   </div>
 );
 
-// ===== 보상 아이템 (10클리어마다 하나씩 획득 → 캐릭터에 누적) =====
+// ===== 선물상자 (축하 모달용, 흔들흔들) =====
+const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    style={{ display: "block", overflow: "visible" }}
+  >
+    {/* 바닥 그림자 */}
+    <ellipse cx="50" cy="93" rx="34" ry="4" fill="rgba(0,0,0,0.18)" />
+
+    {/* ===== 상자 본체 ===== */}
+    <rect x="21" y="47" width="40" height="41" rx="1.5" fill="#ec6a52" />
+    <rect x="61" y="47" width="18" height="41" rx="1.5" fill="#9e3b3b" />
+    <rect x="21" y="82" width="40" height="6" fill="#000" opacity="0.05" />
+
+    {/* ===== 뚜껑 ===== */}
+    <rect x="15" y="35" width="48" height="14" rx="2" fill="#e85f48" />
+    <rect x="61" y="35" width="24" height="14" rx="2" fill="#8a3433" />
+    <rect x="15" y="35" width="48" height="3" rx="1.5" fill="#ffffff" opacity="0.12" />
+
+    {/* ===== 세로 리본 ===== */}
+    <rect x="37" y="35" width="9" height="53" fill="#f3c64e" />
+    <rect x="37" y="35" width="2.6" height="53" fill="#ffffff" opacity="0.3" />
+    <rect x="67" y="35" width="8" height="53" fill="#d99f33" />
+    <rect x="67" y="35" width="2.2" height="53" fill="#f3c64e" />
+
+    {/* ===== 리본 보우 ===== */}
+    <path
+      d="M42,33 C30,34 22,24 27,17 C32,12 41,18 44,31 Z"
+      fill="#f6cf5e"
+      stroke="#e0a838"
+      strokeWidth="0.8"
+      strokeLinejoin="round"
+    />
+    <path d="M42,33 C34,32 28,26 28,20 C33,24 39,28 44,31 Z" fill="#e0a838" opacity="0.55" />
+    <path
+      d="M48,33 C60,34 68,24 63,17 C58,12 49,18 46,31 Z"
+      fill="#f6cf5e"
+      stroke="#e0a838"
+      strokeWidth="0.8"
+      strokeLinejoin="round"
+    />
+    <path d="M48,33 C56,32 62,26 62,20 C57,24 51,28 46,31 Z" fill="#e0a838" opacity="0.55" />
+    <rect x="42" y="28" width="8" height="9" rx="2.5" fill="#f6cf5e" stroke="#e0a838" strokeWidth="0.8" />
+
+    {/* ===== 반짝임 ===== */}
+    {[
+      { x: 15, y: 21, s: 4 },
+      { x: 11, y: 41, s: 3 },
+      { x: 87, y: 30, s: 4 },
+      { x: 85, y: 55, s: 3 },
+    ].map((p, i) => (
+      <path
+        key={i}
+        d={`M${p.x},${p.y - p.s} Q${p.x},${p.y} ${p.x + p.s},${p.y} Q${p.x},${p.y} ${p.x},${p.y + p.s} Q${p.x},${p.y} ${p.x - p.s},${p.y} Q${p.x},${p.y} ${p.x},${p.y - p.s} Z`}
+        fill="#f6cf5e"
+      />
+    ))}
+  </svg>
+);
+
+// ===== 축구 유니폼 보상 (10클리어마다 한 피스씩 착용) =====
 type RewardItem = { id: string; name: string; at: number; glow: string };
 
 const REWARD_ITEMS: RewardItem[] = [
-  { id: "cape", name: "히어로 망토", at: 10, glow: "rgba(226,59,59,0.5)" },
-  { id: "crown", name: "챔피언 왕관", at: 20, glow: "rgba(255,200,60,0.5)" },
-  { id: "wings", name: "천사 날개", at: 30, glow: "rgba(180,210,250,0.5)" },
-  { id: "boots", name: "황금 축구화", at: 40, glow: "rgba(255,200,60,0.5)" },
-  { id: "aura", name: "에너지 오라", at: 50, glow: "rgba(60,210,255,0.5)" },
-  { id: "halo", name: "전설의 후광", at: 60, glow: "rgba(255,220,90,0.55)" },
+  { id: "jersey", name: "손흥민 유니폼 상의", at: 10, glow: "rgba(212,175,55,0.55)" },
+  { id: "shorts", name: "손흥민 하의", at: 20, glow: "rgba(212,175,55,0.5)" },
+  { id: "boots", name: "손흥민 축구화", at: 30, glow: "rgba(255,205,70,0.55)" },
+  { id: "socks", name: "손흥민 양말", at: 40, glow: "rgba(255,205,70,0.5)" },
+  { id: "hair", name: "손흥민 헤어스타일", at: 50, glow: "rgba(120,170,255,0.45)" },
+  { id: "flame", name: "열정의 오라", at: 60, glow: "rgba(255,190,70,0.6)" },
 ];
-
-const LAST_ITEM_AT = REWARD_ITEMS[REWARD_ITEMS.length - 1].at;
 
 // 이번 마일스톤(정확히 N의 배수)에 획득한 보상
 function getReward(count: number): RewardItem | null {
-  const item = REWARD_ITEMS.find((it) => it.at === count);
-  if (item) return item;
-  if (count > LAST_ITEM_AT)
-    return {
-      id: "star",
-      name: "레전드 마스터",
-      at: count,
-      glow: "rgba(255,220,90,0.55)",
-    };
-  return null;
+  return REWARD_ITEMS.find((it) => it.at === count) ?? null;
 }
 
-// 현재까지 해금된 아이템 id 목록
-function getUnlockedItemIds(clearCount: number): string[] {
-  const ids = REWARD_ITEMS.filter((it) => clearCount >= it.at).map(
-    (it) => it.id,
+// 현재까지 착용한 유니폼 슬롯
+function getEquipped(clearCount: number): Set<string> {
+  return new Set(
+    REWARD_ITEMS.filter((it) => clearCount >= it.at).map((it) => it.id),
   );
-  if (clearCount > LAST_ITEM_AT) ids.push("star");
-  return ids;
 }
 
-// 아이템 SVG 아트 (캐릭터/모달 공용)
+// 아이템 SVG 아이콘 (모달용) — 블랙&골드 축구 키트
 const ItemIcon: React.FC<{ id: string; size?: number }> = ({
   id,
   size = 48,
 }) => {
   const uid = useId().replace(/:/g, "");
-  const g = `g${uid}`;
+  const g = `g${uid}`; // 골드
+  const gb = `b${uid}`; // 블랙
   const common = { width: size, height: size, viewBox: "0 0 48 48" } as const;
+  const Defs = () => (
+    <defs>
+      <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#f6df9a" />
+        <stop offset="100%" stopColor="#caa23c" />
+      </linearGradient>
+      <linearGradient id={gb} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#3a3a3a" />
+        <stop offset="100%" stopColor="#121212" />
+      </linearGradient>
+    </defs>
+  );
 
-  if (id === "cape")
+  if (id === "jersey")
     return (
       <svg {...common}>
-        <defs>
-          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ff6b6b" />
-            <stop offset="100%" stopColor="#c41e1e" />
-          </linearGradient>
-        </defs>
+        <Defs />
+        {/* 유니폼 상의 (뒷면) */}
         <path
-          d="M14,8 L34,8 L41,42 Q35,46 31,40 Q27,46 24,40 Q21,46 17,40 Q13,46 7,42 Z"
-          fill={`url(#${g})`}
-          stroke="rgba(0,0,0,0.2)"
-          strokeWidth="1"
+          d="M10,13 L18,8 Q24,11 30,8 L38,13 L34,18 L33,40 L15,40 L14,18 Z"
+          fill={`url(#${gb})`}
+          stroke="#000"
+          strokeWidth="0.6"
           strokeLinejoin="round"
         />
-        <path
-          d="M24,8 L24,42"
-          stroke="rgba(255,255,255,0.3)"
-          strokeWidth="1.5"
-          fill="none"
-        />
-        <rect x="13" y="6" width="22" height="5" rx="2.5" fill="#ffd24a" />
+        {/* 골드 깃/소매 트림 */}
+        <path d="M18,8 Q24,12 30,8" fill="none" stroke={`url(#${g})`} strokeWidth="1.8" />
+        <path d="M10,13 L14,18 M38,13 L34,18" stroke={`url(#${g})`} strokeWidth="1.4" />
+        {/* RYU + 등번호 12 */}
+        <text x="24" y="20" textAnchor="middle" fontSize="4.6" fontWeight="900" fontFamily="Fredoka" fill={`url(#${g})`}>RYU</text>
+        <text x="24" y="36" textAnchor="middle" fontSize="15" fontWeight="900" fontFamily="'Archivo Black',sans-serif" fill={`url(#${g})`}>12</text>
       </svg>
     );
 
-  if (id === "crown")
+  if (id === "shorts")
     return (
       <svg {...common}>
-        <defs>
-          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ffe486" />
-            <stop offset="100%" stopColor="#e6a91f" />
-          </linearGradient>
-        </defs>
+        <Defs />
         <path
-          d="M7,36 L9,15 L18,26 L24,10 L30,26 L39,15 L41,36 Z"
-          fill={`url(#${g})`}
-          stroke="#b9851a"
-          strokeWidth="1"
+          d="M10,14 L38,14 L35,32 Q29,35 27,30 L24,24 L21,30 Q19,35 13,32 Z"
+          fill={`url(#${gb})`}
+          stroke="#000"
+          strokeWidth="0.6"
           strokeLinejoin="round"
         />
-        <rect x="7" y="35" width="34" height="6" rx="2" fill="#d99a1f" />
-        <circle cx="24" cy="18" r="2.4" fill="#ff5a7a" />
-        <circle cx="13" cy="30" r="1.8" fill="#5ad1ff" />
-        <circle cx="35" cy="30" r="1.8" fill="#5ad1ff" />
-      </svg>
-    );
-
-  if (id === "wings")
-    return (
-      <svg {...common}>
-        <defs>
-          <linearGradient id={g} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#bcd4f2" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M24,16 C16,8 6,8 4,18 C10,16 14,18 24,24 Z"
-          fill={`url(#${g})`}
-          stroke="rgba(80,110,160,0.4)"
-          strokeWidth="0.8"
-        />
-        <path
-          d="M24,22 C16,16 6,18 5,28 C11,25 16,26 24,30 Z"
-          fill={`url(#${g})`}
-          stroke="rgba(80,110,160,0.4)"
-          strokeWidth="0.8"
-        />
-        <path
-          d="M24,16 C32,8 42,8 44,18 C38,16 34,18 24,24 Z"
-          fill={`url(#${g})`}
-          stroke="rgba(80,110,160,0.4)"
-          strokeWidth="0.8"
-        />
-        <path
-          d="M24,22 C32,16 42,18 43,28 C37,25 32,26 24,30 Z"
-          fill={`url(#${g})`}
-          stroke="rgba(80,110,160,0.4)"
-          strokeWidth="0.8"
-        />
+        <rect x="10" y="12" width="28" height="3.4" rx="1.7" fill={`url(#${g})`} />
+        <path d="M14,17 L13,31 M34,17 L35,31" stroke={`url(#${g})`} strokeWidth="1.2" opacity="0.85" />
       </svg>
     );
 
   if (id === "boots")
     return (
       <svg {...common}>
-        <defs>
-          <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ffe486" />
-            <stop offset="100%" stopColor="#e0a51c" />
-          </linearGradient>
-        </defs>
+        <Defs />
+        {/* 사이드 프로필 축구화(클리트) */}
         <path
-          d="M10,14 L22,14 L24,26 L40,30 Q44,31 44,35 L44,38 L8,38 Q6,38 6,34 L8,16 Q8,14 10,14 Z"
+          d="M6,30 C6,26 9,24 14,24 L22,24 C24,24 25,26 26,28 L40,30 C44,30.5 45,32 45,35 L45,37 C45,38 44,38.6 42,38.6 L9,38.6 C7,38.6 6,37.6 6,35 Z"
           fill={`url(#${g})`}
-          stroke="#b9851a"
+          stroke="#8a6d1e"
           strokeWidth="1"
           strokeLinejoin="round"
         />
-        <circle cx="14" cy="35" r="1.4" fill="#7a5a10" />
-        <circle cx="22" cy="35" r="1.4" fill="#7a5a10" />
-        <circle cx="30" cy="35" r="1.4" fill="#7a5a10" />
-        <circle cx="38" cy="35" r="1.4" fill="#7a5a10" />
+        {/* 발목/힐 음영 */}
+        <path d="M6,30 C6,26 9,24 14,24 L16,24 L16,33 L6,33 Z" fill="#caa23c" opacity="0.45" />
+        {/* 발등 하이라이트 */}
+        <ellipse cx="13" cy="27" rx="4" ry="1.6" fill="#fff" opacity="0.4" />
+        {/* 검정 스트라이프 */}
+        <path d="M10,31 C18,33 30,33 42,32" stroke="#161616" strokeWidth="2.2" fill="none" opacity="0.8" />
+        {/* 끈 */}
+        <g stroke="#161616" strokeWidth="0.9" opacity="0.6">
+          <path d="M17,26 L21,29" />
+          <path d="M20,26 L24,29" />
+          <path d="M23,26.5 L27,29.5" />
+        </g>
+        {/* 밑창 + 스터드 */}
+        <path d="M6,37 L45,37 L45,39 C45,40.5 43,41 41,41 L9,41 C7,41 6,40 6,38.5 Z" fill="#fff" />
+        <rect x="9" y="40.5" width="3" height="3" rx="1" fill="#dfe6ee" />
+        <rect x="18" y="41" width="3" height="3" rx="1" fill="#dfe6ee" />
+        <rect x="28" y="41" width="3" height="3" rx="1" fill="#dfe6ee" />
+        <rect x="38" y="40.5" width="3" height="3" rx="1" fill="#dfe6ee" />
       </svg>
     );
 
-  if (id === "aura")
+  if (id === "socks")
     return (
       <svg {...common}>
-        <defs>
-          <radialGradient id={g} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(120,240,255,0.9)" />
-            <stop offset="55%" stopColor="rgba(40,200,255,0.35)" />
-            <stop offset="100%" stopColor="rgba(40,200,255,0)" />
-          </radialGradient>
-        </defs>
-        <circle cx="24" cy="24" r="22" fill={`url(#${g})`} />
-        <circle
-          cx="24"
-          cy="24"
-          r="15"
-          fill="none"
-          stroke="rgba(150,245,255,0.6)"
-          strokeWidth="1.5"
-          strokeDasharray="4 5"
+        <Defs />
+        <path
+          d="M17,7 L31,7 L30,30 Q30,37 24,37 Q18,37 18,30 Z"
+          fill={`url(#${g})`}
+          stroke="#8a6d1e"
+          strokeWidth="0.8"
         />
-        <circle cx="24" cy="6" r="2" fill="#bff6ff" />
-        <circle cx="42" cy="28" r="1.6" fill="#bff6ff" />
-        <circle cx="8" cy="30" r="1.6" fill="#bff6ff" />
+        <rect x="17" y="7" width="14" height="4" rx="2" fill="#1a1a1a" />
+        <rect x="17" y="13" width="14" height="1.6" fill="#1a1a1a" opacity="0.55" />
+        <path d="M18,30 Q24,33 30,30" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.5" />
       </svg>
     );
 
-  if (id === "halo")
+  if (id === "hair")
     return (
       <svg {...common}>
-        <defs>
-          <linearGradient id={g} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#fff3b0" />
-            <stop offset="100%" stopColor="#ffcf3a" />
-          </linearGradient>
-        </defs>
-        <ellipse
-          cx="24"
-          cy="24"
-          rx="20"
-          ry="8"
-          fill="none"
-          stroke={`url(#${g})`}
-          strokeWidth="4"
-        />
-        <ellipse
-          cx="24"
-          cy="24"
-          rx="20"
-          ry="8"
-          fill="none"
-          stroke="rgba(255,255,255,0.5)"
-          strokeWidth="1"
-        />
-        <circle cx="24" cy="15" r="1.6" fill="#fff7c2" />
-        <circle cx="40" cy="26" r="1.3" fill="#fff7c2" />
+        {/* 손흥민 헤어 (정면 두상 + 2겹 헤어) */}
+        <g transform="translate(4.8,5) scale(0.42)">
+          <ellipse cx="45.8" cy="59.7" rx="27.2" ry="25.2" fill="#f09f7a" />
+          <path
+            d="M20.6,55.8s-2.5-6.8-5.9-3.6,0,11.2,0,11.2c0,0,2.7,8.5,5.9,7.7,3.2-.8,0-15.3,0-15.3Z"
+            fill="#f09f7a"
+          />
+          <path
+            d="M71.6,54s2.5-6.8,5.9-3.6,0,11.2,0,11.2c0,0-2.7,8.5-5.9,7.7-3.2-.8,0-15.3,0-15.3Z"
+            fill="#f09f7a"
+          />
+          <path
+            d="M23.5,61.3c2.8,5.3,5,13.3,6.9,14.6,2.6,1.7,29.2,1.8,31.1-.8,1.6-2.2,4.9-7.6,8.2-13.2-4,1.3-14,4.3-22.4,4.3s-22-4.2-23.7-4.8Z"
+            fill="#66432a"
+          />
+          <path
+            d="M79.3,38.5c-.4-1.2-3.4.3-2.9-2.5.5-2.9.7-3.9-1.4-2.7-2.1,1.2,0-2.2,1.2-6,1.2-3.9-2-4.2-8.3-3.9,1-2.9-5.3-17.3-10.8-15.6,2.8,1.8,0,7.7,0,7.7,0,0-.6-1-7.1-4.2-6.4-3.2-8.6-4.5-6,1.3-10.9-3.5-26,9.4-29.8,11.1-3.9,1.7-4.5,3.4,3,3.5-6,2-5.6,6.7-5.6,6.7,0,0,4.4-1.8,5.6.7-8.6,12.6,2.4,22,3,22.3,1.3.8,2.4,2.4,3.5,4.4,1.7.6,13.7,4.8,23.7,4.8s18.4-3,22.4-4.3c.8-1.3,1.6-2.7,2.3-4,3.9-6.7,7.7-18.2,7.3-19.4Z"
+            fill="#4d311b"
+          />
+        </g>
       </svg>
     );
 
-  // star (마스터)
+  // flame (열정의 오라) — 스파클 버스트
   return (
     <svg {...common}>
       <defs>
-        <linearGradient id={g} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff0a0" />
-          <stop offset="100%" stopColor="#ffc01e" />
-        </linearGradient>
+        <radialGradient id={g} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(255,220,120,0.6)" />
+          <stop offset="100%" stopColor="rgba(255,180,60,0)" />
+        </radialGradient>
       </defs>
+      {/* 따뜻한 글로우 */}
+      <circle cx="24" cy="24" r="22" fill={`url(#${g})`} />
+      {/* 큰 4점 스파클 */}
       <path
-        d="M24,4 L29.5,17 L43,18 L32.5,27 L36,41 L24,33 L12,41 L15.5,27 L5,18 L18.5,17 Z"
-        fill={`url(#${g})`}
-        stroke="#e0a51c"
-        strokeWidth="1"
-        strokeLinejoin="round"
+        d="M24,4 L28,20 L44,24 L28,28 L24,44 L20,28 L4,24 L20,20 Z"
+        fill="#ffd66a"
       />
+      {/* 작은 스파클 */}
+      <path d="M38,9 L40,13.5 L44.5,15.5 L40,17.5 L38,22 L36,17.5 L31.5,15.5 L36,13.5 Z" fill="#fff0b0" />
+      <path d="M11,30 L12.4,33.2 L15.6,34.6 L12.4,36 L11,39.2 L9.6,36 L6.4,34.6 L9.6,33.2 Z" fill="#fff0b0" />
     </svg>
   );
 };
 
-// 캐릭터 위 아이템 배치 (스프라이트 100x100 기준)
-const ITEM_PLACEMENT: Record<
-  string,
-  {
-    size: number;
-    top: number | string;
-    z: number;
-    center?: boolean;
-    sway?: boolean;
-  }
-> = {
-  // 코스튬은 캐릭터(z-index 1)보다 앞(z 2)에 그려 잘 보이게 한다
-  // (SVG 캐릭터 size 78, bottom 정렬 기준 — DEV 버튼으로 보며 미세조정 가능)
-  aura: { size: 100, top: "50%", z: 2, center: true },
-  wings: { size: 86, top: 12, z: 2 },
-  cape: { size: 60, top: 34, z: 2, sway: true },
-  halo: { size: 46, top: -14, z: 2 },
-  crown: { size: 24, top: 2, z: 2 },
-  boots: { size: 28, top: 80, z: 2 },
-  star: { size: 22, top: -8, z: 2 },
-};
-
-const CharacterItems: React.FC<{ clearCount: number }> = ({ clearCount }) => {
-  const ids = getUnlockedItemIds(clearCount);
-  if (!ids.length) return null;
-  return (
-    <>
-      {ids.map((id) => {
-        const p = ITEM_PLACEMENT[id];
-        if (!p) return null;
-        return (
-          <div
-            key={id}
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: p.top,
-              width: p.size,
-              height: p.size,
-              transform: p.center
-                ? "translate(-50%, -50%)"
-                : "translateX(-50%)",
-              transformOrigin: p.sway ? "top center" : "center",
-              animation: p.sway
-                ? "capeSway 2.6s ease-in-out infinite"
-                : undefined,
-              zIndex: p.z,
-              pointerEvents: "none",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-            }}
-          >
-            <ItemIcon id={id} size={p.size} />
-          </div>
-        );
-      })}
-    </>
-  );
-};
-
-// ===== SVG 캐릭터 (뒷모습 달리기) =====
-const RunnerCharacter: React.FC<{ size?: number }> = ({ size = 78 }) => {
+// ===== SVG 캐릭터 (뒷모습 달리기 + 축구 유니폼 착용) =====
+const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
+  size = 78,
+  clearCount = 0,
+}) => {
   const uid = useId().replace(/:/g, "");
   const id = (n: string) => `${n}${uid}`;
+  const u = (n: string) => `url(#${id(n)})`;
+
+  const eq = getEquipped(clearCount);
+  const hasJersey = eq.has("jersey");
+  const hasShorts = eq.has("shorts");
+  const hasBoots = eq.has("boots");
+  const hasSocks = eq.has("socks");
+  const hasHair = eq.has("hair");
+  const hasFlame = eq.has("flame");
+
+  const skin = u("skin");
+  // 슬롯별 색: 유니폼 착용 시 블랙&골드
+  const shirtFill = hasJersey ? u("black") : u("shirt");
+
+  // 황금 축구화 (왼발 기준 디자인 — 오른발은 translate로 재사용)
+  const goldBoot = (
+    <>
+      {/* 갑피 */}
+      <path
+        d="M28,99 C27.6,96 29.5,94.4 32.5,94.4 L37.5,95 C40,95.4 40.8,97.4 40.8,99.4 L40.8,100.8 C40.8,101.8 39.8,102.3 38.4,102.3 L29.2,102.3 C28,102.3 27.6,101.4 27.6,100 Z"
+        fill={u("gold")}
+        stroke="#b8902c"
+        strokeWidth="0.4"
+        strokeLinejoin="round"
+      />
+      {/* 발등 하이라이트 */}
+      <ellipse cx="31" cy="96" rx="3" ry="1.3" fill="#ffffff" opacity="0.45" />
+      {/* 검정 사이드 스트라이프 */}
+      <path d="M28.6,98.4 Q34,100.2 40.4,98.8" stroke="#161616" strokeWidth="1.4" fill="none" opacity="0.75" />
+      {/* 끈 */}
+      <path d="M31.5,95.2 L34,97.2 M33.5,95.2 L36,97.2" stroke="#161616" strokeWidth="0.5" opacity="0.5" />
+      {/* 밑창 */}
+      <path
+        d="M27.5,100.6 L40.8,100.6 L40.8,102 C40.8,103 39.8,103.6 38.4,103.6 L29,103.6 C27.8,103.6 27.4,102.8 27.4,101.5 Z"
+        fill="#ffffff"
+      />
+      {/* 스터드 */}
+      <rect x="29" y="103.2" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
+      <rect x="33.2" y="103.4" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
+      <rect x="37.4" y="103.2" width="1.8" height="1.7" rx="0.7" fill="#dfe6ee" />
+    </>
+  );
+
   return (
     <svg
       width={size}
@@ -479,181 +457,245 @@ const RunnerCharacter: React.FC<{ size?: number }> = ({ size = 78 }) => {
           <stop offset="100%" stopColor="#e3a078" />
         </linearGradient>
         <linearGradient id={id("shorts")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#36426c" />
-          <stop offset="100%" stopColor="#242e4f" />
+          <stop offset="0%" stopColor="#efe3c8" />
+          <stop offset="100%" stopColor="#d3c3a0" />
         </linearGradient>
         <linearGradient id={id("shoe")} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#37c8b6" />
           <stop offset="100%" stopColor="#1f9286" />
         </linearGradient>
+        {/* 유니폼 블랙 & 골드 */}
+        <linearGradient id={id("black")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#333333" />
+          <stop offset="100%" stopColor="#141414" />
+        </linearGradient>
+        <linearGradient id={id("gold")} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f6df9a" />
+          <stop offset="100%" stopColor="#caa23c" />
+        </linearGradient>
+        {/* 열정 오라 글로우 */}
+        <radialGradient id={id("auraGlow")} cx="50%" cy="56%" r="55%">
+          <stop offset="0%" stopColor="rgba(255,205,95,0.5)" />
+          <stop offset="68%" stopColor="rgba(255,175,55,0.16)" />
+          <stop offset="100%" stopColor="rgba(255,165,45,0)" />
+        </radialGradient>
       </defs>
 
       <g className="runner-body">
-        {/* ===== 다리 (앞으로 나가면 어두워짐 = brightness 애니) ===== */}
+
+        {/* ===== 다리 (양말/축구화 슬롯) ===== */}
         <g className="runner-legL">
-          <rect
-            x="30"
-            y="80"
-            width="8"
-            height="20"
-            rx="4"
-            fill={`url(#${id("skin")})`}
-          />
-          <rect
-            x="30"
-            y="80"
-            width="2.6"
-            height="20"
-            rx="1.3"
-            fill="#000"
-            opacity="0.08"
-          />
-          {/* 양말 */}
-          <rect x="30" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
-          {/* 신발 */}
-          <ellipse cx="34" cy="100.4" rx="6.6" ry="4.2" fill={`url(#${id("shoe")})`} />
-          <ellipse cx="34" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
-          <ellipse cx="31.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+          <rect x="30" y="80" width="8" height="20" rx="4" fill={skin} />
+          <rect x="30" y="80" width="2.6" height="20" rx="1.3" fill="#000" opacity="0.08" />
+          {hasSocks ? (
+            <>
+              <rect x="29.4" y="86" width="9.2" height="13" rx="2.6" fill={u("gold")} />
+              <rect x="29.4" y="86" width="9.2" height="2.6" rx="1.3" fill="#161616" />
+              <rect x="29.4" y="90.5" width="9.2" height="1.1" fill="#161616" opacity="0.5" />
+              <rect x="29.4" y="86" width="2.4" height="13" rx="1.2" fill="#000" opacity="0.12" />
+            </>
+          ) : (
+            <rect x="30" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+          )}
+          {hasBoots ? (
+            goldBoot
+          ) : (
+            <>
+              <ellipse cx="34" cy="100.4" rx="6.6" ry="4.2" fill={u("shoe")} />
+              <ellipse cx="34" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
+              <ellipse cx="31.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+            </>
+          )}
         </g>
         <g className="runner-legR">
-          <rect
-            x="42"
-            y="80"
-            width="8"
-            height="20"
-            rx="4"
-            fill={`url(#${id("skin")})`}
-          />
-          <rect
-            x="42"
-            y="80"
-            width="2.6"
-            height="20"
-            rx="1.3"
-            fill="#000"
-            opacity="0.08"
-          />
-          <rect x="42" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
-          <ellipse cx="46" cy="100.4" rx="6.6" ry="4.2" fill={`url(#${id("shoe")})`} />
-          <ellipse cx="46" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
-          <ellipse cx="43.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+          <rect x="42" y="80" width="8" height="20" rx="4" fill={skin} />
+          <rect x="42" y="80" width="2.6" height="20" rx="1.3" fill="#000" opacity="0.08" />
+          {hasSocks ? (
+            <>
+              <rect x="41.4" y="86" width="9.2" height="13" rx="2.6" fill={u("gold")} />
+              <rect x="41.4" y="86" width="9.2" height="2.6" rx="1.3" fill="#161616" />
+              <rect x="41.4" y="90.5" width="9.2" height="1.1" fill="#161616" opacity="0.5" />
+              <rect x="41.4" y="86" width="2.4" height="13" rx="1.2" fill="#000" opacity="0.12" />
+            </>
+          ) : (
+            <rect x="42" y="95" width="8" height="3.6" rx="1.6" fill="#f4f7fb" />
+          )}
+          {hasBoots ? (
+            <g transform="translate(12,0)">{goldBoot}</g>
+          ) : (
+            <>
+              <ellipse cx="46" cy="100.4" rx="6.6" ry="4.2" fill={u("shoe")} />
+              <ellipse cx="46" cy="102.5" rx="6.6" ry="1.7" fill="#ffffff" />
+              <ellipse cx="43.6" cy="99" rx="2" ry="1.1" fill="#ffffff" opacity="0.5" />
+            </>
+          )}
         </g>
 
         {/* ===== 팔 (직각으로 굽힘 — 아래팔은 앞쪽/안쪽으로 들어가 몸통 뒤로 가려짐) ===== */}
         <g className="runner-armL">
-          {/* 반소매 */}
-          <rect x="21" y="45" width="8" height="9" rx="4" fill={`url(#${id("shirt")})`} />
+          {/* 반소매 (유니폼이면 블랙+골드 커프) */}
+          <rect x="21" y="45" width="8" height="9" rx="4" fill={shirtFill} />
+          {hasJersey && (
+            <rect x="21" y="51.6" width="8" height="1.6" fill={u("gold")} opacity="0.9" />
+          )}
           {/* 윗팔 (어깨→팔꿈치) */}
-          <rect x="22" y="50" width="6" height="11" rx="3" fill={`url(#${id("skin")})`} />
+          <rect x="22" y="50" width="6" height="11" rx="3" fill={skin} />
           {/* 아래팔 (팔꿈치에서 앞쪽/안쪽으로 굽힘) */}
           <g transform="rotate(-52 25 60)">
-            <rect x="22" y="58" width="6" height="9" rx="3" fill={`url(#${id("skin")})`} />
+            <rect x="22" y="58" width="6" height="9" rx="3" fill={skin} />
             <rect x="22" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
-            <circle cx="25" cy="66" r="3.2" fill={`url(#${id("skin")})`} />
+            <circle cx="25" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
         <g className="runner-armR">
-          <rect x="51" y="45" width="8" height="9" rx="4" fill={`url(#${id("shirt")})`} />
-          <rect x="52" y="50" width="6" height="11" rx="3" fill={`url(#${id("skin")})`} />
+          <rect x="51" y="45" width="8" height="9" rx="4" fill={shirtFill} />
+          {hasJersey && (
+            <rect x="51" y="51.6" width="8" height="1.6" fill={u("gold")} opacity="0.9" />
+          )}
+          <rect x="52" y="50" width="6" height="11" rx="3" fill={skin} />
           <g transform="rotate(52 55 60)">
-            <rect x="52" y="58" width="6" height="9" rx="3" fill={`url(#${id("skin")})`} />
+            <rect x="52" y="58" width="6" height="9" rx="3" fill={skin} />
             <rect x="56" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
-            <circle cx="55" cy="66" r="3.2" fill={`url(#${id("skin")})`} />
+            <circle cx="55" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
 
-        {/* ===== 반바지 ===== */}
-        <path
-          d="M28,68 Q40,72 52,68 L51,83 Q46,86 43,83 L40,79 L37,83 Q34,86 29,83 Z"
-          fill={`url(#${id("shorts")})`}
-        />
-        <path
-          d="M28,68 Q40,72 52,68 L51.5,71 Q40,74.5 28.5,71 Z"
-          fill="#ffffff"
-          opacity="0.12"
-        />
-        <path d="M40,72 L40,80" stroke="#1c2440" strokeWidth="1" opacity="0.5" />
+        {/* ===== 반바지 (유니폼 하의 슬롯) — 밑단 네모 ===== */}
+        {hasShorts ? (
+          <>
+            <path
+              d="M26,68 Q40,71 54,68 L54,81 L42,81 L41,77 Q40,76.3 39,77 L38,81 L26,81 Z"
+              fill={u("black")}
+            />
+            {/* 골드 허리밴드 */}
+            <path d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.8 26.6,71 Z" fill={u("gold")} />
+            {/* 골드 사이드 라인 */}
+            <path d="M29.5,71.5 L29.5,80.5" stroke={u("gold")} strokeWidth="1.1" opacity="0.85" />
+            <path d="M50.5,71.5 L50.5,80.5" stroke={u("gold")} strokeWidth="1.1" opacity="0.85" />
+            {/* 밑단 음영 */}
+            <path d="M26,79.5 L38,79.5 M42,79.5 L54,79.5" stroke="#000" strokeWidth="1" opacity="0.16" />
+          </>
+        ) : (
+          <>
+            <path
+              d="M26,68 Q40,71 54,68 L54,81 L42,81 L41,77 Q40,76.3 39,77 L38,81 L26,81 Z"
+              fill={u("shorts")}
+            />
+            <path d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.6 26.6,71 Z" fill="#ffffff" opacity="0.25" />
+            <path d="M40,73 L40,77" stroke="#a8946a" strokeWidth="1" opacity="0.5" />
+          </>
+        )}
 
-        {/* ===== 상의 ===== */}
-        <path
-          d="M27,46 C33,41 47,41 53,46 L51,72 C40,76 40,76 29,72 Z"
-          fill={`url(#${id("shirt")})`}
-        />
-        {/* 어깨 하이라이트 */}
-        <path
-          d="M28,46 C34,42 46,42 52,46 L50.5,49 C45,45.6 35,45.6 29.5,49 Z"
-          fill="#ffffff"
-          opacity="0.16"
-        />
-        {/* 좌우 측면 음영 */}
-        <path d="M27,46 C29,45 30,45 30.5,47 L29,71 L27.4,71 Z" fill="#000" opacity="0.1" />
-        <path d="M53,46 C51,45 50,45 49.5,47 L51,71 L52.6,71 Z" fill="#000" opacity="0.1" />
-        {/* 등 라인 */}
-        <line x1="40" y1="47" x2="40" y2="71" stroke="#2b5aa8" strokeWidth="1" opacity="0.45" />
-        {/* 밑단 음영 */}
-        <path d="M29,71 C40,75 40,75 51,71 L50.6,73.4 C40,77 40,77 29.4,73.4 Z" fill="#000" opacity="0.1" />
+        {/* ===== 상의 (유니폼 상의 슬롯) ===== */}
+        {hasJersey ? (
+          <>
+            <path
+              d="M27,46 C33,41 47,41 53,46 L51,72 C40,76 40,76 29,72 Z"
+              fill={u("black")}
+            />
+            {/* 어깨 골드 트림 */}
+            <path d="M28,46 C34,42 46,42 52,46" fill="none" stroke={u("gold")} strokeWidth="1.2" opacity="0.85" />
+            {/* 골드 핀스트라이프 */}
+            <line x1="34" y1="47.5" x2="33.4" y2="71" stroke={u("gold")} strokeWidth="0.4" opacity="0.4" />
+            <line x1="46" y1="47.5" x2="46.6" y2="71" stroke={u("gold")} strokeWidth="0.4" opacity="0.4" />
+            {/* RYU + 등번호 12 */}
+            <text x="40" y="52.5" textAnchor="middle" fontSize="4" fontWeight="900" fontFamily="Fredoka" letterSpacing="0.4" fill={u("gold")}>RYU</text>
+            <text x="40" y="67.5" textAnchor="middle" fontSize="13" fontWeight="900" fontFamily="'Archivo Black',sans-serif" fill={u("gold")}>12</text>
+            {/* 밑단 골드 */}
+            <path d="M29,71.5 C40,75.5 40,75.5 51,71.5" fill="none" stroke={u("gold")} strokeWidth="0.7" opacity="0.6" />
+          </>
+        ) : (
+          <>
+            <path
+              d="M27,46 C33,41 47,41 53,46 L51,72 C40,76 40,76 29,72 Z"
+              fill={u("shirt")}
+            />
+            <path
+              d="M28,46 C34,42 46,42 52,46 L50.5,49 C45,45.6 35,45.6 29.5,49 Z"
+              fill="#ffffff"
+              opacity="0.16"
+            />
+            <path d="M27,46 C29,45 30,45 30.5,47 L29,71 L27.4,71 Z" fill="#000" opacity="0.1" />
+            <path d="M53,46 C51,45 50,45 49.5,47 L51,71 L52.6,71 Z" fill="#000" opacity="0.1" />
+            <path d="M29,71 C40,75 40,75 51,71 L50.6,73.4 C40,77 40,77 29.4,73.4 Z" fill="#000" opacity="0.1" />
+          </>
+        )}
 
         {/* ===== 목 ===== */}
-        <rect x="35" y="39" width="10" height="8" rx="3" fill={`url(#${id("skin")})`} />
+        <rect x="35" y="39" width="10" height="8" rx="3" fill={skin} />
         <rect x="35" y="39" width="10" height="2.6" rx="1.3" fill="#000" opacity="0.18" />
-        {/* 뒷목 넥라인(백 칼라) — 앞모습처럼 안 보이게 */}
+        {/* 뒷목 넥라인 (유니폼이면 골드) */}
         <path
           d="M33,45.5 Q40,48.5 47,45.5"
           fill="none"
-          stroke="#2c5fa8"
+          stroke={hasJersey ? u("gold") : "#2c5fa8"}
           strokeWidth="2.6"
           strokeLinecap="round"
         />
 
-        {/* ===== 두상 베이스 ===== */}
-        <ellipse cx="40" cy="26" rx="14.5" ry="15" fill={`url(#${id("skin")})`} />
-
-        {/* ===== 귀 (머리카락 아래로 살짝) ===== */}
-        <ellipse cx="24" cy="33" rx="2.6" ry="3.7" fill={`url(#${id("skin")})`} />
-        <ellipse cx="56" cy="33" rx="2.6" ry="3.7" fill={`url(#${id("skin")})`} />
-        <ellipse cx="24.2" cy="33.5" rx="1.1" ry="2" fill="#000" opacity="0.12" />
-        <ellipse cx="55.8" cy="33.5" rx="1.1" ry="2" fill="#000" opacity="0.12" />
-
-        {/* ===== 머리카락 (풍성한 뒤통수) ===== */}
-        <path
-          d="M40,5.5 C23,5.5 18,15 18,26 C18,31 20,35 23.5,36.5 Q32,38.5 40,37 Q48,38.5 56.5,36.5 C60,35 62,31 62,26 C62,15 57,5.5 40,5.5 Z"
-          fill={`url(#${id("hair")})`}
-        />
-        {/* 정수리 하이라이트 (넓게) */}
-        <ellipse cx="37" cy="14" rx="11" ry="6.5" fill="#9a6740" opacity="0.3" />
-        {/* 결 텍스처 — 가마에서 사방으로 흐름 (어두운 결) */}
-        <g
-          stroke="#462914"
-          strokeWidth="0.9"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.22"
-        >
-          <path d="M44,12 C37,17 30,24 26,34" />
-          <path d="M44,12 C42,20 40,28 39,37" />
-          <path d="M44,12 C49,17 53,23 55,33" />
-          <path d="M40,8 C30,12 23,20 20,30" />
-          <path d="M46,9 C54,13 59,21 60,30" />
-          <path d="M44,12 C46,21 49,28 51,35" />
+        {/* ===== 머리: 손흥민 두상(face+ears) + 헤어 슬롯 (기본/멋진) ===== */}
+        <g transform="translate(14.8, -6.8) scale(0.55)">
+          <ellipse cx="45.8" cy="59.7" rx="27.2" ry="25.2" fill="#f09f7a" />
+          <path
+            d="M20.6,55.8s-2.5-6.8-5.9-3.6,0,11.2,0,11.2c0,0,2.7,8.5,5.9,7.7,3.2-.8,0-15.3,0-15.3Z"
+            fill="#f09f7a"
+          />
+          <path
+            d="M71.6,54s2.5-6.8,5.9-3.6,0,11.2,0,11.2c0,0-2.7,8.5-5.9,7.7-3.2-.8,0-15.3,0-15.3Z"
+            fill="#f09f7a"
+          />
+          {hasHair ? (
+            /* 멋진 헤어 (음영 + 본체) */
+            <>
+              <path
+                d="M23.5,61.3c2.8,5.3,5,13.3,6.9,14.6,2.6,1.7,29.2,1.8,31.1-.8,1.6-2.2,4.9-7.6,8.2-13.2-4,1.3-14,4.3-22.4,4.3s-22-4.2-23.7-4.8Z"
+                fill="#66432a"
+              />
+              <path
+                d="M79.3,38.5c-.4-1.2-3.4.3-2.9-2.5.5-2.9.7-3.9-1.4-2.7-2.1,1.2,0-2.2,1.2-6,1.2-3.9-2-4.2-8.3-3.9,1-2.9-5.3-17.3-10.8-15.6,2.8,1.8,0,7.7,0,7.7,0,0-.6-1-7.1-4.2-6.4-3.2-8.6-4.5-6,1.3-10.9-3.5-26,9.4-29.8,11.1-3.9,1.7-4.5,3.4,3,3.5-6,2-5.6,6.7-5.6,6.7,0,0,4.4-1.8,5.6.7-8.6,12.6,2.4,22,3,22.3,1.3.8,2.4,2.4,3.5,4.4,1.7.6,13.7,4.8,23.7,4.8s18.4-3,22.4-4.3c.8-1.3,1.6-2.7,2.3-4,3.9-6.7,7.7-18.2,7.3-19.4Z"
+                fill="#4d311b"
+              />
+            </>
+          ) : (
+            /* 기본 헤어 (음영 + 본체) */
+            <>
+              <path
+                d="M15.6,59.7c2.8,4.2,13.6,16.1,16.4,17.6s26.4,2.3,28.5-.2c1.9-2.2,9.1-9.5,12.5-15.8-5.4,2.3-16.2,6.2-27,6.2-15.3,0-30.4-7.8-30.4-7.8Z"
+                fill="#66432a"
+              />
+              <path
+                d="M71.6,20.8c-5.8-6.6-16.4-7.4-25.8-5.9-16.4-2.8-18.5-1.5-24.2,3.6-14,12.6-6.2,41-6.1,41.2,0,0,15.1,7.8,30.4,7.8s21.6-3.9,27-6.2c.4-.8.8-1.5,1-2.3,5.7-15.1,5-29.7-2.4-38.2Z"
+                fill="#4d311b"
+              />
+            </>
+          )}
         </g>
-        {/* 밝은 결 하이라이트 */}
-        <g
-          stroke="#a06d45"
-          strokeWidth="0.9"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.4"
-        >
-          <path d="M43,13 C38,18 33,25 30,34" />
-          <path d="M45,13 C48,19 51,25 52,33" />
-          <path d="M41,10 C34,14 28,21 26,30" />
-        </g>
-        {/* 가마(swirl) */}
-        <path
-          d="M44.5,12.5 C48,12.5 48,16 45,16.7 C42.5,17.1 41.8,14 44.5,12.5 Z"
-          fill="#9a6740"
-          opacity="0.5"
-        />
+
+        {/* ===== 열정의 오라 (따뜻한 글로우 + 상승하는 에너지 스파클) ===== */}
+        {hasFlame && (
+          <g>
+            {/* 따뜻한 오라 글로우 */}
+            <ellipse cx="40" cy="60" rx="33" ry="40" fill={u("auraGlow")} className="aura-glow" />
+            {/* 상승하는 스파클 */}
+            {[
+              { x: 22, y: 90, s: 2.6, d: "0s" },
+              { x: 58, y: 86, s: 2.2, d: "0.5s" },
+              { x: 40, y: 94, s: 3, d: "0.9s" },
+              { x: 31, y: 84, s: 1.8, d: "0.3s" },
+              { x: 49, y: 92, s: 2.4, d: "1.2s" },
+              { x: 60, y: 76, s: 1.6, d: "0.75s" },
+              { x: 20, y: 74, s: 1.8, d: "1.5s" },
+            ].map((p, i) => (
+              <path
+                key={i}
+                className="aura-spark"
+                style={{ animationDelay: p.d }}
+                d={`M${p.x},${p.y - p.s} L${p.x + p.s * 0.32},${p.y - p.s * 0.32} L${p.x + p.s},${p.y} L${p.x + p.s * 0.32},${p.y + p.s * 0.32} L${p.x},${p.y + p.s} L${p.x - p.s * 0.32},${p.y + p.s * 0.32} L${p.x - p.s},${p.y} L${p.x - p.s * 0.32},${p.y - p.s * 0.32} Z`}
+                fill="#ffd66a"
+              />
+            ))}
+          </g>
+        )}
       </g>
     </svg>
   );
@@ -814,6 +856,10 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     count: 0,
   });
   const [clearCount, setClearCount] = useState(0);
+  // 선물상자를 클릭해서 열었는지 (모달 흐름)
+  const [giftOpened, setGiftOpened] = useState(false);
+  // 실제 캐릭터에 장착된 클리어 수 (선물을 열어야 반영)
+  const [equippedCount, setEquippedCount] = useState(0);
   const clearCountRef = useRef(0);
   const lastTimeRef = useRef<number | null>(null);
   const rowsRef = useRef<Row[]>([]);
@@ -947,6 +993,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   }, []);
 
   const movePlayerByTouchX = (clientX: number) => {
+    // 모달/일시정지/게임오버 중에는 터치로 캐릭터가 움직이지 않게
+    if (congrats.open || paused || failBoardOpen) return;
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const xPx = clientX - rect.left;
@@ -1111,6 +1159,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           const cleared = clearCountRef.current;
           setClearCount(cleared);
           if (cleared % 10 === 0) {
+            setGiftOpened(false);
             setCongrats({ open: true, count: cleared });
           }
         } else {
@@ -1136,6 +1185,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
   // 축하 모달 "계속하기" → 끊김 없이 이어서 진행
   const handleCongratsContinue = () => {
     lastTimeRef.current = null;
+    setGiftOpened(false);
     setCongrats((c) => ({ ...c, open: false }));
   };
 
@@ -1144,6 +1194,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     const next = clearCountRef.current + 10;
     clearCountRef.current = next;
     setClearCount(next);
+    setGiftOpened(false);
     setCongrats({ open: true, count: next });
   };
 
@@ -1876,7 +1927,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               </div>
             </div>
 
-            {/* Character + 코스튬 아이템 (아이템이 캐릭터보다 앞에 보이도록) */}
+            {/* Character (유니폼 슬롯은 RunnerCharacter 내부에서 착용) */}
             <div
               style={{
                 position: "relative",
@@ -1896,9 +1947,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                   zIndex: 1,
                 }}
               >
-                <RunnerCharacter size={78} />
+                <RunnerCharacter size={78} clearCount={equippedCount} />
               </div>
-              <CharacterItems clearCount={clearCount} />
             </div>
 
             {/* Player ground glow */}
@@ -1965,22 +2015,12 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
             <div
               style={{
-                fontSize: 54,
-                lineHeight: 1,
-                marginBottom: 10,
-                animation: "trophyBounce 1.6s ease-in-out infinite",
-              }}
-            >
-              🏆
-            </div>
-
-            <div
-              style={{
                 fontFamily: "Fredoka",
                 fontWeight: 900,
                 fontSize: "clamp(22px, 6vw, 28px)",
                 color: "#ffd24a",
                 textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                marginTop: 6,
                 marginBottom: 6,
               }}
             >
@@ -1999,76 +2039,127 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               {congrats.count} 스테이지 클리어! 🔥
             </div>
 
-            {/* 획득 아이템 안내 (디자인된 아이콘 표시) */}
-            {(() => {
-              const reward = getReward(congrats.count);
-              if (!reward) return null;
-              return (
+            {!giftOpened ? (
+              /* === 선물상자: 흔들흔들 → 클릭하면 열림 === */
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <button
+                  onClick={() => {
+                    // 선물을 열면 그때 아이템이 캐릭터에 장착됨
+                    setEquippedCount(congrats.count);
+                    setGiftOpened(true);
+                  }}
+                  className="gift-wiggle"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    lineHeight: 0,
+                  }}
+                  aria-label="선물 열기"
+                >
+                  <GiftBox size={150} />
+                </button>
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 20,
+                    fontFamily: "Fredoka",
+                    fontWeight: 800,
+                    fontSize: "clamp(13px, 3.6vw, 16px)",
+                    color: "#ffd24a",
+                    animation: "blinkHint 1.2s ease-in-out infinite",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 84,
-                      height: 84,
-                      borderRadius: 18,
-                      background:
-                        "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.14), rgba(255,255,255,0.04))",
-                      border: "2px solid rgba(255,255,255,0.3)",
-                      boxShadow: `0 0 22px ${reward.glow}, inset 0 0 18px ${reward.glow}`,
-                      animation: "trophyBounce 1.8s ease-in-out infinite",
-                    }}
-                  >
-                    <ItemIcon id={reward.id} size={56} />
-                  </div>
-                  <div
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 14px",
-                      borderRadius: 999,
-                      background: "rgba(255,255,255,0.1)",
-                      border: "1px solid rgba(255,255,255,0.25)",
-                      fontFamily: "Fredoka",
-                      fontWeight: 900,
-                      fontSize: "clamp(13px, 3.6vw, 16px)",
-                      color: "#ffd24a",
-                    }}
-                  >
-                    🎁 {reward.name} 획득!
-                  </div>
+                  🎁 선물을 눌러보세요!
                 </div>
-              );
-            })()}
+              </div>
+            ) : (
+              /* === 공개: 아이템 + 계속하기 === */
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  animation: "revealPop 0.4s cubic-bezier(0.18,0.9,0.3,1.3)",
+                }}
+              >
+                {(() => {
+                  const reward = getReward(congrats.count);
+                  if (!reward) return null;
+                  return (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 8,
+                        marginBottom: 18,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 90,
+                          height: 90,
+                          borderRadius: 18,
+                          background:
+                            "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.16), rgba(255,255,255,0.04))",
+                          border: "2px solid rgba(255,255,255,0.3)",
+                          boxShadow: `0 0 24px ${reward.glow}, inset 0 0 18px ${reward.glow}`,
+                          animation: "trophyBounce 1.8s ease-in-out infinite",
+                        }}
+                      >
+                        <ItemIcon id={reward.id} size={60} />
+                      </div>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 14px",
+                          borderRadius: 999,
+                          background: "rgba(255,255,255,0.1)",
+                          border: "1px solid rgba(255,255,255,0.25)",
+                          fontFamily: "Fredoka",
+                          fontWeight: 900,
+                          fontSize: "clamp(13px, 3.6vw, 16px)",
+                          color: "#ffd24a",
+                        }}
+                      >
+                        🎁 {reward.name} 획득!
+                      </div>
+                    </div>
+                  );
+                })()}
 
-            <button
-              onClick={handleCongratsContinue}
-              style={{
-                width: "100%",
-                padding: "14px 20px",
-                borderRadius: 14,
-                border: "none",
-                fontWeight: 900,
-                fontSize: "clamp(15px, 4vw, 18px)",
-                fontFamily: "Fredoka",
-                background: "linear-gradient(180deg, #34d399, #059669)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(5,150,105,0.45)",
-              }}
-            >
-              계속하기
-            </button>
+                <button
+                  onClick={handleCongratsContinue}
+                  style={{
+                    width: "100%",
+                    padding: "14px 20px",
+                    borderRadius: 14,
+                    border: "none",
+                    fontWeight: 900,
+                    fontSize: "clamp(15px, 4vw, 18px)",
+                    fontFamily: "Fredoka",
+                    background: "linear-gradient(180deg, #34d399, #059669)",
+                    color: "#fff",
+                    cursor: "pointer",
+                    boxShadow: "0 8px 20px rgba(5,150,105,0.45)",
+                  }}
+                >
+                  계속하기
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

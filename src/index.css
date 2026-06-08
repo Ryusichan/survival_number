@@ -986,6 +986,87 @@ code {
   }
 }
 
+/* 선물상자 흔들흔들 + 공개 */
+.gift-wiggle {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: giftWiggle 1.6s ease-in-out infinite;
+}
+@keyframes giftWiggle {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  68% {
+    transform: rotate(-6deg) scale(1.03);
+  }
+  76% {
+    transform: rotate(5deg);
+  }
+  84% {
+    transform: rotate(-4deg);
+  }
+  92% {
+    transform: rotate(2deg);
+  }
+}
+@keyframes blinkHint {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes revealPop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 열정의 오라 (따뜻한 글로우 + 상승 스파클) */
+.aura-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: auraGlowPulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes auraGlowPulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+.aura-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: auraRise 1.8s ease-in infinite;
+}
+@keyframes auraRise {
+  0% {
+    transform: translateY(6px) scale(0.3);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-34px) scale(1.05);
+    opacity: 0;
+  }
+}
+
 /* 유니폼 망토 흩날림 (은은하게) */
 @keyframes capeSway {
   0%,
