@@ -817,20 +817,20 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
           <stop offset="100%" stopColor="#5c3820" />
         </linearGradient>
         <linearGradient id={id("shirt")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#5491e0" />
-          <stop offset="100%" stopColor="#356fc4" />
+          <stop offset="0%" stopColor="#7d5028" />
+          <stop offset="100%" stopColor="#5a371b" />
         </linearGradient>
         <linearGradient id={id("skin")} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#f4bd9c" />
           <stop offset="100%" stopColor="#e3a078" />
         </linearGradient>
         <linearGradient id={id("shorts")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#efe3c8" />
-          <stop offset="100%" stopColor="#d3c3a0" />
+          <stop offset="0%" stopColor="#6b4423" />
+          <stop offset="100%" stopColor="#4d2f16" />
         </linearGradient>
         <linearGradient id={id("shoe")} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#37c8b6" />
-          <stop offset="100%" stopColor="#1f9286" />
+          <stop offset="0%" stopColor="#3a3a3a" />
+          <stop offset="100%" stopColor="#161616" />
         </linearGradient>
         {/* 유니폼 블랙 & 골드 */}
         <linearGradient id={id("black")} x1="0" y1="0" x2="0" y2="1">
@@ -1077,13 +1077,13 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
             <path
               d="M26,68 Q40,71 54,68 L53.4,71 Q40,73.6 26.6,71 Z"
               fill="#ffffff"
-              opacity="0.25"
+              opacity="0.14"
             />
             <path
               d="M40,73 L40,77"
-              stroke="#a8946a"
+              stroke="#4f3018"
               strokeWidth="1"
-              opacity="0.5"
+              opacity="0.45"
             />
           </>
         )}
@@ -1199,7 +1199,7 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
         <path
           d="M33,45.5 Q40,48.5 47,45.5"
           fill="none"
-          stroke={hasJersey ? u("gold") : "#2c5fa8"}
+          stroke={hasJersey ? u("gold") : "#5e3a22"}
           strokeWidth="2.6"
           strokeLinecap="round"
         />
