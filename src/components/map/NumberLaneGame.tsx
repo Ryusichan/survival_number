@@ -348,6 +348,123 @@ const GiftBox: React.FC<{ size?: number }> = ({ size = 150 }) => (
   </svg>
 );
 
+// ===== 공용 모달 (축하/일시정지/게임오버 통일 디자인) =====
+const MODAL_BTN_BASE: React.CSSProperties = {
+  padding: "13px 18px",
+  borderRadius: 14,
+  border: "none",
+  fontWeight: 900,
+  fontSize: "clamp(14px, 3.8vw, 17px)",
+  fontFamily: "Fredoka",
+  color: "#fff",
+  cursor: "pointer",
+  flex: 1,
+};
+const MODAL_BTN = {
+  green: {
+    ...MODAL_BTN_BASE,
+    background: "linear-gradient(180deg,#34d399,#059669)",
+    boxShadow: "0 8px 18px rgba(5,150,105,0.4)",
+  },
+  blue: {
+    ...MODAL_BTN_BASE,
+    background: "linear-gradient(180deg,#60a5fa,#2563eb)",
+    boxShadow: "0 8px 18px rgba(37,99,235,0.4)",
+  },
+  gray: {
+    ...MODAL_BTN_BASE,
+    background: "linear-gradient(180deg,#6b7280,#374151)",
+    boxShadow: "0 8px 18px rgba(0,0,0,0.35)",
+  },
+} as const;
+
+const GameModal: React.FC<{
+  accent: string;
+  icon: string;
+  title: string;
+  subtitle?: string;
+  zIndex?: number;
+  children?: React.ReactNode;
+}> = ({ accent, icon, title, subtitle, zIndex = 300, children }) => (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      background: "rgba(6,10,24,0.72)",
+      backdropFilter: "blur(5px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      zIndex,
+    }}
+  >
+    <div
+      style={{
+        position: "relative",
+        width: "min(86%, 340px)",
+        padding: "36px 24px 24px",
+        borderRadius: 24,
+        textAlign: "center",
+        color: "#fff",
+        background: "linear-gradient(180deg, #1b2452 0%, #121a3a 100%)",
+        border: `3px solid ${accent}`,
+        boxShadow: `0 20px 50px rgba(0,0,0,0.55), 0 0 0 6px ${accent}22, inset 0 0 30px ${accent}12`,
+        animation: "congratsPop 0.42s cubic-bezier(0.18,0.9,0.3,1.2)",
+      }}
+    >
+      {/* 아이콘 배지 */}
+      <div
+        style={{
+          position: "absolute",
+          top: -27,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 54,
+          height: 54,
+          borderRadius: "50%",
+          background: `radial-gradient(circle at 50% 35%, ${accent}, ${accent}cc)`,
+          border: "3px solid #121a3a",
+          boxShadow: `0 6px 16px ${accent}66`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 27,
+        }}
+      >
+        {icon}
+      </div>
+      <div
+        style={{
+          fontFamily: "Fredoka",
+          fontWeight: 900,
+          fontSize: "clamp(21px, 5.6vw, 27px)",
+          color: accent,
+          textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+          marginTop: 4,
+          marginBottom: subtitle ? 4 : 18,
+        }}
+      >
+        {title}
+      </div>
+      {subtitle && (
+        <div
+          style={{
+            fontFamily: "Fredoka",
+            fontWeight: 700,
+            fontSize: "clamp(13px, 3.6vw, 15px)",
+            color: "rgba(255,255,255,0.82)",
+            marginBottom: 18,
+          }}
+        >
+          {subtitle}
+        </div>
+      )}
+      {children}
+    </div>
+  </div>
+);
+
 // ===== 축구 유니폼 보상 (10클리어마다 한 피스씩 착용) =====
 type RewardItem = { id: string; name: string; at: number; glow: string };
 
@@ -561,8 +678,8 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
     return (
       <svg {...common}>
         {/* 손흥민 헤어 (정면 두상 + 2겹 헤어) */}
-        <g transform="translate(4.8,5) scale(0.42)">
-          <ellipse cx="45.8" cy="59.7" rx="27.2" ry="25.2" fill="#f09f7a" />
+        <g transform="translate(4.4,4) scale(0.42)">
+          <ellipse cx="45.8" cy="59.7" rx="25.9" ry="25.2" fill="#f09f7a" />
           <path
             d="M20.6,55.8s-2.5-6.8-5.9-3.6,0,11.2,0,11.2c0,0,2.7,8.5,5.9,7.7,3.2-.8,0-15.3,0-15.3Z"
             fill="#f09f7a"
@@ -572,11 +689,11 @@ const ItemIcon: React.FC<{ id: string; size?: number }> = ({
             fill="#f09f7a"
           />
           <path
-            d="M23.5,61.3c2.8,5.3,5,13.3,6.9,14.6,2.6,1.7,29.2,1.8,31.1-.8,1.6-2.2,4.9-7.6,8.2-13.2-4,1.3-14,4.3-22.4,4.3s-22-4.2-23.7-4.8Z"
+            d="M22.1,62.5c3,5.7,5.3,14.2,7.3,15.5,2.7,1.8,31,2,33.1-.9,1.7-2.3,5.2-8.1,8.7-14-4.3,1.4-14.9,4.6-23.9,4.6s-23.4-4.5-25.3-5.2Z"
             fill="#66432a"
           />
           <path
-            d="M79.3,38.5c-.4-1.2-3.4.3-2.9-2.5.5-2.9.7-3.9-1.4-2.7-2.1,1.2,0-2.2,1.2-6,1.2-3.9-2-4.2-8.3-3.9,1-2.9-5.3-17.3-10.8-15.6,2.8,1.8,0,7.7,0,7.7,0,0-.6-1-7.1-4.2-6.4-3.2-8.6-4.5-6,1.3-10.9-3.5-26,9.4-29.8,11.1-3.9,1.7-4.5,3.4,3,3.5-6,2-5.6,6.7-5.6,6.7,0,0,4.4-1.8,5.6.7-8.6,12.6,2.4,22,3,22.3,1.3.8,2.4,2.4,3.5,4.4,1.7.6,13.7,4.8,23.7,4.8s18.4-3,22.4-4.3c.8-1.3,1.6-2.7,2.3-4,3.9-6.7,7.7-18.2,7.3-19.4Z"
+            d="M81.4,38.2c-.5-1.2-3.7.4-3.1-2.7.6-3,.8-4.1-1.5-2.9-2.3,1.2,0-2.3,1.2-6.4,1.2-4.1-2.2-4.5-8.9-4.1,1-3-5.6-18.4-11.5-16.6,3,2,0,8.2,0,8.2,0,0-.7-1.1-7.5-4.5-6.8-3.4-9.1-4.8-6.4,1.4-11.6-3.7-27.6,10-31.7,11.8-4.1,1.8-4.8,3.6,3.2,3.7-6.4,2.1-5.9,7.1-5.9,7.1,0,0,4.6-2,5.9.7-9.1,13.4,2.6,23.4,3.1,23.7,1.3.8,2.6,2.6,3.7,4.7,1.8.7,14.6,5.2,25.3,5.2s19.6-3.2,23.9-4.6c.8-1.4,1.7-2.8,2.5-4.2,4.1-7.1,8.2-19.4,7.8-20.7Z"
             fill="#4d311b"
           />
         </g>
@@ -885,59 +1002,35 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
 
         {/* ===== 팔 (직각으로 굽힘 — 아래팔은 앞쪽/안쪽으로 들어가 몸통 뒤로 가려짐) ===== */}
         <g className="runner-armL">
-          {/* 반소매 (유니폼이면 블랙+골드 커프) */}
-          <rect x="21" y="45" width="8" height="9" rx="4" fill={shirtFill} />
+          {/* 윗팔(살색) 먼저 → 그 위에 밑단 일자 반소매 */}
+          <rect x="22" y="48" width="6" height="13" rx="3" fill={skin} />
+          {/* 반소매 (어깨는 둥글게, 밑단은 일자) */}
+          <path
+            d="M20.8,49 C20.8,45 22.6,44 25,44 C27.4,44 29.2,45 29.2,49 L29.2,52 L20.8,52 Z"
+            fill={shirtFill}
+          />
           {hasJersey && (
-            <rect
-              x="21"
-              y="51.6"
-              width="8"
-              height="1.6"
-              fill={u("gold")}
-              opacity="0.9"
-            />
+            <rect x="20.8" y="50.4" width="8.4" height="1.6" fill={u("gold")} opacity="0.9" />
           )}
-          {/* 윗팔 (어깨→팔꿈치) */}
-          <rect x="22" y="50" width="6" height="11" rx="3" fill={skin} />
           {/* 아래팔 (팔꿈치에서 앞쪽/안쪽으로 굽힘) */}
           <g transform="rotate(-52 25 60)">
             <rect x="22" y="58" width="6" height="9" rx="3" fill={skin} />
-            <rect
-              x="22"
-              y="58"
-              width="2"
-              height="9"
-              rx="1"
-              fill="#000"
-              opacity="0.08"
-            />
+            <rect x="22" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
             <circle cx="25" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
         <g className="runner-armR">
-          <rect x="51" y="45" width="8" height="9" rx="4" fill={shirtFill} />
+          <rect x="52" y="48" width="6" height="13" rx="3" fill={skin} />
+          <path
+            d="M50.8,49 C50.8,45 52.6,44 55,44 C57.4,44 59.2,45 59.2,49 L59.2,52 L50.8,52 Z"
+            fill={shirtFill}
+          />
           {hasJersey && (
-            <rect
-              x="51"
-              y="51.6"
-              width="8"
-              height="1.6"
-              fill={u("gold")}
-              opacity="0.9"
-            />
+            <rect x="50.8" y="50.4" width="8.4" height="1.6" fill={u("gold")} opacity="0.9" />
           )}
-          <rect x="52" y="50" width="6" height="11" rx="3" fill={skin} />
           <g transform="rotate(52 55 60)">
             <rect x="52" y="58" width="6" height="9" rx="3" fill={skin} />
-            <rect
-              x="56"
-              y="58"
-              width="2"
-              height="9"
-              rx="1"
-              fill="#000"
-              opacity="0.08"
-            />
+            <rect x="56" y="58" width="2" height="9" rx="1" fill="#000" opacity="0.08" />
             <circle cx="55" cy="66" r="3.2" fill={skin} />
           </g>
         </g>
@@ -1111,9 +1204,9 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
           strokeLinecap="round"
         />
 
-        {/* ===== 머리: 손흥민 두상(face+ears) + 헤어 슬롯 (기본/멋진) ===== */}
-        <g transform="translate(14.8, -6.8) scale(0.55)">
-          <ellipse cx="45.8" cy="59.7" rx="27.2" ry="25.2" fill="#f09f7a" />
+        {/* ===== 머리: 손흥민 두상(face+ears) + 헤어 슬롯 (10% 확대) ===== */}
+        <g transform="translate(12.3, -10.1) scale(0.605)">
+          <ellipse cx="45.8" cy="59.7" rx="25.9" ry="25.2" fill="#f09f7a" />
           <path
             d="M20.6,55.8s-2.5-6.8-5.9-3.6,0,11.2,0,11.2c0,0,2.7,8.5,5.9,7.7,3.2-.8,0-15.3,0-15.3Z"
             fill="#f09f7a"
@@ -1126,11 +1219,11 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
             /* 멋진 헤어 (음영 + 본체) */
             <>
               <path
-                d="M23.5,61.3c2.8,5.3,5,13.3,6.9,14.6,2.6,1.7,29.2,1.8,31.1-.8,1.6-2.2,4.9-7.6,8.2-13.2-4,1.3-14,4.3-22.4,4.3s-22-4.2-23.7-4.8Z"
+                d="M22.1,62.5c3,5.7,5.3,14.2,7.3,15.5,2.7,1.8,31,2,33.1-.9,1.7-2.3,5.2-8.1,8.7-14-4.3,1.4-14.9,4.6-23.9,4.6s-23.4-4.5-25.3-5.2Z"
                 fill="#66432a"
               />
               <path
-                d="M79.3,38.5c-.4-1.2-3.4.3-2.9-2.5.5-2.9.7-3.9-1.4-2.7-2.1,1.2,0-2.2,1.2-6,1.2-3.9-2-4.2-8.3-3.9,1-2.9-5.3-17.3-10.8-15.6,2.8,1.8,0,7.7,0,7.7,0,0-.6-1-7.1-4.2-6.4-3.2-8.6-4.5-6,1.3-10.9-3.5-26,9.4-29.8,11.1-3.9,1.7-4.5,3.4,3,3.5-6,2-5.6,6.7-5.6,6.7,0,0,4.4-1.8,5.6.7-8.6,12.6,2.4,22,3,22.3,1.3.8,2.4,2.4,3.5,4.4,1.7.6,13.7,4.8,23.7,4.8s18.4-3,22.4-4.3c.8-1.3,1.6-2.7,2.3-4,3.9-6.7,7.7-18.2,7.3-19.4Z"
+                d="M81.4,38.2c-.5-1.2-3.7.4-3.1-2.7.6-3,.8-4.1-1.5-2.9-2.3,1.2,0-2.3,1.2-6.4,1.2-4.1-2.2-4.5-8.9-4.1,1-3-5.6-18.4-11.5-16.6,3,2,0,8.2,0,8.2,0,0-.7-1.1-7.5-4.5-6.8-3.4-9.1-4.8-6.4,1.4-11.6-3.7-27.6,10-31.7,11.8-4.1,1.8-4.8,3.6,3.2,3.7-6.4,2.1-5.9,7.1-5.9,7.1,0,0,4.6-2,5.9.7-9.1,13.4,2.6,23.4,3.1,23.7,1.3.8,2.6,2.6,3.7,4.7,1.8.7,14.6,5.2,25.3,5.2s19.6-3.2,23.9-4.6c.8-1.4,1.7-2.8,2.5-4.2,4.1-7.1,8.2-19.4,7.8-20.7Z"
                 fill="#4d311b"
               />
             </>
@@ -1138,11 +1231,11 @@ const RunnerCharacter: React.FC<{ size?: number; clearCount?: number }> = ({
             /* 기본 헤어 (음영 + 본체) */
             <>
               <path
-                d="M15.6,59.7c2.8,4.2,13.6,16.1,16.4,17.6s26.4,2.3,28.5-.2c1.9-2.2,9.1-9.5,12.5-15.8-5.4,2.3-16.2,6.2-27,6.2-15.3,0-30.4-7.8-30.4-7.8Z"
+                d="M14.9,59.2c2.9,4.4,13.9,17.1,16.8,18.8s27,2.4,29.2-.3c1.9-2.4,9.4-10.1,12.8-16.8-5.5,2.4-16.5,6.6-27.6,6.6-15.7,0-31.1-8.3-31.1-8.3Z"
                 fill="#66432a"
               />
               <path
-                d="M71.6,20.8c-5.8-6.6-16.4-7.4-25.8-5.9-16.4-2.8-18.5-1.5-24.2,3.6-14,12.6-6.2,41-6.1,41.2,0,0,15.1,7.8,30.4,7.8s21.6-3.9,27-6.2c.4-.8.8-1.5,1-2.3,5.7-15.1,5-29.7-2.4-38.2Z"
+                d="M74.5,17.1c-5.9-7-19.1-9.1-28.8-7.5-16.7-3-22,1-27.7,6.4-14.3,13.4-4.2,43.3-4.1,43.5,0,0,16.4,8,32.1,8s22.1-4.1,27.6-6.6c.4-.8,4.5-2.3,4.8-3.1,5.8-16.1,3.7-31.7-3.9-40.8Z"
                 fill="#4d311b"
               />
             </>
@@ -2513,347 +2606,156 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
       {/* ===== 10클리어 축하 모달 ===== */}
       {congrats.open && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 350,
-          }}
+        <GameModal
+          accent="#ffd24a"
+          icon="🎉"
+          title="축하합니다!"
+          subtitle={`${congrats.count} 스테이지 클리어! 🔥`}
+          zIndex={350}
         >
-          <div
-            style={{
-              position: "relative",
-              width: "min(86%, 340px)",
-              padding: "30px 24px 26px",
-              borderRadius: 22,
-              textAlign: "center",
-              color: "#fff",
-              background: "linear-gradient(180deg, #1b2452 0%, #121a3a 100%)",
-              border: "3px solid #ffd24a",
-              boxShadow:
-                "0 18px 48px rgba(0,0,0,0.5), 0 0 0 6px rgba(255,210,74,0.12), inset 0 0 28px rgba(255,210,74,0.08)",
-              animation: "congratsPop 0.45s cubic-bezier(0.18,0.9,0.3,1.2)",
-            }}
-          >
-            {/* 반짝이는 장식 */}
+          {!giftOpened ? (
+            /* 선물상자: 흔들흔들 → 클릭하면 열림 */
             <div
               style={{
-                position: "absolute",
-                top: -14,
-                left: "50%",
-                transform: "translateX(-50%)",
-                fontSize: 30,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              🎉
-            </div>
-
-            <div
-              style={{
-                fontFamily: "Fredoka",
-                fontWeight: 900,
-                fontSize: "clamp(22px, 6vw, 28px)",
-                color: "#ffd24a",
-                textShadow: "0 2px 8px rgba(0,0,0,0.5)",
-                marginTop: 6,
-                marginBottom: 6,
-              }}
-            >
-              축하합니다!
-            </div>
-
-            <div
-              style={{
-                fontFamily: "Fredoka",
-                fontWeight: 700,
-                fontSize: "clamp(14px, 4vw, 17px)",
-                color: "rgba(255,255,255,0.92)",
-                marginBottom: 14,
-              }}
-            >
-              {congrats.count} 스테이지 클리어! 🔥
-            </div>
-
-            {!giftOpened ? (
-              /* === 선물상자: 흔들흔들 → 클릭하면 열림 === */
+              <button
+                onClick={() => {
+                  setEquippedCount(congrats.count);
+                  setGiftOpened(true);
+                }}
+                className="gift-wiggle"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  lineHeight: 0,
+                }}
+                aria-label="선물 열기"
+              >
+                <GiftBox size={150} />
+              </button>
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
+                  fontFamily: "Fredoka",
+                  fontWeight: 800,
+                  fontSize: "clamp(13px, 3.6vw, 16px)",
+                  color: "#ffd24a",
+                  animation: "blinkHint 1.2s ease-in-out infinite",
                 }}
               >
-                <button
-                  onClick={() => {
-                    // 선물을 열면 그때 아이템이 캐릭터에 장착됨
-                    setEquippedCount(congrats.count);
-                    setGiftOpened(true);
-                  }}
-                  className="gift-wiggle"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    lineHeight: 0,
-                  }}
-                  aria-label="선물 열기"
-                >
-                  <GiftBox size={150} />
-                </button>
-                <div
-                  style={{
-                    fontFamily: "Fredoka",
-                    fontWeight: 800,
-                    fontSize: "clamp(13px, 3.6vw, 16px)",
-                    color: "#ffd24a",
-                    animation: "blinkHint 1.2s ease-in-out infinite",
-                  }}
-                >
-                  🎁 선물을 눌러보세요!
-                </div>
+                🎁 선물을 눌러보세요!
               </div>
-            ) : (
-              /* === 공개: 아이템 + 계속하기 === */
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  animation: "revealPop 0.4s cubic-bezier(0.18,0.9,0.3,1.3)",
-                }}
-              >
-                {(() => {
-                  const reward = getReward(congrats.count);
-                  if (!reward) return null;
-                  return (
+            </div>
+          ) : (
+            /* 공개: 아이템 + 계속하기 */
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                animation: "revealPop 0.4s cubic-bezier(0.18,0.9,0.3,1.3)",
+              }}
+            >
+              {(() => {
+                const reward = getReward(congrats.count);
+                if (!reward) return null;
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 18,
+                    }}
+                  >
                     <div
                       style={{
                         display: "flex",
-                        flexDirection: "column",
                         alignItems: "center",
-                        gap: 8,
-                        marginBottom: 18,
+                        justifyContent: "center",
+                        width: 90,
+                        height: 90,
+                        borderRadius: 18,
+                        background:
+                          "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.16), rgba(255,255,255,0.04))",
+                        border: "2px solid rgba(255,255,255,0.3)",
+                        boxShadow: `0 0 24px ${reward.glow}, inset 0 0 18px ${reward.glow}`,
+                        animation: "trophyBounce 1.8s ease-in-out infinite",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: 90,
-                          height: 90,
-                          borderRadius: 18,
-                          background:
-                            "radial-gradient(circle at 50% 40%, rgba(255,255,255,0.16), rgba(255,255,255,0.04))",
-                          border: "2px solid rgba(255,255,255,0.3)",
-                          boxShadow: `0 0 24px ${reward.glow}, inset 0 0 18px ${reward.glow}`,
-                          animation: "trophyBounce 1.8s ease-in-out infinite",
-                        }}
-                      >
-                        <ItemIcon id={reward.id} size={60} />
-                      </div>
-                      <div
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          padding: "6px 14px",
-                          borderRadius: 999,
-                          background: "rgba(255,255,255,0.1)",
-                          border: "1px solid rgba(255,255,255,0.25)",
-                          fontFamily: "Fredoka",
-                          fontWeight: 900,
-                          fontSize: "clamp(13px, 3.6vw, 16px)",
-                          color: "#ffd24a",
-                        }}
-                      >
-                        🎁 {reward.name} 획득!
-                      </div>
+                      <ItemIcon id={reward.id} size={60} />
                     </div>
-                  );
-                })()}
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 14px",
+                        borderRadius: 999,
+                        background: "rgba(255,255,255,0.1)",
+                        border: "1px solid rgba(255,255,255,0.25)",
+                        fontFamily: "Fredoka",
+                        fontWeight: 900,
+                        fontSize: "clamp(13px, 3.6vw, 16px)",
+                        color: "#ffd24a",
+                      }}
+                    >
+                      🎁 {reward.name} 획득!
+                    </div>
+                  </div>
+                );
+              })()}
 
-                <button
-                  onClick={handleCongratsContinue}
-                  style={{
-                    width: "100%",
-                    padding: "14px 20px",
-                    borderRadius: 14,
-                    border: "none",
-                    fontWeight: 900,
-                    fontSize: "clamp(15px, 4vw, 18px)",
-                    fontFamily: "Fredoka",
-                    background: "linear-gradient(180deg, #34d399, #059669)",
-                    color: "#fff",
-                    cursor: "pointer",
-                    boxShadow: "0 8px 20px rgba(5,150,105,0.45)",
-                  }}
-                >
-                  계속하기
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+              <button
+                onClick={handleCongratsContinue}
+                style={{ ...MODAL_BTN.green, flex: "none", width: "100%" }}
+              >
+                계속하기
+              </button>
+            </div>
+          )}
+        </GameModal>
       )}
 
-      {/* ===== Pause overlay ===== */}
+      {/* ===== 일시정지 모달 ===== */}
       {paused && !failBoardOpen && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.75)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            padding: 24,
-            gap: 10,
-            zIndex: 300,
-          }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 8 }}>⏸️</div>
-          <div
-            style={{
-              fontSize: "clamp(20px, 5vw, 24px)",
-              fontWeight: 900,
-              fontFamily: "Fredoka",
-            }}
-          >
-            PAUSED
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            <button
-              onClick={togglePause}
-              style={{
-                padding: "12px 20px",
-                borderRadius: 12,
-                border: "none",
-                fontWeight: 900,
-                fontSize: "clamp(14px, 3.5vw, 16px)",
-                fontFamily: "Fredoka",
-                background: "linear-gradient(180deg, #34d399, #059669)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
-              }}
-            >
+        <GameModal accent="#60a5fa" icon="⏸️" title="일시정지" zIndex={300}>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={togglePause} style={MODAL_BTN.green}>
               계속하기
             </button>
-            <button
-              onClick={handleRetry}
-              style={{
-                padding: "12px 20px",
-                borderRadius: 12,
-                border: "none",
-                fontWeight: 900,
-                fontSize: "clamp(14px, 3.5vw, 16px)",
-                fontFamily: "Fredoka",
-                background: "linear-gradient(180deg, #60a5fa, #2563eb)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
-              }}
-            >
+            <button onClick={handleRetry} style={MODAL_BTN.blue}>
               다시 시작
             </button>
           </div>
-        </div>
+        </GameModal>
       )}
 
-      {/* ===== Fail overlay ===== */}
+      {/* ===== 게임오버 모달 ===== */}
       {failBoardOpen && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(0,0,0,0.75)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            padding: 24,
-            gap: 10,
-            zIndex: 300,
-          }}
+        <GameModal
+          accent="#f87171"
+          icon="💀"
+          title="GAME OVER"
+          subtitle={`STAGE ${stage + 1}`}
+          zIndex={300}
         >
-          <div style={{ fontSize: 48, marginBottom: 8 }}>💀</div>
-          <div
-            style={{
-              fontSize: "clamp(20px, 5vw, 24px)",
-              fontWeight: 900,
-              fontFamily: "Fredoka",
-            }}
-          >
-            GAME OVER
-          </div>
-          <div
-            style={{
-              fontSize: "clamp(12px, 3vw, 14px)",
-              opacity: 0.9,
-              fontFamily: "Fredoka",
-              marginBottom: 10,
-            }}
-          >
-            STAGE {stage + 1}
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              onClick={handleRetry}
-              style={{
-                padding: "12px 20px",
-                borderRadius: 12,
-                border: "none",
-                fontWeight: 900,
-                fontSize: "clamp(14px, 3.5vw, 16px)",
-                fontFamily: "Fredoka",
-                background: "linear-gradient(180deg, #60a5fa, #2563eb)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
-              }}
-            >
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handleRetry} style={MODAL_BTN.blue}>
               다시 도전
             </button>
-            <button
-              onClick={onExit}
-              style={{
-                padding: "12px 20px",
-                borderRadius: 12,
-                border: "none",
-                fontWeight: 900,
-                fontSize: "clamp(14px, 3.5vw, 16px)",
-                fontFamily: "Fredoka",
-                background: "linear-gradient(180deg, #6b7280, #374151)",
-                color: "#fff",
-                cursor: "pointer",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
-              }}
-            >
+            <button onClick={onExit} style={MODAL_BTN.gray}>
               나가기
             </button>
           </div>
-        </div>
+        </GameModal>
       )}
     </div>
   );
