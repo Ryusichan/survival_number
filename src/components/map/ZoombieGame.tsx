@@ -1147,9 +1147,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       shakeRef.current.t = Math.max(0, shakeRef.current.t - dt);
       bossFlashRef.current = Math.max(0, bossFlashRef.current - dt);
       setKillFxList((prev) =>
-        prev
-          .map((fx) => ({ ...fx, timer: fx.timer - dt }))
-          .filter((fx) => fx.timer > 0),
+        prev.length === 0
+          ? prev // 이펙트가 없으면 같은 참조를 돌려 매 프레임 불필요한 갱신을 건너뜀
+          : prev
+              .map((fx) => ({ ...fx, timer: fx.timer - dt }))
+              .filter((fx) => fx.timer > 0),
       );
 
       tickCombatTimers(dt);

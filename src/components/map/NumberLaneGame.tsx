@@ -1586,6 +1586,7 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
       setRows(newRows);
       latestValue.current = 0;
       latestX.current = LANE_COUNT / 2;
+      pendingTouchX.current = null; // 리셋 전 터치 잔여값이 위치를 덮어쓰지 않게
       setPlayer((prev) => ({ ...prev, value: 0, x: LANE_COUNT / 2 }));
     }
   };
@@ -1611,6 +1612,10 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // 터치 이동은 ref에만 기록하고 RAF 루프에서 한 번에 반영한다
+  // (touchmove마다 setState → 프레임당 리렌더가 2배가 되어 배터리 소모)
+  const pendingTouchX = useRef<number | null>(null);
+
   const movePlayerByTouchX = (clientX: number) => {
     // 모달/일시정지/게임오버 중에는 터치로 캐릭터가 움직이지 않게
     if (congrats.open || paused || failBoardOpen) return;
@@ -1618,7 +1623,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
     const rect = containerRef.current.getBoundingClientRect();
     const xPx = clientX - rect.left;
     const xUnits = (xPx / rect.width) * LANE_COUNT;
-    setPlayer((p) => ({ ...p, x: clamp(xUnits, 0, LANE_COUNT) }));
+    const x = clamp(xUnits, 0, LANE_COUNT);
+    latestX.current = x; // 충돌 판정은 즉시 최신 위치 사용
+    pendingTouchX.current = x;
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) =>
@@ -1641,7 +1648,8 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
     const loop = (time: number) => {
       if (lastTimeRef.current == null) lastTimeRef.current = time;
-      const dt = (time - lastTimeRef.current) / 1000;
+      // 탭 전환/백그라운드 복귀 시 dt가 폭주해 행이 순간이동하지 않도록 클램프 (다른 게임과 동일)
+      const dt = Math.min(0.033, (time - lastTimeRef.current) / 1000);
       lastTimeRef.current = time;
 
       const HIT_RADIUS_Y = 0.06; // Y 근접 판정 범위
@@ -1748,6 +1756,13 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
 
       rowsRef.current = next;
       setRows(next);
+
+      // 터치로 이동한 위치를 프레임당 한 번만 상태에 반영 (setRows와 같은 렌더에 배칭됨)
+      if (pendingTouchX.current != null) {
+        const tx = pendingTouchX.current;
+        pendingTouchX.current = null;
+        setPlayer((p) => (p.x === tx ? p : { ...p, x: tx }));
+      }
 
       if (addValue > 0) {
         latestValue.current += addValue;

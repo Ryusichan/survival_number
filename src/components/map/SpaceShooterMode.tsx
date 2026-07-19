@@ -1045,10 +1045,16 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   /* ---- keyboard ---- */
   useEffect(() => {
     const STEP = 0.45;
+    const ARROWS = new Set([
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+    ]);
     const held = new Set<string>();
-    const onDown = (e: KeyboardEvent) => held.add(e.key);
-    const onUp = (e: KeyboardEvent) => held.delete(e.key);
-    const iv = setInterval(() => {
+    // 방향키가 눌려 있는 동안에만 타이머를 돌린다 (모바일에서 상시 60Hz 타이머 방지)
+    let iv: ReturnType<typeof setInterval> | null = null;
+    const tick = () => {
       const p = g.current.player;
       if (held.has("ArrowLeft")) p.x -= STEP * 0.016 * 60;
       if (held.has("ArrowRight")) p.x += STEP * 0.016 * 60;
@@ -1056,13 +1062,34 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       if (held.has("ArrowDown")) p.y += STEP * 0.5 * 0.016 * 60;
       p.x = clamp(p.x, 0, LANE_COUNT);
       p.y = clamp(p.y, PLAYER_Y_MIN, PLAYER_Y_MAX);
-    }, 16);
+    };
+    const stopIfIdle = () => {
+      if (held.size === 0 && iv != null) {
+        clearInterval(iv);
+        iv = null;
+      }
+    };
+    const onDown = (e: KeyboardEvent) => {
+      if (!ARROWS.has(e.key)) return;
+      held.add(e.key);
+      if (iv == null) iv = setInterval(tick, 16);
+    };
+    const onUp = (e: KeyboardEvent) => {
+      held.delete(e.key);
+      stopIfIdle();
+    };
+    const onBlur = () => {
+      held.clear();
+      stopIfIdle();
+    };
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
-      clearInterval(iv);
+      window.removeEventListener("blur", onBlur);
+      if (iv != null) clearInterval(iv);
     };
   }, []);
 
@@ -1561,8 +1588,17 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   useEffect(() => {
     if (mode === "playing") return;
     let raf: number;
+    // 비플레이 화면에서 매 프레임 리렌더하면 모바일 배터리를 크게 소모하므로
+    // 플레이어 위치가 실제로 바뀐 프레임에만 리렌더한다
+    let lastX = g.current.player.x;
+    let lastY = g.current.player.y;
     const renderLoop = () => {
-      forceRender((t) => t + 1);
+      const p = g.current.player;
+      if (p.x !== lastX || p.y !== lastY) {
+        lastX = p.x;
+        lastY = p.y;
+        forceRender((t) => t + 1);
+      }
       raf = requestAnimationFrame(renderLoop);
     };
     raf = requestAnimationFrame(renderLoop);
