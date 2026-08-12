@@ -150,14 +150,6 @@ type Player = {
   hp: number;
   maxHp: number;
 };
-type Star = {
-  x: number;
-  y: number;
-  size: number;
-  speed: number;
-  brightness: number;
-};
-
 /* =========================================================
    Constants
    ========================================================= */
@@ -896,35 +888,6 @@ function maybeDropItem(x: number, y: number): Item | null {
   return { id: _iid++, x, y, kind: "bomb" };
 }
 
-function generateStars(): Star[] {
-  const stars: Star[] = [];
-  for (let i = 0; i < 45; i++)
-    stars.push({
-      x: Math.random(),
-      y: Math.random(),
-      size: 1,
-      speed: 0.02 + Math.random() * 0.01,
-      brightness: 0.3 + Math.random() * 0.3,
-    });
-  for (let i = 0; i < 20; i++)
-    stars.push({
-      x: Math.random(),
-      y: Math.random(),
-      size: 2,
-      speed: 0.04 + Math.random() * 0.02,
-      brightness: 0.5 + Math.random() * 0.3,
-    });
-  for (let i = 0; i < 8; i++)
-    stars.push({
-      x: Math.random(),
-      y: Math.random(),
-      size: 3,
-      speed: 0.07 + Math.random() * 0.03,
-      brightness: 0.7 + Math.random() * 0.3,
-    });
-  return stars;
-}
-
 /* =========================================================
    Component
    ========================================================= */
@@ -1030,8 +993,81 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
   const g = useRef<GameState>(initGameState());
   const [, forceRender] = useState(0);
 
-  const stars = useMemo(generateStars, []);
-  const starsRef = useRef(stars);
+  // 별밭: 예전에는 별 73개를 매 프레임 React 로 다시 그리면서 left/top 을 바꿨다
+  // (= 프레임마다 73번의 레이아웃 + 73개 엘리먼트 diff).
+  // 속도대별 레이어 3개로 묶고 CSS 애니메이션에 맡기면 합성 스레드에서만 움직이므로
+  // 게임 로직이 아무리 바빠도 별 때문에 프레임을 잡아먹지 않는다.
+  const starLayers = useMemo(
+    () =>
+      [
+        { size: 1, count: 45, dur: 40, aMin: 0.3, aMax: 0.6 },
+        { size: 2, count: 20, dur: 20, aMin: 0.5, aMax: 0.8 },
+        { size: 3, count: 8, dur: 12, aMin: 0.7, aMax: 1.0 },
+      ].map((g) => ({
+        ...g,
+        dots: Array.from({ length: g.count }, () => ({
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          a: g.aMin + Math.random() * (g.aMax - g.aMin),
+        })),
+      })),
+    [],
+  );
+
+  // 엘리먼트 자체를 메모해 둔다. 매 프레임 리렌더가 일어나도 같은 참조가 반환되면
+  // React 가 이 서브트리 diff 를 통째로 건너뛴다.
+  const starField = useMemo(
+    () => (
+      <>
+        {starLayers.map((layer, li) => (
+          <div
+            key={li}
+            style={{
+              position: "absolute",
+              inset: 0,
+              overflow: "hidden",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          >
+            <div
+              className="star-scroll"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: "-100%",
+                height: "200%",
+                animationDuration: `${layer.dur}s`,
+                animationPlayState: mode === "playing" ? "running" : "paused",
+              }}
+            >
+              {/* 같은 배치를 위아래로 두 벌 깔아 끊김 없이 순환시킨다 */}
+              {[0, 1].map((copy) =>
+                layer.dots.map((d, i) => (
+                  <div
+                    key={`${copy}-${i}`}
+                    style={{
+                      position: "absolute",
+                      left: `${d.x}%`,
+                      top: `${d.y / 2 + copy * 50}%`,
+                      width: layer.size,
+                      height: layer.size,
+                      borderRadius: 999,
+                      // 눈 피로 완화: 순백 점광을 살짝 낮춤
+                      background: `rgba(225,232,255,${d.a * 0.8})`,
+                    }}
+                  />
+                )),
+              )}
+            </div>
+          </div>
+        ))}
+      </>
+    ),
+    [starLayers, mode],
+  );
+
   const lastTimeRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -1182,8 +1218,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       if (Math.abs(s.playerTilt) < 0.3) s.playerTilt = 0;
       s.playerPrevX = p.x;
 
-      /* -- stars scroll -- */
-      for (const st of starsRef.current) st.y = (st.y + st.speed * dt) % 1.0;
+      /* -- 별 스크롤은 CSS 애니메이션(.star-scroll)이 담당한다 -- */
 
       /* -- stage transition banner countdown -- */
       if (s.stageBannerT > 0) {
@@ -1669,22 +1704,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
       onTouchCancel={onTouchEnd}
     >
       {/* ===== Stars ===== */}
-      {starsRef.current.map((s, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            left: s.x * WIDTH,
-            top: s.y * HEIGHT,
-            width: s.size,
-            height: s.size,
-            borderRadius: 999,
-            // 눈 피로 완화: 순백 점광을 살짝 낮춤
-            background: `rgba(225,232,255,${s.brightness * 0.8})`,
-            pointerEvents: "none",
-          }}
-        />
-      ))}
+      {starField}
 
       {/* ===== Nebula effects ===== */}
       {(() => {
@@ -2008,9 +2028,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           key={it.id}
           style={{
             position: "absolute",
-            left: xToPx(it.x),
-            top: yToPx(it.y),
-            transform: "translate(-50%, -50%)",
+            left: 0,
+            top: 0,
+            transform: `translate(${xToPx(it.x)}px, ${yToPx(it.y)}px) translate(-50%, -50%)`,
             zIndex: 15,
             filter:
               it.kind === "heal"
@@ -2051,9 +2071,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           key={b.id}
           style={{
             position: "absolute",
-            left: xToPx(b.x),
-            top: yToPx(b.y),
-            transform: "translate(-50%, -50%)",
+            left: 0,
+            top: 0,
+            transform: `translate(${xToPx(b.x)}px, ${yToPx(b.y)}px) translate(-50%, -50%)`,
             zIndex: 12,
           }}
         >
@@ -2097,9 +2117,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             key={e.id}
             style={{
               position: "absolute",
-              left: px,
-              top: py,
-              transform: "translate(-50%, -50%)",
+              left: 0,
+              top: 0,
+              transform: `translate(${px}px, ${py}px) translate(-50%, -50%)`,
               zIndex: boss ? 18 : 14,
             }}
           >
@@ -2158,9 +2178,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
             key={ex.id}
             style={{
               position: "absolute",
-              left: px,
-              top: py,
-              transform: `translate(-50%, -50%) scale(${scale})`,
+              left: 0,
+              top: 0,
+              transform: `translate(${px}px, ${py}px) translate(-50%, -50%) scale(${scale})`,
               width: baseSize,
               height: baseSize,
               opacity,
@@ -2427,9 +2447,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         return (
           <div style={{
             position: "absolute",
-            left: shieldPx,
-            top: shieldPy,
-            transform: "translate(-50%, -50%)",
+            left: 0,
+            top: 0,
+            transform: `translate(${shieldPx}px, ${shieldPy}px) translate(-50%, -50%)`,
             zIndex: 25,
             pointerEvents: "none",
             opacity: fade * 0.75,
@@ -2694,9 +2714,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               key={b.id}
               style={{
                 position: "absolute",
-                left: xToPx(b.x),
-                top: yToPx(b.y),
-                transform: "translate(-50%, -50%)",
+                left: 0,
+                top: 0,
+                transform: `translate(${xToPx(b.x)}px, ${yToPx(b.y)}px) translate(-50%, -50%)`,
                 zIndex: 12,
                 pointerEvents: "none",
               }}
@@ -2783,9 +2803,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               key={b.id}
               style={{
                 position: "absolute",
-                left: xToPx(b.x),
-                top: yToPx(b.y),
-                transform: "translate(-50%, -50%)",
+                left: 0,
+                top: 0,
+                transform: `translate(${xToPx(b.x)}px, ${yToPx(b.y)}px) translate(-50%, -50%)`,
                 zIndex: 12,
                 pointerEvents: "none",
               }}
@@ -2841,9 +2861,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
               key={b.id}
               style={{
                 position: "absolute",
-                left: xToPx(b.x),
-                top: yToPx(b.y),
-                transform: "translate(-50%, -50%)",
+                left: 0,
+                top: 0,
+                transform: `translate(${xToPx(b.x)}px, ${yToPx(b.y)}px) translate(-50%, -50%)`,
                 width: 4 + lv,
                 height: 8 + lv * 2,
                 borderRadius: 3,

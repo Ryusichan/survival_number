@@ -2326,9 +2326,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               key={row.id}
               style={{
                 position: "absolute",
-                left: WIDTH / 2,
-                top: rowYpx,
-                transform: `translate(-50%, -50%) scale(${scale})`,
+                left: 0,
+                top: 0,
+                transform: `translate(${WIDTH / 2}px, ${rowYpx}px) translate(-50%, -50%) scale(${scale})`,
                 width: WIDTH * 0.88,
                 height: 90,
                 opacity: depthAlpha,
@@ -2408,9 +2408,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
               key={`${row.id}-${laneIndex}`}
               style={{
                 position: "absolute",
-                left: x,
-                top: rowYpx,
-                transform: `translate(-50%, -50%) scale(${scale})`,
+                left: 0,
+                top: 0,
+                transform: `translate(${x}px, ${rowYpx}px) translate(-50%, -50%) scale(${scale})`,
                 width: laneWidth * 0.8,
                 height: 60,
                 borderRadius: 16,
@@ -2471,9 +2471,9 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           <div
             style={{
               position: "absolute",
-              left: x,
-              top: y,
-              transform: "translate(-50%, -50%)",
+              left: 0,
+              top: 0,
+              transform: `translate(${x}px, ${y}px) translate(-50%, -50%)`,
               borderRadius: 20,
               color: "#fff",
               display: "flex",

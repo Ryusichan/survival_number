@@ -1092,6 +1092,24 @@ code {
 }
 
 /* ===== Space Shooter Animations ===== */
+/* 별밭 스크롤: 위아래로 두 벌 깔린 레이어를 자기 높이의 절반만큼 내리면
+   정확히 처음과 같은 배치가 되어 이음매 없이 반복된다.
+   transform 만 바뀌므로 레이아웃/페인트 없이 합성 단계에서만 처리된다. */
+.star-scroll {
+  animation-name: starScroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes starScroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}
+
 /* 눈 피로 완화: 화염은 고주파 깜빡임이 가장 피로하므로 속도를 늦추고
    투명도 진폭을 줄여 부드럽게 흔들리도록 함 (모양/기능은 유지) */
 .engine-flame {
