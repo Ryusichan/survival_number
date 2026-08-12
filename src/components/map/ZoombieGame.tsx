@@ -833,6 +833,14 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     worldRef.current = world;
   }, [world]);
 
+  // 한 프레임의 시뮬레이션 결과 캐시.
+  // StrictMode 가 setWorld 업데이터를 두 번 호출해도 계산과 부수효과는 한 번만 일어난다.
+  const simCacheRef = useRef<{
+    time: number;
+    prev: World | null;
+    next: World | null;
+  }>({ time: -1, prev: null, next: null });
+
   const lastTimeRef = useRef<number | null>(null);
   const spawnAccRef = useRef(0);
   const fireAccRef = useRef(0);
@@ -1075,6 +1083,10 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
     setWorld((prev) => {
       const combat = prev.combat;
 
+      // 버프도 임시 무기도 없으면 갱신할 게 없다.
+      // 같은 참조를 돌려주면 프레임마다 World/combat 객체를 새로 만드는 낭비가 사라진다.
+      if (combat.buffs.length === 0 && !combat.tempWeapon) return prev;
+
       const nextBuffs = combat.buffs
         .map((b) => ({ ...b, timeLeft: b.timeLeft - dt }))
         .filter((b) => b.timeLeft > 0);
@@ -1159,7 +1171,7 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       spawnBoxes(dt);
       fireIfReady(dt);
 
-      setWorld((prev) => {
+      const simulate = (prev: World): World => {
         if (prev.mode !== "playing") return prev;
 
         const nextBannerT = Math.max(0, (prev.bossBannerT ?? 0) - dt);
@@ -1172,57 +1184,47 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         // 1) MOVE
         // =========================
-        let enemies = prev.enemies.map((e) => {
-          const nextHitFx = Math.max(0, (e.hitFx ?? 0) - dt);
+        // 이동/타이머는 새 객체를 만들지 않고 제자리에서 갱신한다.
+        // simulate 는 프레임당 정확히 한 번만 도는 것이 보장되므로(위 simCacheRef) 안전하고,
+        // 프레임마다 수십 개씩 새로 만들어지던 임시 객체가 사라져 GC 로 인한 순간 끊김이 줄어든다.
+        // (아래 충돌 처리 구간은 원래부터 e.hp 를 직접 수정하고 있었으므로 방식이 일관된다)
+        let enemies = prev.enemies;
+        for (const e of enemies) {
+          e.hitFx = Math.max(0, (e.hitFx ?? 0) - dt);
 
           // healer는 그냥내려옴
           if (e.kind === "healer") {
-            return {
-              ...e,
-              y: e.y + e.speed * dt,
-              anchored: false,
-              attackAcc: 0,
-              hitFx: nextHitFx,
-            };
+            e.y += e.speed * dt;
+            e.anchored = false;
+            e.attackAcc = 0;
+            continue;
           }
 
           // ✅ snowball: 절대 anchored 안 됨. 계속 굴러 내려감
           if (e.kind === "snowball") {
-            return {
-              ...e,
-              y: e.y + e.speed * dt,
-              hitFx: nextHitFx,
-              anchored: false,
-            };
+            e.y += e.speed * dt;
+            e.anchored = false;
+            continue;
           }
 
           // ✅ snowThrower: 중간지점에서 멈추고 throwAcc 누적
           if (e.kind === "snowThrower") {
-            let ny = e.y;
             let stopped = false;
 
-            if (ny < THROWER_STOP_Y) {
-              ny = ny + e.speed * dt;
-              if (ny >= THROWER_STOP_Y) {
-                ny = THROWER_STOP_Y;
+            if (e.y < THROWER_STOP_Y) {
+              e.y += e.speed * dt;
+              if (e.y >= THROWER_STOP_Y) {
+                e.y = THROWER_STOP_Y;
                 stopped = true;
               }
             } else {
               stopped = true;
             }
 
-            const nextThrowAcc = stopped
-              ? (e.throwAcc ?? 0) + dt
-              : (e.throwAcc ?? 0);
-
-            return {
-              ...e,
-              y: ny,
-              anchored: false,
-              attackAcc: 0,
-              throwAcc: nextThrowAcc,
-              hitFx: nextHitFx,
-            };
+            if (stopped) e.throwAcc = (e.throwAcc ?? 0) + dt;
+            e.anchored = false;
+            e.attackAcc = 0;
+            continue;
           }
 
           // ✅ stage20 보스: 다른 적처럼 위에서 내려오다가 BOSS20_Y에서 정지
@@ -1231,56 +1233,52 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             prev.boss.mission.stage === 20 &&
             prev.boss.bossId === e.id
           ) {
-            const ny = Math.min(BOSS20_Y, e.y + e.speed * dt);
-            const arrived = ny >= BOSS20_Y - 0.0001;
+            e.y = Math.min(BOSS20_Y, e.y + e.speed * dt);
+            const arrived = e.y >= BOSS20_Y - 0.0001;
 
-            return {
-              ...e,
-              y: ny,
-              anchored: arrived && prev.boss.mission.stage !== 20, // ✅ 10/30은 anchored 공격 사용
-              attackAcc: arrived ? e.attackAcc + dt : 0, // ✅ 도착 전엔 공격 타이머 0
-              bossArrived: arrived,
-              hitFx: nextHitFx,
-            };
+            e.anchored = false; // ✅ stage20 은 anchored 공격을 쓰지 않는다
+            e.attackAcc = arrived ? e.attackAcc + dt : 0; // ✅ 도착 전엔 공격 타이머 0
+            e.bossArrived = arrived;
+            continue;
           }
 
           // 기존 적: anchored 로직 유지
           if (!e.anchored) {
             const ny = e.y + e.speed * dt;
             if (ny >= ANCHOR_Y) {
-              return {
-                ...e,
-                y: ANCHOR_Y,
-                anchored: true,
-                attackAcc: 0,
-                hitFx: nextHitFx,
-              };
+              e.y = ANCHOR_Y;
+              e.anchored = true;
+              e.attackAcc = 0;
+            } else {
+              e.y = ny;
             }
-            return { ...e, y: ny, hitFx: nextHitFx };
+            continue;
           }
 
-          return {
-            ...e,
-            y: ANCHOR_Y,
-            attackAcc: e.attackAcc + dt,
-            hitFx: nextHitFx,
-          };
-        });
+          e.y = ANCHOR_Y;
+          e.attackAcc += dt;
+        }
 
-        let boxes = prev.boxes.map((b) => ({ ...b, y: b.y + BOX_SPEED * dt }));
+        let boxes = prev.boxes;
+        for (const b of boxes) b.y += BOX_SPEED * dt;
 
-        let bullets = prev.bullets
-          .map((b) => ({ ...b, y: b.y - b.speed * dt }))
-          .filter((b) => b.y > FAR_Y_DEFAULT - 0.35 && b.y < DESPAWN_Y);
+        let bullets = prev.bullets;
+        for (const b of bullets) b.y -= b.speed * dt;
+        bullets = bullets.filter(
+          (b) => b.y > FAR_Y_DEFAULT - 0.35 && b.y < DESPAWN_Y,
+        );
 
-        let items = prev.items.map((it) => ({ ...it, y: it.y + 0.16 * dt }));
+        let items = prev.items;
+        for (const it of items) it.y += 0.16 * dt;
 
         // ✅ enemy shots move
-        let enemyShots = prev.enemyShots.map((s) => {
-          const nx = s.x + s.vx * dt;
-          const ny = s.y + s.vy * dt;
-          return { ...s, px: s.x, py: s.y, x: nx, y: ny };
-        });
+        let enemyShots = prev.enemyShots;
+        for (const s of enemyShots) {
+          s.px = s.x;
+          s.py = s.y;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+        }
 
         const deadEnemyIds = new Set<number>();
         const deadBulletIds = new Set<number>();
@@ -1308,26 +1306,26 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         // =========================
         const spawnedEnemyShots: EnemyShot[] = [];
 
-        enemies = enemies.map((e) => {
-          if (e.kind !== "snowThrower") return e;
-          if (e.y < THROWER_STOP_Y - 0.001) return e;
+        for (const e of enemies) {
+          if (e.kind !== "snowThrower") continue;
+          if (e.y < THROWER_STOP_Y - 0.001) continue;
 
           const acc = e.throwAcc ?? 0;
-          if (acc < THROW_INTERVAL) return e;
+          if (acc < THROW_INTERVAL) continue;
 
           const times = Math.floor(acc / THROW_INTERVAL);
-          const nextAcc = acc - times * THROW_INTERVAL;
+          e.throwAcc = acc - times * THROW_INTERVAL;
 
           const targetX = playerRef.current.x;
           const targetY = PLAYER_Y;
 
-          for (let k = 0; k < times; k++) {
-            const dx = targetX - e.x;
-            const dy = targetY - e.y;
-            const len = Math.max(0.0001, Math.hypot(dx, dy));
-            const ux = dx / len;
-            const uy = dy / len;
+          const dx = targetX - e.x;
+          const dy = targetY - e.y;
+          const len = Math.max(0.0001, Math.hypot(dx, dy));
+          const ux = dx / len;
+          const uy = dy / len;
 
+          for (let k = 0; k < times; k++) {
             spawnedEnemyShots.push({
               id: enemyShotIdSeed++,
               x: e.x,
@@ -1341,12 +1339,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               style: "throw",
             });
           }
+        }
 
-          return { ...e, throwAcc: nextAcc };
-        });
-
-        // ✅ spawn 결과를 실제 enemyShots에 반영
-        enemyShots = [...enemyShots, ...spawnedEnemyShots];
+        // ✅ spawn 결과를 실제 enemyShots에 반영 (없으면 배열을 새로 만들지 않는다)
+        if (spawnedEnemyShots.length > 0) {
+          enemyShots = [...enemyShots, ...spawnedEnemyShots];
+        }
 
         // =========================
         // 2.6) BOSS20 -> ENTRY + PATTERNED MISSILES
@@ -1931,6 +1929,18 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           totalScore: nextTotalScore,
           stageScore: nextStageScore,
         };
+      };
+
+      // React.StrictMode(개발 모드)는 상태 업데이터를 두 번 호출한다.
+      // 이 시뮬레이션 안에는 setPlayer / setKillFxList / ref 변형 같은 부수효과가 들어 있어서
+      // 두 번 돌면 플레이어가 데미지를 두 배로 받고 프레임 비용도 두 배가 된다.
+      // 같은 프레임(time) + 같은 입력(prev)이면 앞서 계산한 결과를 그대로 돌려준다.
+      setWorld((prev) => {
+        const c = simCacheRef.current;
+        if (c.time === time && c.prev === prev && c.next) return c.next;
+        const next = simulate(prev);
+        simCacheRef.current = { time, prev, next };
+        return next;
       });
 
       raf = requestAnimationFrame(loop);
@@ -2008,9 +2018,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           key={e.id}
           style={{
             position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            left: 0,
+            top: 0,
+            transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
             width: 120,
             height: 120,
             pointerEvents: "none",
@@ -2027,7 +2037,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               borderRadius: "50%",
               background:
                 "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.0) 70%)",
-              filter: "blur(1px)",
             }}
           />
           <div
@@ -2080,9 +2089,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           key={e.id}
           style={{
             position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) scale(${scale})`,
+            left: 0,
+            top: 0,
+            transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
             width: laneWidth * e.widthUnits,
             height: 300, // ✅ 보스 전용 크기
             zIndex: 90,
@@ -2152,7 +2161,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               borderRadius: "50%",
               background:
                 "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
-              filter: "blur(2px)",
             }}
           />
 
@@ -2191,19 +2199,21 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           key={e.id}
           style={{
             position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            left: 0,
+            top: 0,
+            transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
             width: laneWidth * 0.78 * e.widthUnits,
             height: 76,
             borderRadius: 18,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            // 평상시엔 필터 없음(바닥 그림자 div 가 접지감을 담당) → 매 프레임 재래스터화 제거.
+            // 피격 순간(0.25초)에만 글로우를 켠다.
             filter:
               e.hitFx > 0
                 ? "drop-shadow(0 14px 16px rgba(95, 183, 255, 0.5))"
-                : "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
+                : undefined,
             pointerEvents: "none",
           }}
         >
@@ -2219,7 +2229,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
               borderRadius: "50%",
               background:
                 "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
-              filter: "blur(2px)",
             }}
           />
 
@@ -2283,13 +2292,12 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           key={e.id}
           style={{
             position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+            left: 0,
+            top: 0,
+            transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
             width: size,
             height: 76,
             pointerEvents: "none",
-            filter: "drop-shadow(0 14px 16px rgba(0,0,0,0.32))",
           }}
         >
           {/* 바닥 그림자 */}
@@ -2321,19 +2329,20 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         key={e.id}
         style={{
           position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) translateY(${hitOffsetPx}px) scale(${scale})`,
           width: laneWidth * 0.78 * e.widthUnits,
           height: 76,
           borderRadius: 18,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          // 평상시엔 필터 없음 → 적이 많아져도 프레임마다 필터 재계산이 없다
           filter:
             e.hitFx > 0
               ? "drop-shadow(0 14px 16px rgba(95, 255, 95, 0.5))"
-              : "drop-shadow(0 14px 16px rgba(0,0,0,0.35))",
+              : undefined,
         }}
       >
         {/* 바닥 그림자 */}
@@ -2348,7 +2357,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             borderRadius: "50%",
             background:
               "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
-            filter: "blur(2px)",
           }}
         />
 
@@ -2426,9 +2434,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         key={s.id}
         style={{
           position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
           width: baseSize,
           height: baseSize,
           pointerEvents: "none",
@@ -2446,7 +2454,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             borderRadius: "50%",
             background:
               "radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.0) 70%)",
-            filter: "blur(2px)",
           }}
         />
 
@@ -2481,9 +2488,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         key={b.id}
         style={{
           position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
           width: 10,
           height: beemHeight,
           borderRadius: 8,
@@ -2537,9 +2544,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           key={it.id}
           style={{
             position: "absolute",
-            left: x,
-            top: ypx,
-            transform: `translate(-50%, -50%) scale(${scale})`,
+            left: 0,
+            top: 0,
+            transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
             width: 44,
             height: 44,
             borderRadius: 14,
@@ -2562,9 +2569,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         key={it.id}
         style={{
           position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
           width: 44,
           height: 44,
           borderRadius: 14,
@@ -2598,9 +2605,9 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
         key={bx.id}
         style={{
           position: "absolute",
-          left: x,
-          top: ypx,
-          transform: `translate(-50%, -50%) scale(${scale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(${x}px, ${ypx}px) translate(-50%, -50%) scale(${scale})`,
           width: laneWidth * 0.7 * bx.widthUnits,
           height: 64,
           borderRadius: 16,
@@ -2833,9 +2840,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       <div
         style={{
           position: "absolute",
-          left: xUnitsToPx(player.x),
-          top: PLAYER_Y * HEIGHT,
-          transform: "translate(-50%, -50%)",
+          left: 0,
+          top: 0,
+          // 위치를 left/top 대신 transform 으로 옮긴다 (매 프레임 레이아웃 재계산 방지)
+          transform: `translate(${xUnitsToPx(player.x)}px, ${
+            PLAYER_Y * HEIGHT
+          }px) translate(-50%, -50%)`,
+          willChange: "transform",
           width: laneWidth * player.widthUnits,
           height: 100,
           zIndex: 120, // ✅ 플레이어 전체 레이어
@@ -2972,9 +2983,11 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             key={fx.id}
             style={{
               position: "absolute",
-              left: fxX,
-              top: ypx - progress * 40,
-              transform: `translate(-50%, -50%) scale(${isBig ? 1.2 : 1})`,
+              left: 0,
+              top: 0,
+              transform: `translate(${fxX}px, ${
+                ypx - progress * 40
+              }px) translate(-50%, -50%) scale(${isBig ? 1.2 : 1})`,
               fontSize: isBig ? 18 : 14,
               fontWeight: 1000,
               color: isBig ? "#ff6b6b" : "#facc15",
