@@ -2719,16 +2719,6 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
       onTouchMove={onTouchMove}
     >
       <style>{`
-        .bg {
-          position:absolute; inset:0;
-          background-image: url("/bg/bg.jpg");
-          background-repeat:no-repeat;
-          background-position: center center;
-          background-size: cover;
-          /* 눈 피로 완화: 대비/채도 부스트 제거하고 살짝 낮춤 */
-          filter: saturate(0.95) contrast(0.96) brightness(0.96);
-          transform: scale(1.02);
-        }
         .vignette {
           position:absolute; inset:0;
           background: radial-gradient(circle at 50% 35%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.62) 100%);
