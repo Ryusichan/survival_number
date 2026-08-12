@@ -26,7 +26,7 @@ code {
 .charactor {
   width: 100px; /* 프레임 하나의 실제 너비 */
   height: 100px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/boy.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/boy.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -39,7 +39,7 @@ code {
 .charactor_zoombie {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_zoombie.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_zoombie.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -52,7 +52,7 @@ code {
 .charactor_zoombie2 {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_zoombie2.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_zoombie2.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -65,7 +65,7 @@ code {
 .charactor_zoombie3 {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_zoombie3.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_zoombie3.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -79,7 +79,7 @@ code {
 .charactor_zoombie4 {
   width: 160px; /* 프레임 하나의 실제 너비 */
   height: 200px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_boss1.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_boss1.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -93,7 +93,7 @@ code {
 .charactor_zoombie5 {
   width: 160px; /* 프레임 하나의 실제 너비 */
   height: 200px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/snow_boss01.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/snow_boss01.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -166,7 +166,7 @@ code {
 .enemy_snow_thrower {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/snow_charactor2.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/snow_charactor2.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -178,7 +178,7 @@ code {
 .b_pierce {
   width: 48px !important;
   height: 48px !important;
-  background-image: url("/public/items/m_carrot.png") !important; /* 너가 받은 스프라이트 */
+  background-image: url("/public/items/m_carrot.webp") !important; /* 너가 받은 스프라이트 */
   background-repeat: no-repeat !important;
   background-size: contain !important;
   box-shadow: unset !important;
@@ -187,7 +187,7 @@ code {
 .b_rapid {
   width: 40px !important;
   height: 40px !important;
-  background-image: url("/public/items/m_milk.png") !important; /* 너가 받은 스프라이트 */
+  background-image: url("/public/items/m_milk.webp") !important; /* 너가 받은 스프라이트 */
   background-repeat: no-repeat !important;
   background-size: contain !important;
   box-shadow: unset !important;
@@ -196,7 +196,7 @@ code {
 .game_player.player_pistol {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_player.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_player.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -209,7 +209,7 @@ code {
 .game_player.player_pierce {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_rabbit.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_rabbit.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -222,7 +222,7 @@ code {
 .game_player.player_rapid {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_cow.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_cow.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -235,7 +235,7 @@ code {
 .game_player.player_shotgun {
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/charactor_eleph.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/charactor_eleph.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
@@ -250,7 +250,7 @@ code {
   inset: 0;
 
   /* 메인: 꽉 채움(조금 잘림 허용) */
-  background-image: url("/public//bg/stagebg01.jpg");
+  background-image: url("/public//bg/stagebg01.webp");
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -263,7 +263,7 @@ code {
   inset: 0;
 
   /* 메인: 꽉 채움(조금 잘림 허용) */
-  background-image: url("/public//bg/stagebg02.jpg");
+  background-image: url("/public//bg/stagebg02.webp");
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -279,7 +279,7 @@ code {
 }
 
 .gunsCollect {
-  background-image: url("/public/items/guns.png");
+  background-image: url("/public/items/guns.webp");
   background-repeat: no-repeat;
   width: 48px;
   height: 48px;
@@ -445,7 +445,7 @@ code {
 
   width: 64px; /* 프레임 하나의 실제 너비 */
   height: 80px; /* 프레임 하나의 실제 높이 */
-  background-image: url("/public/charactor/snow_charactor3.png"); /* 너가 받은 스프라이트 */
+  background-image: url("/public/charactor/snow_charactor3.webp"); /* 너가 받은 스프라이트 */
   background-repeat: no-repeat;
 
   /* 전체 스프라이트 시트의 가로 길이 = 프레임 8개 */
