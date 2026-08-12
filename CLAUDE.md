@@ -15,7 +15,7 @@ A retro-styled arcade of three self-contained mini-games, built with Create Reac
 
 Node 22.x is required (`engines` in package.json). TypeScript is pinned to 4.9 even though React types are v19.
 
-`src/App.test.tsx` is still the unmodified CRA boilerplate (`renders learn react link`) and does not match what `App` actually renders — it fails. There are no real tests; validate changes with `npx tsc --noEmit` and by running the app.
+Tests are a menu smoke test (`src/App.test.tsx`) plus `src/components/map/games.smoke.test.tsx`, which mounts each game **inside `React.StrictMode`** and drives 120–180 real frames through a mocked `requestAnimationFrame`. That StrictMode wrapper is the point: the game loops put side effects inside state updaters, so double-invocation is the failure mode worth guarding. Don't use `jest.useFakeTimers()` there — it replaces `requestAnimationFrame` too and breaks the frame driver.
 
 ## Architecture
 
