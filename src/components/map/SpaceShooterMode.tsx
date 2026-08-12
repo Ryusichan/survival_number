@@ -2287,7 +2287,7 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
         const bpx = xToPx(bombProjectile.x);
         const bpy = yToPx(bombProjectile.y);
         return (
-          <div style={{ position: "absolute", left: bpx, top: bpy, transform: "translate(-50%, -50%)", zIndex: 32, pointerEvents: "none" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, transform: `translate(${bpx}px, ${bpy}px) translate(-50%, -50%)`, zIndex: 32, pointerEvents: "none" }}>
             <svg width={20} height={20} viewBox="0 0 24 24" style={{ overflow: "visible" }}>
               <circle cx={12} cy={12} r={8} fill="#00aaff" opacity={0.9} />
               <circle cx={12} cy={12} r={5} fill="#0088dd" />
@@ -2318,9 +2318,9 @@ const SpaceShooterMode: React.FC<Props> = ({ onExit }) => {
           <div
             style={{
               position: "absolute",
-              left: nx,
-              top: ny,
-              transform: `translate(-50%, -50%)`,
+              left: 0,
+              top: 0,
+              transform: `translate(${nx}px, ${ny}px) translate(-50%, -50%)`,
               width: sz,
               height: sz,
               opacity: fade,

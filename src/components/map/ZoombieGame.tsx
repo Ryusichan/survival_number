@@ -1357,28 +1357,23 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
           const bossId = prev.boss.bossId;
           const spawnedBossShots: EnemyShot[] = [];
 
-          enemies = enemies.map((e) => {
-            if (e.id !== bossId) return e;
+          for (const e of enemies) {
+            if (e.id !== bossId) continue;
 
             // ✅ 1) 입장 연출: 위에서 내려와서 멈춤
             if (!e.bossArrived) {
-              const ny = e.y;
-              const arrived = ny >= BOSS20_Y - 0.0001;
-
-              return {
-                ...e,
-                y: ny,
-                bossArrived: arrived,
-                // 도착 전에는 패턴 타이머 누적/발사 금지
-                bossFireAcc: 0,
-                bossPatternT: 0,
-                bossPatternIdx: 0,
-                bossSpiralA: 0,
-              };
+              e.bossArrived = e.y >= BOSS20_Y - 0.0001;
+              // 도착 전에는 패턴 타이머 누적/발사 금지
+              e.bossFireAcc = 0;
+              e.bossPatternT = 0;
+              e.bossPatternIdx = 0;
+              e.bossSpiralA = 0;
+              break;
             }
 
             // ✅ 2) 도착 후: 위치 고정 + 패턴 발사
             const ny = BOSS20_Y;
+            e.y = ny;
 
             const fireAcc = (e.bossFireAcc ?? 0) + dt;
             const pattT = (e.bossPatternT ?? 0) + dt;
@@ -1393,9 +1388,13 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
             const nextPattT = pattT >= BOSS20_PATTERN_DUR ? 0 : pattT;
             const style = BOSS20_ORDER[pattIdx];
 
+            // 발사 루프는 e.bossPatternT 의 "이전 프레임 값"을 읽으므로(laneGap 의 안전 레인
+            // 계산) 패턴 타이머 갱신은 루프가 끝난 뒤에 한다.
+            let nextFireAcc = fireAcc;
+
             if (fireAcc >= BOSS20_FIRE_INTERVAL) {
               const times = Math.floor(fireAcc / BOSS20_FIRE_INTERVAL);
-              const nextAcc = fireAcc - times * BOSS20_FIRE_INTERVAL;
+              nextFireAcc = fireAcc - times * BOSS20_FIRE_INTERVAL;
 
               for (let k = 0; k < times; k++) {
                 const tx = playerRef.current.x;
@@ -1488,27 +1487,18 @@ const ZoombieGame: React.FC<Props> = ({ onExit }) => {
                 }
               }
 
-              return {
-                ...e,
-                y: ny,
-                bossFireAcc: nextAcc,
-                bossPatternT: nextPattT,
-                bossPatternIdx: pattIdx,
-                bossSpiralA: spiralA,
-              };
             }
 
-            return {
-              ...e,
-              y: ny,
-              bossFireAcc: fireAcc,
-              bossPatternT: nextPattT,
-              bossPatternIdx: pattIdx,
-              bossSpiralA: spiralA,
-            };
-          });
+            e.bossFireAcc = nextFireAcc;
+            e.bossPatternT = nextPattT;
+            e.bossPatternIdx = pattIdx;
+            e.bossSpiralA = spiralA;
+            break;
+          }
 
-          enemyShots = [...enemyShots, ...spawnedBossShots];
+          if (spawnedBossShots.length > 0) {
+            enemyShots = [...enemyShots, ...spawnedBossShots];
+          }
         }
 
         // =========================

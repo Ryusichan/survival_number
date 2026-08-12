@@ -2400,8 +2400,12 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
           );
           const depthAlpha = lerp(0.5, 1.0, Math.pow(depthT, 1.2));
 
-          // 깊이에 따른 glow 강도
-          const glowAlpha = lerp(0, 0.3, Math.pow(depthT, 2));
+          // 깊이에 따른 glow 강도.
+          // 필터 값이 매 프레임 바뀌면 타일마다 필터를 다시 래스터화한다(화면에 최대 25개).
+          // 0.05 단계로 끊으면 눈에는 똑같이 서서히 밝아지지만 필터는 몇 번만 다시 계산된다.
+          // 거의 0인 구간(화면 위쪽 절반)은 아예 필터를 걸지 않는다.
+          const glowAlpha =
+            Math.round(lerp(0, 0.3, Math.pow(depthT, 2)) / 0.05) * 0.05;
 
           return (
             <div
@@ -2419,7 +2423,10 @@ const NumberLaneGame = ({ onExit }: { onExit: () => void }) => {
                 justifyContent: "center",
                 // 깊이감만 담당 (매 프레임 갱신, transition 없음)
                 opacity: depthAlpha,
-                filter: `drop-shadow(0 4px 12px rgba(255,200,100,${glowAlpha}))`,
+                filter:
+                  glowAlpha > 0
+                    ? `drop-shadow(0 4px 12px rgba(255,200,100,${glowAlpha}))`
+                    : undefined,
                 zIndex: 10,
               }}
             >
